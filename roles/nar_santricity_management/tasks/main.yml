@@ -1,0 +1,17 @@
+- name: Collect storage system facts
+  import_tasks: facts.yml
+  delegate_to: localhost
+  tags:
+    - always
+
+- name: Ensure logging has been configured
+  import_tasks: logging.yml
+  delegate_to: localhost
+
+- name: Ensure drive and controller firmware version are correct
+  import_tasks: firmware.yml
+  delegate_to: localhost
+
+- name: Ensure all management settings are configured
+  import_tasks: management.yml
+  delegate_to: localhost

@@ -1,0 +1,3 @@
+- name: Setup Needs Playbook To Restart
+  fail:
+    msg: "The nar_santricity_host role has placed plugins in the lookup_plugins directory of the playbooks path. Please restart your playbook."

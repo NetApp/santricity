@@ -1,0 +1,58 @@
+- name: Collect storage system facts
+  nac_santricity_facts:
+    ssid: "{{ eseries_ssid }}"
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+  register: eseries_facts
+
+- name: Determine whether SANtricity Web Services REST API is proxy or embedded
+  set_fact:
+    eseries_api_is_proxy: "{{ eseries_facts['storage_array_facts']['facts_from_proxy'] }}"
+
+- name: Collect current management address
+  set_fact:
+    current_management_addresses: |-
+      {%- set output = [] %}
+      {%- for interface in eseries_facts["storage_array_facts"]["netapp_management_interfaces"] %}
+        {%- if interface["ipv4_address_config_method"] == "static" and (interface["ipv4_address"] != "0.0.0.0" or interface["ipv4_address"] != "") %}
+          {%- if output.append(interface["ipv4_address"]) %}{%- endif %}
+        {%- endif %}
+      {%- endfor %}
+      {{ output | list }}
+
+- name: Collect expected management address
+  set_fact:
+    expected_management_addresses: |-
+      {%- set output = [] %}
+      {%- if eseries_management_interfaces is defined %}
+        {%- if eseries_management_interfaces["controller_a"] is defined %}
+          {%- for port in eseries_management_interfaces["controller_a"] %}
+            {%- if "address" in (port.keys() | list) and output.append(port["address"]) %}{%- endif %}
+          {%- endfor %}
+        {%- endif %}
+        {%- if eseries_management_interfaces["controller_b"] is defined %}
+          {%- for port in eseries_management_interfaces["controller_b"] %}
+            {%- if "address" in (port.keys() | list) and output.append(port["address"]) %}{%- endif %}
+          {%- endfor %}
+        {%- endif %}
+      {%- endif %}
+      {{ output | list}}
+
+- name: Create alternate SANtricity Web Services Embedded API URLs.
+  set_fact:
+    eseries_alternate_api_url: |-
+      {%- set alternate_api_url = "" %}
+      {%- if expected_management_addresses and current_management_addresses != expected_management_addresses %}
+        {%- set different_addresses = [] %}
+        {%- for expected in expected_management_addresses %}
+          {%- for current in current_management_addresses %}
+            {%- if expected != current %}
+              {%- if different_addresses.append(expected) %}{%- endif %}
+            {%- endif %}
+          {%- endfor %}
+        {%- endfor %}
+        {%- set alternate_api_url = (eseries_api_url | regex_replace('[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}', different_addresses[0])) %}
+      {%- endif %}
+      {{ alternate_api_url }}

@@ -1,0 +1,42 @@
+#beegfs_eseries_group:      # Ansible inventory group or list that contains E-Series storage systems pertaining to BeeGFS host.
+
+beegfs_open_firewall_ports: False
+beegfs_enable_rdma: False
+#beegfs_ofed_include_path: /usr/src/openib/include    # Define path to the infiniband OFED include directory if not
+#   using default kernel infiniband modules.
+
+beegfs_repository_rpm_base_url: https://www.beegfs.io/release/latest-stable/dists/rhel7
+beegfs_repository_rpm_gpgkey: https://www.beegfs.io/release/latest-stable/gpg/RPM-GPG-KEY-beegfs
+beegfs_repository_deb_base_url: https://www.beegfs.io/release/latest-stable/
+beegfs_repository_deb_gpgkey: https://www.beegfs.io/release/latest-stable/gpg/DEB-GPG-KEY-beegfs
+
+# BeeGFS service file location
+beegfs_redhat_service_path: /usr/lib/systemd/system/
+beegfs_debian_service_path: /lib/systemd/system/
+
+# BeeGFS configuration directory
+beegfs_configuration_directory: /etc/beegfs/
+beegfs_data_directory: /data/beegfs/
+
+# BeeGFS volume formatting options
+beegfs_segment_size: 128k
+beegfs_stripe_count: 8
+
+# BeeGFS Quota Configuration - WARNING: For existing installations you must manually enable/disable quotas before changing these values (see "Special Considerations" in the README).
+beegfs_enable_quota: False
+beegfs_quota_enable_enforcement: False
+
+beegfs_ntp_enabled: True      # This will enable the NTP synchronizing
+beegfs_ntp_configuration_file: /etc/ntp.conf
+beegfs_ntp_server_pools:
+  - "server 0.ubuntu.pool.ntp.org iburst"
+  - "server 1.ubuntu.pool.ntp.org iburst"
+  - "server 2.ubuntu.pool.ntp.org iburst"
+  - "server 3.ubuntu.pool.ntp.org iburst"
+beegfs_ntp_restricts:
+  - 127.0.0.1
+  - ::1
+
+# Required role paths - DO NOT CHANGE
+beegfs_role_path: "{{ (role_path|replace(playbook_dir, '.')) }}"
+beegfs_role_template_path: "{{ beegfs_role_path }}/templates/"

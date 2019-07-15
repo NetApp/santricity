@@ -1,0 +1,57 @@
+- name: Rebuild of the client kernel module
+  shell: "/etc/init.d/beegfs-client rebuild"
+  become: yes
+
+- name: Restart BeeGFS management service
+  systemd:
+    name: beegfs-mgmtd.service
+    state: restarted
+    daemon-reload: yes
+    enabled: yes
+  become: yes
+  when: beegfs_management_service_start.changed == False
+
+- name: Restart BeeGFS metadata service
+  systemd:
+    name: beegfs-meta.service
+    state: restarted
+    daemon-reload: yes
+    enabled: yes
+  become: yes
+  when: beegfs_meta_service_start.changed == False
+
+- name: Restart BeeGFS storage service
+  systemd:
+    name: beegfs-storage.service
+    state: restarted
+    daemon-reload: yes
+    enabled: yes
+  become: yes
+  when: beegfs_storage_service_start.changed == False
+
+- name: Restart BeeGFS client service
+  systemd:
+    name: beegfs-client.service
+    state: restarted
+    daemon-reload: yes
+    enabled: yes
+  become: yes
+  when: beegfs_client_service_start.changed == False
+
+- name: Restart BeeGFS ntpd service
+  systemd:
+    name: ntpd.service
+    state: restarted
+    daemon-reload: yes
+    enabled: yes
+  become: yes
+  when: beegfs_ntpd_service_start.changed == False
+
+- name: Restart BeeGFS ntp service
+  systemd:
+    name: ntp.service
+    state: restarted
+    daemon-reload: yes
+    enabled: yes
+  become: yes
+  when: beegfs_ntp_service_start.changed == False

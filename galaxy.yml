@@ -1,0 +1,15 @@
+namespace: "netapp_eseries"
+name: "santricity"
+version: "1.0.0"
+readme: "README.md"
+authors:
+  - "NetApp Inc."
+dependencies:
+license:
+  - "BSD-Source-Code"
+repository: "https://www.github.com/netapp_eseries/santricity"
+documentation: ""
+tags:
+  - santricity
+homepage: "https://www.github.com/netapp_eseries/santricity"
+issues: ""
