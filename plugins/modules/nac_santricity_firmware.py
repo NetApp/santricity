@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_firmware
+module: nac_santricity_firmware
 version_added: "2.9"
 short_description: NetApp E-Series manage firmware bundles and for legacy systems manage embedded firmware, and nvsram file.
 description:
@@ -26,10 +26,12 @@ options:
     nvsram:
         description:
             - Path to the NVSRAM file.
+        type: str
         required: true
     firmware:
         description:
             - Path to the firmware file.
+        type: str
         required: true
     wait_for_completion:
         description:
@@ -45,7 +47,7 @@ options:
 """
 EXAMPLES = """
 - name: Ensure correct firmware versions
-  netapp_e_firmware:
+  nac_santricity_firmware:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -55,7 +57,7 @@ EXAMPLES = """
     bundle: "path/to/bundle"
     wait_for_completion: true
 - name: Ensure correct firmware versions
-  netapp_e_firmware:
+ nac_santricity_firmware:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -66,10 +68,10 @@ EXAMPLES = """
 """
 RETURN = """
 msg:
-    description: Status and version of firmware and NVSRAM. 
+    description: Status and version of firmware and NVSRAM.
     type: str
     returned: always
-    sample: 
+    sample:
 """
 import re
 import six
@@ -78,20 +80,10 @@ from time import sleep
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata, request
 from ansible.module_utils._text import to_native
 
-try:
-    from ansible.module_utils.ansible_release import __version__ as ansible_version
-except ImportError:
-    ansible_version = 'unknown'
-
-try:
-    from urlparse import urlparse, urlunparse
-except ImportError:
-    from urllib.parse import urlparse, urlunparse
-
 
 class NetAppESeriesFirmware(NetAppESeriesModule):
     HEALTH_CHECK_TIMEOUT_MS = 120000
-    REBOOT_TIMEOUT_SEC = 15*60
+    REBOOT_TIMEOUT_SEC = 15 * 60
     FIRMWARE_COMPATIBILITY_CHECK_TIMEOUT_SEC = 60
     DEFAULT_TIMEOUT = 60 * 15       # This will override the NetAppESeriesModule request method timeout.
 
@@ -139,7 +131,6 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
 
         return self.is_bundle_cache
 
-    @property
     def firmware_version(self):
         """Retrieve firmware version. Return: bytes string"""
         if self.firmware_version_cache is None:
@@ -163,7 +154,6 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
                     self.module.fail_json(msg="Failed to determine firmware version. File [%s]. Array [%s]." % (self.firmware, self.ssid))
         return self.firmware_version_cache
 
-    @property
     def nvsram_version(self):
         """Retrieve NVSRAM version. Return: byte string"""
         if self.nvsram_version_cache is None:
@@ -305,20 +295,17 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
         data = {"storageDeviceIds": [self.ssid]}
         try:
             rc, check = self.request("firmware/compatibility-check", method="POST", data=data)
-
-            for count in range(0, int((self.FIRMWARE_COMPATIBILITY_CHECK_TIMEOUT_SEC / 5 - 60))):
+            for count in range(0, int((self.FIRMWARE_COMPATIBILITY_CHECK_TIMEOUT_SEC / 5))):
                 sleep(5)
                 try:
                     rc, response = self.request("firmware/compatibility-check?requestId=%s" % check["requestId"])
-
                     if not response["checkRunning"]:
-                        for result in response["results"]["nvsramFiles"]:
+                        for result in response["results"][0]["nvsramFiles"]:
                             if result["filename"] == self.nvsram_name:
-                                break
-                        else:
-                            self.module.fail_json(msg="NVSRAM is not compatible. NVSRAM [%s]. Array [%s]." % (self.nvsram_name, self.ssid))
+                                return
+                        self.module.fail_json(msg="NVSRAM is not compatible. NVSRAM [%s]. Array [%s]." % (self.nvsram_name, self.ssid))
                 except Exception as error:
-                    self.module.fail_json(msg="Failed to retrieve status update from proxy. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                    self.module.fail_json(msg="Failed to retrieve NVSRAM status update from proxy. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
         except Exception as error:
             self.module.fail_json(msg="Failed to receive NVSRAM compatibility information. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
@@ -327,28 +314,26 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
         data = {"storageDeviceIds": [self.ssid]}
         try:
             rc, check = self.request("firmware/compatibility-check", method="POST", data=data)
-
-            for count in range(0, int((self.FIRMWARE_COMPATIBILITY_CHECK_TIMEOUT_SEC / 5 - 60))):
+            for count in range(0, int((self.FIRMWARE_COMPATIBILITY_CHECK_TIMEOUT_SEC / 5))):
                 sleep(5)
                 try:
                     rc, response = self.request("firmware/compatibility-check?requestId=%s" % check["requestId"])
                     if not response["checkRunning"]:
-                        for result in response["results"]["cfwFiles"]:
+                        for result in response["results"][0]["cfwFiles"]:
                             if result["filename"] == self.firmware_name:
-                                break
-                        else:
-                            self.module.fail_json(msg="Firmware bundle is not compatible. firmware [%s]. Array [%s]." % (self.firmware_name, self.ssid))
+                                return
+                        self.module.fail_json(msg="Firmware bundle is not compatible. firmware [%s]. Array [%s]." % (self.firmware_name, self.ssid))
 
                 except Exception as error:
-                    self.module.fail_json(msg="Failed to retrieve status update from proxy. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                    self.module.fail_json(msg="Failed to retrieve firmware status update from proxy. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
         except Exception as error:
             self.module.fail_json(msg="Failed to receive firmware compatibility information. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
     def proxy_upload_and_check_compatibility(self):
         """Ensure firmware is uploaded and verify compatibility."""
         try:
-            rc, response = self.request("firmware/cfw-files")
-            for file in response:
+            rc, cfw_files = self.request("firmware/cfw-files")
+            for file in cfw_files:
                 if file["filename"] == self.nvsram_name:
                     break
             else:
@@ -363,7 +348,7 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
 
             self.proxy_check_nvsram_compatibility()
 
-            for file in response:
+            for file in cfw_files:
                 if file["filename"] == self.firmware_name:
                     break
             else:
@@ -393,21 +378,20 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
                 current_firmware_version = six.b(response[0])
 
             # Determine whether upgrade is required
-            if current_firmware_version != self.firmware_version:
+            if current_firmware_version != self.firmware_version():
 
                 current = current_firmware_version.split(b".")[:2]
-                upgrade = self.firmware_version.split(b".")[:2]
+                upgrade = self.firmware_version().split(b".")[:2]
                 if current[0] < upgrade[0] or (current[0] == upgrade[0] and current[1] <= upgrade[1]):
                     self.upgrade_required = True
                 else:
                     self.module.fail_json(msg="Downgrades are not permitted. Firmware [%s]. Array [%s]." % (self.firmware, self.ssid))
         except Exception as error:
             self.module.fail_json(msg="Failed to retrieve controller firmware information. Array [%s]. Error [%s]" % (self.ssid, to_native(error)))
-
         # Determine current NVSRAM version and whether change is required
         try:
             rc, response = self.request("storage-systems/%s/graph/xpath-filter?query=/sa/saData/nvsramVersion" % self.ssid)
-            if six.b(response[0]) != self.nvsram_version:
+            if six.b(response[0]) != self.nvsram_version():
                 self.upgrade_required = True
 
         except Exception as error:
