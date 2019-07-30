@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_drive_firmware
+module: nac_santricity_drive_firmware
 version_added: "2.9"
 short_description: NetApp E-Series manage drive firmware
 description:
@@ -26,6 +26,7 @@ options:
     firmware:
         description:
             - list of drive firmware file paths.
+            - NetApp E-Series drives require special firmware which can be download from https://mysupport.netapp.com/NOW/download/tools/diskfw_eseries/
         type: list
         required: True
     wait_for_completion:
@@ -35,7 +36,7 @@ options:
         default: false
     ignore_inaccessible_drives:
         description:
-            - This flag will determine whether drive firmware upgrade should fail if any effected drives are inaccessible. 
+            - This flag will determine whether drive firmware upgrade should fail if any effected drives are inaccessible.
         type: bool
         default: false
     upgrade_drives_online:
@@ -44,12 +45,10 @@ options:
             - When I(upgrade_drives_online==False) stop all I/O before running task.
         type: bool
         default: true
-note:
-    - NetApp E-Series drives require special firmware which can be download from https://mysupport.netapp.com/NOW/download/tools/diskfw_eseries/
 """
 EXAMPLES = """
 - name: Ensure correct firmware versions
-  netapp_e_drive_firmware:
+  nac_santricity_drive_firmware:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -61,11 +60,11 @@ EXAMPLES = """
 """
 RETURN = """
 msg:
-    description: Whether any drive firmware was upgraded and whether it is in progress. 
+    description: Whether any drive firmware was upgraded and whether it is in progress.
     type: str
     returned: always
-    sample: 
-        { changed: True, upgrade_in_process: True } 
+    sample:
+        { changed: True, upgrade_in_process: True }
 """
 import re
 
@@ -111,7 +110,6 @@ class NetAppESeriesDriveFirmware(NetAppESeriesModule):
             except Exception as error:
                 self.module.fail_json(msg="Failed to upload drive firmware [%s]. Array [%s]. Error [%s]." % (firmware_name, self.ssid, to_native(error)))
 
-    @property
     def upgrade_list(self):
         """Determine whether firmware is compatible with the specified drives."""
         if self.upgrade_list_cache is None:
@@ -140,7 +138,7 @@ class NetAppESeriesDriveFirmware(NetAppESeriesModule):
                                             drive_reference_list.append(drive["driveRef"])
 
                                         if not drive["onlineUpgradeCapable"] and self.upgrade_drives_online:
-                                            self.module.fail_json(msg="Drive(s) is not capable of online upgrade. Array [%s]. Drive [%s]."
+                                            self.module.fail_json(msg="Drive is not capable of online upgrade. Array [%s]. Drive [%s]."
                                                                       % (self.ssid, drive["driveRef"]))
 
                                 except Exception as error:
@@ -151,13 +149,13 @@ class NetAppESeriesDriveFirmware(NetAppESeriesModule):
                                 self.upgrade_list_cache.extend([{"filename": filename, "driveRefList": drive_reference_list}])
 
             except Exception as error:
-                self.module.fail_json(msg="Failed to complete compatibility and health check. Array [%s]. Error [%s}." % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to complete compatibility and health check. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
         return self.upgrade_list_cache
 
     def wait_for_upgrade_completion(self):
         """Wait for drive firmware upgrade to complete."""
-        drive_references = [reference for drive in self.upgrade_list for reference in drive["driveRefList"]]
+        drive_references = [reference for drive in self.upgrade_list() for reference in drive["driveRefList"]]
         last_status = None
         for attempt in range(int(self.WAIT_TIMEOUT_SEC / 5)):
             try:
@@ -188,7 +186,7 @@ class NetAppESeriesDriveFirmware(NetAppESeriesModule):
         """Apply firmware to applicable drives."""
         try:
             rc, response = self.request("storage-systems/%s/firmware/drives/initiate-upgrade?onlineUpdate=%s"
-                                        % (self.ssid, "true" if self.upgrade_drives_online else "false"), method="POST", data=self.upgrade_list)
+                                        % (self.ssid, "true" if self.upgrade_drives_online else "false"), method="POST", data=self.upgrade_list())
             self.upgrade_in_progress = True
         except Exception as error:
             self.module.fail_json(msg="Failed to upgrade drive firmware. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
@@ -200,10 +198,10 @@ class NetAppESeriesDriveFirmware(NetAppESeriesModule):
         """Apply firmware policy has been enforced on E-Series storage system."""
         self.upload_firmware()
 
-        if self.upgrade_list and not self.module.check_mode:
+        if self.upgrade_list() and not self.module.check_mode:
             self.upgrade()
 
-        self.module.exit_json(changed=True if self.upgrade_list else False,
+        self.module.exit_json(changed=True if self.upgrade_list() else False,
                               upgrade_in_process=self.upgrade_in_progress)
 
 
