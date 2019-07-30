@@ -1,5 +1,5 @@
 - name: Ensure drive firmware is properly configured
-  na_santricity_drive_firmware:
+  nac_santricity_drive_firmware:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -15,7 +15,7 @@
     - drive_firmware
 
 - name: Ensure controller firmware is properly configured
-  na_santricity_firmware:
+  nac_santricity_firmware:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"

@@ -1,0 +1,12 @@
+- name: Add storage systems to SANtricity WebServices Proxy
+  nac_santricity_storage_system:
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    state: "{{ item['state'] | default(omit) }}"
+    ssid: "{{ item['ssid'] }}"
+    array_password:  "{{ item['password'] }}"
+    controller_addresses: "{{ item['addresses'] }}"
+  when: eseries_proxy_systems is defined
+  loop: "{{ lookup('list', eseries_proxy_systems) }}"

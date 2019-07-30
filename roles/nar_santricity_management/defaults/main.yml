@@ -1,6 +1,14 @@
 ---
 # defaults file for nar_santricity_management
 
+# Variables specific to SANtricity WebServices Proxy
+# --------------------------------------------------
+#eseries_proxy_systems:                                  # List of dictionaries containing information for E-Series storage systems to added to the proxy
+#  - state:                                              # (optional) Whether the storage system should be added. Choices: present, absent
+#    ssid:                                               # Storage system identifier
+#    password:                                           # Storage system password
+#    addresses:                                          # List of controller addresses
+
 # Storage System Credentials for Interacting with Web Services REST API
 # ---------------------------------------------------------------------
 eseries_ssid: 1                                          # Storage array identifier. This value will be 1 when interacting with the embedded web services,
