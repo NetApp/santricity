@@ -104,6 +104,17 @@ eseries_asup_active: true  # Enables active monitoring which allows NetApp suppo
 #eseries_asup_days:        # List of days of the week. Choices: monday, tuesday, wednesday, thursday, friday, saturday, sunday
 eseries_asup_start: 0      # Hour of the day(s) to start ASUP bundle transmissions. Start time must be less than end time. Choices: 0-23
 eseries_asup_end: 24       # Hour of the day(s) to end ASUP bundle transmissions. Start time must be less than end time. Choices: 1-24
+#eseries_asup_method:         # ASUP delivery method. Choices https, http, email (default: https)
+#eseries_asup_routing_type:   # ASUP delivery routing type for https or http. Choices: direct, proxy, script (default: direct)
+#eseries_asup_proxy:          # ASUP proxy delivery method information.
+#  host:                      # ASUP proxy host IP address or FQDN. When eseries_asup_routing_type==proxy this must be specified.
+#  port:                      # ASUP proxy host port. When eseries_asup_routing_type==proxy this must be specified.
+#  script:                    # ASUP proxy host script.
+#eseries_asup_email:          # ASUP email delivery configuration information
+#  server:                    # ASUP email server
+#  sender:                    # ASUP email sender
+#  test_recipient:            # ASUP configuration mail test recipient
+#eseries_asup_validate:       # Verify ASUP configuration prior to applying changes.
 
 # Audit-log configuration defaults
 # --------------------------------
