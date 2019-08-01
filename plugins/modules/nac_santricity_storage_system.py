@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 
 DOCUMENTATION = '''
-module: netapp_e_storage_system
+module: nac_santricity_storage_system
 version_added: "2.2"
 short_description: NetApp E-Series Web Services Proxy manage storage arrays
 description:
@@ -70,7 +70,7 @@ author: Kevin Hulquest (@hulquest)
 EXAMPLES = '''
 ---
     - name:  Presence of storage system
-      netapp_e_storage_system:
+      nac_santricity_storage_system:
         ssid: "{{ item.key }}"
         state: present
         api_url: "{{ netapp_api_url }}"

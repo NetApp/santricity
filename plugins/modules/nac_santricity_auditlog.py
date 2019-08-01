@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_auditlog
+module: nac_santricity_auditlog
 short_description: NetApp E-Series manage audit-log configuration
 description:
     - This module allows an e-series storage system owner to set audit-log configuration parameters.
@@ -62,7 +62,7 @@ notes:
 
 EXAMPLES = """
 - name: Define audit-log to prevent system access if records exceed 50000 with warnings occurring at 60% capacity.
-  netapp_e_auditlog:
+  nac_santricity_auditlog:
      api_url: "https://{{ netapp_e_api_host }}/devmgr/v2"
      api_username: "{{ netapp_e_api_username }}"
      api_password: "{{ netapp_e_api_password }}"
@@ -74,13 +74,13 @@ EXAMPLES = """
      threshold: 60
      log_path: /path/to/log_file.log
 - name: Define audit-log utilize the default values.
-  netapp_e_auditlog:
+  nac_santricity_auditlog:
      api_url: "https://{{ netapp_e_api_host }}/devmgr/v2"
      api_username: "{{ netapp_e_api_username }}"
      api_password: "{{ netapp_e_api_password }}"
      ssid: "{{ netapp_e_ssid }}"
 - name: Force audit-log configuration when full or warning conditions occur while enacting preventSystemAccess policy.
-  netapp_e_auditlog:
+  nac_santricity_auditlog:
      api_url: "https://{{ netapp_e_api_host }}/devmgr/v2"
      api_username: "{{ netapp_e_api_username }}"
      api_password: "{{ netapp_e_api_password }}"

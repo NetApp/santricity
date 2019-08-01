@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_volume
+module: nac_santricity_volume
 version_added: "2.2"
 short_description: NetApp E-Series manage storage volumes (standard and thin)
 description:
@@ -57,7 +57,7 @@ options:
             - All values are in kibibytes.
             - Some common choices include '8', '16', '32', '64', '128', '256', and '512' but options are system
               dependent.
-            - Retrieve the definitive system list from M(netapp_e_facts) under segment_sizes.
+            - Retrieve the definitive system list from M(nac_santricity_facts) under segment_sizes.
             - When the storage pool is a raidDiskPool then the segment size must be 128kb.
             - Segment size migrations are not allowed in this module
         default: '128'
@@ -159,7 +159,7 @@ options:
               array.
             - When I(workload_name) exists on the storage array but the metadata is different then the workload
               definition will be updated. (Changes will update all associated volumes!)
-            - Existing workloads can be retrieved using M(netapp_e_facts).
+            - Existing workloads can be retrieved using M(nac_santricity_facts).
         required: false
         version_added: 2.8
     metadata:
@@ -181,7 +181,7 @@ options:
 """
 EXAMPLES = """
 - name: Create simple volume with workload tags (volume meta data)
-  netapp_e_volume:
+  nac_santricity_volume:
     ssid: "{{ ssid }}"
     api_url: "{{ netapp_api_url }}"
     api_username: "{{ netapp_api_username }}"
@@ -197,7 +197,7 @@ EXAMPLES = """
       key1: value1
       key2: value2
 - name: Create a thin volume
-  netapp_e_volume:
+  nac_santricity_volume:
     ssid: "{{ ssid }}"
     api_url: "{{ netapp_api_url }}"
     api_username: "{{ netapp_api_username }}"
@@ -212,7 +212,7 @@ EXAMPLES = """
     thin_volume_repo_size: 32
     thin_volume_max_repo_size: 1024
 - name: Expand thin volume's virtual size
-  netapp_e_volume:
+  nac_santricity_volume:
     ssid: "{{ ssid }}"
     api_url: "{{ netapp_api_url }}"
     api_username: "{{ netapp_api_username }}"
@@ -227,7 +227,7 @@ EXAMPLES = """
     thin_volume_repo_size: 32
     thin_volume_max_repo_size: 1024
 - name: Expand thin volume's maximum repository size
-  netapp_e_volume:
+  nac_santricity_volume:
     ssid: "{{ ssid }}"
     api_url: "{{ netapp_api_url }}"
     api_username: "{{ netapp_api_username }}"
@@ -242,7 +242,7 @@ EXAMPLES = """
     thin_volume_repo_size: 32
     thin_volume_max_repo_size: 2048
 - name: Delete volume
-  netapp_e_volume:
+  nac_santricity_volume:
     ssid: "{{ ssid }}"
     api_url: "{{ netapp_api_url }}"
     api_username: "{{ netapp_api_username }}"

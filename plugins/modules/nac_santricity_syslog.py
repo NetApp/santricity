@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_syslog
+module: nac_santricity_syslog
 short_description: NetApp E-Series manage syslog settings
 description:
     - Allow the syslog settings to be configured for an individual E-Series storage-system
@@ -71,7 +71,7 @@ notes:
 
 EXAMPLES = """
     - name: Add two syslog server configurations to NetApp E-Series storage array.
-      netapp_e_syslog:
+      nac_santricity_syslog:
         state: present
         address: "{{ item }}"
         port: 514

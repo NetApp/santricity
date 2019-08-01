@@ -15,7 +15,7 @@ DOCUMENTATION = """
 ---
 module: na_santricity_reboot
 version_added: "2.9"
-short_description: NetApp E-Series reboot both contro
+short_description: NetApp E-Series reboot specified controllers
 description:
     - Ensure specific firmware versions are activated on E-Series storage system.
 author:
@@ -36,22 +36,21 @@ options:
 """
 EXAMPLES = """
 - name: Enable feature pack
-  netapp_e_feature_pack:
+  na_santricity_reboot:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
-    validate_certs: "{{ eseries_validate_certs }}"
-    feature_key: "path/to/feature-pack.key"
+    controller: a
     wait_for_reboot: True
 """
-RETURN = """changed=self.is_change_required, expected_submodel_id=self.expected_submodel_id, current_submodel_id=self.current_submodel_id
+RETURN = """
 msg:
-    description: Status and version of firmware and NVSRAM. 
+    description: Whether controllers were rebooted
     type: str
     returned: always
     sample: 
-      - {"changed": false, "current_submodel_id": 321, "expected_submodel_id": 321}
+      - {"changed": True}
 
 """
 import re

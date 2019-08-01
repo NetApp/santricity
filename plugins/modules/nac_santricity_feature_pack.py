@@ -13,9 +13,9 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_firmware
+module: nac_santricity_feature_pack
 version_added: "2.9"
-short_description: NetApp E-Series manage firmware bundles and for legacy systems manage embedded firmware, and nvsram file.
+short_description: NetApp E-Series manages feature packs
 description:
     - Ensure specific firmware versions are activated on E-Series storage system.
 author:
@@ -35,7 +35,7 @@ options:
 """
 EXAMPLES = """
 - name: Enable feature pack
-  netapp_e_feature_pack:
+  nac_santricity_feature_pack:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"

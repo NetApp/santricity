@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_mgmt_interface
+module: nac_santricity_mgmt_interface
 short_description: NetApp E-Series management interface configuration
 description:
     - Configure the E-Series management interfaces
@@ -146,7 +146,7 @@ notes:
 
 EXAMPLES = """
     - name: Configure the first port on the A controller with a static IPv4 address
-      netapp_e_mgmt_interface:
+      nac_santricity_mgmt_interface:
         name: "1"
         controller: "A"
         config_method: static
@@ -159,7 +159,7 @@ EXAMPLES = """
         api_password: "myPass"
 
     - name: Disable ipv4 connectivity for the second port on the B controller
-      netapp_e_mgmt_interface:
+      nac_santricity_mgmt_interface:
         name: "2"
         controller: "B"
         enable_interface: no
@@ -169,7 +169,7 @@ EXAMPLES = """
         api_password: "{{ netapp_api_password }}"
 
     - name: Enable ssh access for ports one and two on controller A
-      netapp_e_mgmt_interface:
+      nac_santricity_mgmt_interface:
         name: "{{ item }}"
         controller: "A"
         ssh: yes
@@ -182,7 +182,7 @@ EXAMPLES = """
         - 2
 
     - name: Configure static DNS settings for the first port on controller A
-      netapp_e_mgmt_interface:
+      nac_santricity_mgmt_interface:
         name: "1"
         controller: "A"
         dns_config_method: static
@@ -194,7 +194,7 @@ EXAMPLES = """
         api_password: "{{ netapp_api_password }}"
 
     - name: Configure static NTP settings for ports one and two on controller B
-      netapp_e_mgmt_interface:
+      nac_santricity_mgmt_interface:
         name: "{{ item }}"
         controller: "B"
         ntp_config_method: static

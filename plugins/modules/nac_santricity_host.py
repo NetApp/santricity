@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_host
+module: nac_santricity_host
 short_description: NetApp E-Series manage eseries hosts
 description: Create, update, remove hosts on NetApp E-series storage arrays
 version_added: '2.2'
@@ -44,7 +44,7 @@ options:
             - This is the type of host to be mapped
             - Required when C(state=present)
             - Either one of the following names can be specified, Linux DM-MP, VMWare, Windows, Windows Clustered, or a
-              host type index which can be found in M(netapp_e_facts)
+              host type index which can be found in M(nac_santricity_facts)
         type: str
         aliases:
             - host_type_index
@@ -96,7 +96,7 @@ options:
 
 EXAMPLES = """
     - name: Define or update an existing host named 'Host1'
-      netapp_e_host:
+      nac_santricity_host:
         ssid: "1"
         api_url: "10.113.1.101:8443"
         api_username: admin
@@ -116,7 +116,7 @@ EXAMPLES = """
             port: '10:00:FF:7C:FF:FF:FF:00'
 
     - name: Ensure a host named 'Host2' doesn't exist
-      netapp_e_host:
+      nac_santricity_host:
         ssid: "1"
         api_url: "10.113.1.101:8443"
         api_username: admin

@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_iscsi_target
+module: nac_santricity_iscsi_target
 short_description: NetApp E-Series manage iSCSI target configuration
 description:
     - Configure the settings of an E-Series iSCSI target
@@ -58,13 +58,13 @@ options:
 notes:
     - Check mode is supported.
     - Some of the settings are dependent on the settings applied to the iSCSI interfaces. These can be configured using
-      M(netapp_e_iscsi_interface).
+      M(nac_santricity_iscsi_interface).
     - This module requires a Web Services API version of >= 1.3.
 """
 
 EXAMPLES = """
     - name: Enable ping responses and unnamed discovery sessions for all iSCSI ports
-      netapp_e_iscsi_target:
+      nac_santricity_iscsi_target:
         api_url: "https://localhost:8443/devmgr/v2"
         api_username: admin
         api_password: myPassword
@@ -75,7 +75,7 @@ EXAMPLES = """
         unnamed_discovery: yes
 
     - name: Set the target alias and the CHAP secret
-      netapp_e_iscsi_target:
+      nac_santricity_iscsi_target:
         ssid: "{{ ssid }}"
         api_url: "{{ netapp_api_url }}"
         api_username: "{{ netapp_api_username }}"

@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_asup
+module: nac_santricity_asup
 short_description: NetApp E-Series manage auto-support settings
 description:
     - Allow the auto-support settings to be configured for an individual E-Series storage-system
@@ -177,7 +177,7 @@ notes:
 
 EXAMPLES = """
     - name: Enable ASUP and allow pro-active retrieval of bundles
-      netapp_e_asup:
+      nac_santricity_asup:
         state: enabled
         active: yes
         api_url: "10.1.1.1:8443"
@@ -185,7 +185,7 @@ EXAMPLES = """
         api_password: "myPass"
 
     - name: Set the ASUP schedule to only send bundles from 12 AM CST to 3 AM CST.
-      netapp_e_asup:
+      nac_santricity_asup:
         start: 17
         end: 20
         api_url: "10.1.1.1:8443"

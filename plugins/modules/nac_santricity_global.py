@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_global
+module: nac_santricity_global
 short_description: NetApp E-Series manage global settings configuration
 description:
     - Allow the user to configure several of the global settings associated with an E-Series storage-system
@@ -40,7 +40,7 @@ notes:
 
 EXAMPLES = """
     - name: Set the storage-system name
-      netapp_e_global:
+      nac_santricity_global:
         name: myArrayName
         api_url: "10.1.1.1:8443"
         api_username: "admin"

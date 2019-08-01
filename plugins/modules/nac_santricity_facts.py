@@ -12,10 +12,10 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'supported_by': 'community'}
 
 DOCUMENTATION = '''
-module: netapp_e_facts
+module: nac_santricity_facts
 short_description: NetApp E-Series retrieve facts about NetApp E-Series storage arrays
 description:
-    - The netapp_e_facts module returns a collection of facts regarding NetApp E-Series storage arrays.
+    - The nac_santricity_facts module returns a collection of facts regarding NetApp E-Series storage arrays.
     - When contacting a storage array directly the collection includes details about the array, controllers, management
       interfaces, hostside interfaces, driveside interfaces, disks, storage pools, volumes, snapshots, and features.
     - When contacting a web services proxy the collection will include basic information regarding the storage systems
@@ -31,14 +31,14 @@ extends_documentation_fragment:
 EXAMPLES = """
 ---
 - name: Get array facts
-  netapp_e_facts:
+  nac_santricity_facts:
       ssid: "{{ netapp_array_id }}"
       api_url: "https://{{ netapp_e_api_host }}:8443/devmgr/v2"
       api_username: "{{ netapp_api_username }}"
       api_password: "{{ netapp_api_password }}"
       validate_certs: "{{ netapp_api_validate_certs }}"
 - name: Get array facts
-  netapp_e_facts:
+  nac_santricity_facts:
       ssid: 1
       api_url: https://192.168.1.100:8443/devmgr/v2
       api_username: myApiUser

@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = '''
 ---
-module: netapp_e_lun_mapping
+module: nac_santricity_lun_mapping
 author:
     - Kevin Hulquest (@hulquest)
     - Nathan Swartz (@ndswartz)
@@ -62,7 +62,7 @@ options:
 EXAMPLES = '''
 ---
     - name: Map volume1 to the host target host1
-      netapp_e_lun_mapping:
+      nac_santricity_lun_mapping:
         ssid: 1
         api_url: "{{ netapp_api_url }}"
         api_username: "{{ netapp_api_username }}"
@@ -72,7 +72,7 @@ EXAMPLES = '''
         target: host1
         volume: volume1
     - name: Delete the lun mapping between volume1 and host1
-      netapp_e_lun_mapping:
+      nac_santricity_lun_mapping:
         ssid: 1
         api_url: "{{ netapp_api_url }}"
         api_username: "{{ netapp_api_username }}"

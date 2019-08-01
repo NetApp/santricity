@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {"metadata_version": "1.1",
 
 DOCUMENTATION = """
 ---
-module: netapp_e_storagepool
+module: nac_santricity_storagepool
 short_description: NetApp E-Series manage volume groups and disk pools
 description: Create or remove volume groups and disk pools for NetApp E-series storage arrays.
 version_added: "2.2"
@@ -125,7 +125,7 @@ notes:
 """
 EXAMPLES = """
 - name: No disk groups
-  netapp_e_storagepool:
+  nac_santricity_storagepool:
     ssid: "{{ ssid }}"
     name: "{{ item }}"
     state: absent

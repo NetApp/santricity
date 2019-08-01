@@ -15,7 +15,7 @@ ANSIBLE_METADATA = {"metadata_version": "1.1",
 
 DOCUMENTATION = """
 ---
-module: netapp_e_hostgroup
+module: nac_santricity_hostgroup
 version_added: "2.2"
 short_description: NetApp E-Series manage array host groups
 author:
@@ -51,7 +51,7 @@ options:
 """
 EXAMPLES = """
     - name: Configure Hostgroup
-      netapp_e_hostgroup:
+      nac_santricity_hostgroup:
         ssid: "{{ ssid }}"
         api_url: "{{ netapp_api_url }}"
         api_username: "{{ netapp_api_username }}"

@@ -10,3 +10,4 @@
     controller_addresses: "{{ item['addresses'] }}"
   when: eseries_proxy_systems is defined
   loop: "{{ lookup('list', eseries_proxy_systems) }}"
+  run_once: true

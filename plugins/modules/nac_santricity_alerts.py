@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_alerts
+module: nac_santricity_alerts
 short_description: NetApp E-Series manage email notification settings
 description:
     - Certain E-Series systems have the capability to send email notifications on potentially critical events.
@@ -35,7 +35,7 @@ options:
         description:
             - A fully qualified domain name, IPv4 address, or IPv6 address of a mail server.
             - To use a fully qualified domain name, you must configure a DNS server on both controllers using
-             M(netapp_e_mgmt_interface).
+             M(nac_santricity_mgmt_interface).
              - Required when I(state=enabled).
         required: no
     sender:
@@ -74,7 +74,7 @@ notes:
 
 EXAMPLES = """
     - name: Enable email-based alerting
-      netapp_e_alerts:
+      nac_santricity_alerts:
         state: enabled
         sender: noreply@example.com
         server: mail@example.com
@@ -87,7 +87,7 @@ EXAMPLES = """
         api_password: "myPass"
 
     - name: Disable alerting
-      netapp_e_alerts:
+      nac_santricity_alerts:
         state: disabled
         api_url: "10.1.1.1:8443"
         api_username: "admin"

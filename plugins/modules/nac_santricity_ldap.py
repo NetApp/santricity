@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = '''
 ---
-module: netapp_e_ldap
+module: nac_santricity_ldap
 short_description: NetApp E-Series manage LDAP integration to use for authentication
 description:
     - Configure an E-Series system to allow authentication via an LDAP server
@@ -111,7 +111,7 @@ notes:
 
 EXAMPLES = '''
     - name: Disable LDAP authentication
-      netapp_e_ldap:
+      nac_santricity_ldap:
         api_url: "10.1.1.1:8443"
         api_username: "admin"
         api_password: "myPass"
@@ -119,12 +119,12 @@ EXAMPLES = '''
         state: absent
 
     - name: Remove the 'default' LDAP domain configuration
-      netapp_e_ldap:
+      nac_santricity_ldap:
         state: absent
         identifier: default
 
     - name: Define a new LDAP domain, utilizing defaults where possible
-      netapp_e_ldap:
+      nac_santricity_ldap:
         state: present
         bind_username: "CN=MyBindAccount,OU=ServiceAccounts,DC=example,DC=com"
         bind_password: "mySecretPass"

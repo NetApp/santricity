@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: netapp_e_iscsi_interface
+module: nac_santricity_iscsi_interface
 short_description: NetApp E-Series manage iSCSI interface configuration
 description:
     - Configure settings of an E-Series iSCSI interface
@@ -99,7 +99,7 @@ notes:
 
 EXAMPLES = """
     - name: Configure the first port on the A controller with a static IPv4 address
-      netapp_e_iscsi_interface:
+      nac_santricity_iscsi_interface:
         name: "1"
         controller: "A"
         config_method: static
@@ -112,7 +112,7 @@ EXAMPLES = """
         api_password: "myPass"
 
     - name: Disable ipv4 connectivity for the second port on the B controller
-      netapp_e_iscsi_interface:
+      nac_santricity_iscsi_interface:
         name: "2"
         controller: "B"
         state: disabled
@@ -122,7 +122,7 @@ EXAMPLES = """
         api_password: "{{ netapp_api_password }}"
 
     - name: Enable jumbo frames for the first 4 ports on controller A
-      netapp_e_iscsi_interface:
+      nac_santricity_iscsi_interface:
         name: "{{ item | int }}"
         controller: "A"
         state: enabled

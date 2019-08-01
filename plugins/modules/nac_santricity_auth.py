@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = '''
 ---
-module: netapp_e_auth
+module: nac_santricity_auth
 short_description: NetApp E-Series set or update the password for a storage array.
 description:
     - Sets or updates the password for a storage array.  When the password is updated on the storage array, it must be updated on the SANtricity Web
@@ -69,7 +69,7 @@ options:
 
 EXAMPLES = '''
 - name: Test module
-  netapp_e_auth:
+  nac_santricity_auth:
     name: trex
     current_password: OldPasswd
     new_password: NewPasswd
