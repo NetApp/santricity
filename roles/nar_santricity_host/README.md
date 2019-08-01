@@ -6,14 +6,18 @@ nar_santricity_host
 
 Requirements
 ------------
-    - Ansible 2.7 or later
+    - Ansible 2.8 or later
     - NetApp E-Series E2800 platform or newer or NetApp E-Series SANtricity Web Services Proxy configured for older E-Series Storage arrays.
 
 Instructions
 ------------
     1) Use the ansible-galaxy command line tool to install nar_santricity_host role on your Ansible management host.
 
-          ansible-galaxy install netapp_eseries.nar_santricity_host
+        Using Mazer (Ansible 2.8 or later, experimental):
+            mazer install netapp_eseries.santricity
+
+        Using ansible-galaxy (Ansible 2.9 or later):
+            ansible-galaxy install netapp_eseries.santricity
 
     2) Add your NetApp E-Series storage systems(s) to the Ansible inventory. Copy and modify the example storage array inventory file below or see the example
        inventory files found in this roles examples directory. For the full list variables pertaining to this role, review the role variables section below.
@@ -23,11 +27,13 @@ Instructions
 Example Playbook
 ----------------
     - hosts: eseries_storage_systems
-      gather_facts: false             # Fact gathering should be disabled to avoid gathering unecessary facts about the control node.
+      gather_facts: false             # Fact gathering should be disabled to avoid gathering unnecessary facts about the control node.
+      collection:
+        - netapp_eseries.santricity
       tasks:
-      - name: Ensure NetApp E-Series storage systeem is properly configured
+      - name: Ensure NetApp E-Series storage system is properly configured
         import_role:
-          name: netapp_eseries.nar_santricity_host
+          name: nar_santricity_host
 
 Example Storage System Inventory File
 -------------------------------------
@@ -67,7 +73,7 @@ Role Variables
 
     # Default storage array credentials for interacting with web services api
     -------------------------------------------------------------------------
-    eseries_ssid:            # Storage array identifier. This value will be 1 when enteracting with the embedded web services, otherwise the identifier will be
+    eseries_ssid:            # Storage array identifier. This value will be 1 when interacting with the embedded web services, otherwise the identifier will be
                                   defined on the web services proxy.
     eseries_api_url:         # Url for the web services api. Example: https://192.168.10.100/devmgr/v2
     eseries_api_username:    # Username for the web services api.

@@ -122,6 +122,7 @@ notes:
   - Traditional volume groups (raid0, raid1, raid5, raid6) are performed in steps dictated by the storage array. Each
     required step will be attempted until the request fails which is likely because of the required expansion time.
   - raidUnsupported will be treated as raid0, raidAll as raidDiskPool and raid3 as raid5.
+  - Tray loss protection and drawer loss protection will be chosen if at all possible.
 """
 EXAMPLES = """
 - name: No disk groups
@@ -504,7 +505,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
             no_protection = list()
             sorted_candidates = list()
             for item in candidates_list:
-                if item["trayLostProtection"]:
+                if item["trayLossProtection"]:
                     if item["drawerLossProtection"]:
                         tray_drawer_protection.append(item)
                     else:

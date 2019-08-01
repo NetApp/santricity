@@ -21,12 +21,12 @@ eseries_ssid: 1                                          # Storage array identif
 
 # Storage system defaults
 # -----------------------------
-#eseries_system_name:         # Name of the storage system.
+#eseries_system_name:                     # Name of the storage system.
 
 # Storage management interface defaults
 # -------------------------------------
 #eseries_management_interfaces:
-#  update_santricity_web_services_proxy:                  # Forces the url to be updated in the web services proxy
+#  update_santricity_web_services_proxy:  # Forces the url to be updated in the web services proxy
 #  config_method:
 #  subnet_mask:
 #  gateway_mask:
