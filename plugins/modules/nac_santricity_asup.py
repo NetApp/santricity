@@ -18,7 +18,9 @@ short_description: NetApp E-Series manage auto-support settings
 description:
     - Allow the auto-support settings to be configured for an individual E-Series storage-system
 version_added: '2.7'
-author: Michael Price (@lmprice)
+author:
+    - Michael Price (@lmprice)
+    - Nathan Swartz (@ndswartz)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity
 options:
@@ -77,6 +79,84 @@ options:
         aliases:
             - days_of_week
             - schedule_days
+    method:
+        description:
+            - AutoSupport dispatch delivery method.
+        choices:
+            - https
+            - http
+            - email
+        type: str
+        required: false
+        default: https
+    routing_type:
+        description:
+            - AutoSupport routing
+            - Required when M(method==https or method==http).
+        choices:
+            - direct
+            - proxy
+            - script
+        type: str
+        default: direct
+        required: false
+    proxy:
+        description:
+            - Information particular to the proxy delivery method.
+            - Required when M((method==https or method==http) and routing_type==proxy).
+        type: dict
+        required: false
+        suboptions:
+            host:
+                description:
+                    - Proxy host IP address or fully qualified domain name.
+                    - Required when M(routing_type==proxy) and M(.
+                type: str
+                required: false
+            port:
+                description:
+                    - Proxy host port.
+                    - Required when M(routing_type==proxy).
+                type: str
+                required: false
+            script:
+                description:
+                    - Path to the AutoSupport routing script file.
+                    - Required when M(routing_type==script) and M(.
+                type: str
+                required: false
+    email:
+        description:
+            - Information particular to the e-mail delivery method.
+            - Uses the SMTP protocol.
+            - Required when M(method==email).
+        type: dict
+        required: false
+        suboptions:
+            server:
+                description:
+                    - Mail server's IP address or fully qualified domain name.
+                    - Required when M(routing_type==email).
+                type: str
+                required: false
+            sender:
+                description:
+                    - Sender's email account
+                    - Required when M(routing_type==email).
+                type: str
+                required: false
+            test_recipient:
+                description:
+                    - Test verification email
+                    - Required when M(routing_type==email).
+                type: str
+                required: false
+    validate:
+        description:
+            - Validate ASUP configuration.
+        type: bool
+        default: false
+        required: false
     verbose:
         description:
             - Provide the full ASUP configuration in the return.
@@ -178,11 +258,30 @@ class Asup(object):
                       choices=self.DAYS_OPTIONS),
             start=dict(type='int', required=False, default=0, aliases=['start_time']),
             end=dict(type='int', required=False, default=24, aliases=['end_time']),
+            method=dict(type='str', required=False, choices=['https', 'http', 'email'], default='https'),
+            routing_type=dict(type='str', required=False, choices=['direct', 'proxy', 'script'], default='direct'),
+            proxy=dict(type='dict', required=False, options=dict(host=dict(type='str', required=False),
+                                                                 port=dict(type='str', required=False),
+                                                                 script=dict(type='str', required=False))),
+            email=dict(type='dict', required=False, options=dict(server=dict(type='str', required=False),
+                                                                 sender=dict(type='str', required=False),
+                                                                 test_recipient=dict(type='str', required=False))),
+            validate=dict(type='bool', require=False, default=False),
             verbose=dict(type='bool', required=False, default=False),
             log_path=dict(type='str', required=False),
         ))
 
-        self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True, )
+        mutually_exclusive = [["host", "script"],
+                              ["port", "script"]]
+
+        required_if = [["method", "https", ["routing_type"]],
+                       ["method", "http", ["routing_type"]],
+                       ["method", "email", ["email"]]]
+
+        self.module = AnsibleModule(argument_spec=argument_spec,
+                                    mutually_exclusive=mutually_exclusive,
+                                    required_if=required_if,
+                                    supports_check_mode=True)
         args = self.module.params
         self.asup = args['state'] == 'enabled'
         self.active = args['active']
@@ -191,11 +290,20 @@ class Asup(object):
         self.end = args['end']
         self.verbose = args['verbose']
 
+        self.method = args['method']
+        self.routing_type = args['routing_type'] if args['routing_type'] else "none"
+        self.proxy = args['proxy']
+        self.email = args['email']
+        self.validate = args['validate']
+
         self.ssid = args['ssid']
         self.url = args['api_url']
         self.creds = dict(url_password=args['api_password'],
                           validate_certs=args['validate_certs'],
                           url_username=args['api_username'], )
+
+        if self.validate and self.email and 'test_recipient' not in self.email.keys():
+            self.module.fail_json(msg="test_recipient must be provided for validating email delivery method. Array [%s]" % self.ssid)
 
         self.check_mode = self.module.check_mode
 
@@ -269,13 +377,62 @@ class Asup(object):
             elif self.end != config['schedule']['dailyMaxTime'] or self.end != config['schedule']['weeklyMaxTime']:
                 update = True
 
-        elif config['asupEnabled']:
+            if self.method in ['https', 'http']:
+                if self.routing_type == 'direct':
+                    body['delivery'] = dict(method=self.method,
+                                            routingType='direct')
+                elif self.routing_type == 'proxy':
+                    body['delivery'] = dict(method=self.method,
+                                            proxyHost=self.proxy['host'],
+                                            proxyPort=self.proxy['port'],
+                                            routingType='proxyServer')
+                elif self.routing_type == 'script':
+                    body['delivery'] = dict(method=self.method,
+                                            proxyScript=self.proxy['script'],
+                                            routingType='proxyScript')
+
+            else:
+                body['delivery'] = dict(method='smtp',
+                                        mailRelayServer=self.email['server'],
+                                        mailSenderAddress=self.email['sender'],
+                                        routingType='none')
+
+            if config['delivery']['method'] != body['delivery']['method']:
+                update = True
+            elif config['delivery']['method'] in ['https', 'http']:
+                if config['delivery']['routingType'] != body['delivery']['routingType']:
+                    update = True
+                elif (config['delivery']['routingType'] == 'proxy' and
+                      config['delivery']['proxyHost'] != body['delivery']['proxyHost'] and
+                      config['delivery']['proxyPort'] != body['delivery']['proxyPort']):
+                    update = True
+                elif config['delivery']['routingType'] == 'script' and config['delivery']['proxyScript'] != body['delivery']['proxyScript']:
+                    update = True
+            elif (config['delivery']['method'] == 'smtp' and
+                  config['delivery']['mailRelayServer'] != body['delivery']['mailRelayServer'] and
+                  config['delivery']['mailSenderAddress'] != body['delivery']['mailSenderAddress']):
+                update = True
+
+        elif config['asupEnabled']:     # Disable asupEnable is asup is disabled.
             body = dict(asupEnabled=False)
             update = True
 
         self._logger.info(pformat(body))
 
         if update and not self.check_mode:
+
+            if self.validate:
+                validate_body = dict(delivery=body['delivery'])
+                if self.email:
+                    validate_body['mailReplyAddress'] = self.email['test_recipient']
+
+                try:
+                    rc, result = request(self.url + 'device-asup/verify-config', method='POST',
+                                         data=json.dumps(validate_body), headers=HEADERS, **self.creds)
+                except Exception as err:
+                    self.module.fail_json(msg="We failed to verify ASUP configuration! Array Id [%s]. Error [%s]."
+                                              % (self.ssid, to_native(err)))
+
             try:
                 (rc, result) = request(self.url + 'device-asup', method='POST',
                                        data=json.dumps(body), headers=HEADERS, **self.creds)
@@ -286,7 +443,7 @@ class Asup(object):
 
         return update
 
-    def update(self):
+    def apply(self):
         update = self.update_configuration()
         cfg = self.get_configuration()
         if self.verbose:
@@ -296,13 +453,10 @@ class Asup(object):
             self.module.exit_json(msg="The ASUP settings have been updated.", changed=update,
                                   asup=cfg['asupEnabled'], active=cfg['onDemandEnabled'])
 
-    def __call__(self, *args, **kwargs):
-        self.update()
-
 
 def main():
     settings = Asup()
-    settings()
+    settings.apply()
 
 
 if __name__ == '__main__':
