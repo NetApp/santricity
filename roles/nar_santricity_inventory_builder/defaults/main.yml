@@ -1,0 +1,60 @@
+# Inventory file structure defaults
+# ---------------------------------
+inventory_builder_inventory_file: santricity_inventory    # Exclude .yml extensions
+inventory_builder_group_name: scratch_pods
+inventory_builder_group_size: 4
+
+# Group information defaults (List of group key-value pairs included at the group level)
+# --------------------------------------------------------------------------------------
+inventory_builder_group_defaults:
+  # Any common value that should be specified at the group level.
+  # This could be any value, including values from the santricity role collection.
+
+# Storage array defaults (List of group key-value pairs included at the array level)
+# -----------------------------------------------------------------------------------
+inventory_builder_array_defaults:
+  # Any value that should be specified at the array level.
+  # This could be any value, including values from the santricity role collection.
+
+# Group inventory list containing specific group inventory information
+# --------------------------------------------------------------------
+inventory_builder_group_list:
+  # List of array group specific values. The dictionary key should be the group name.
+
+  #  pod_01:
+  #    eseries_management_config_method:
+  #    eseries_management_subnet_mask:
+  #    eseries_management_gateway_mask:
+  #    eseries_management_dns_config_method:
+  #    eseries_management_dns_address:
+  #    eseries_management_dns_address_backup:
+  #  pod_02:
+  #    eseries_management_ntp_config_method:
+  #    eseries_management_ntp_address:
+  #    eseries_management_ntp_address_backup:
+  #  pod_03:
+  #    eseries_management_ssh: false
+
+# Array inventory list containing specific array inventory information
+# --------------------------------------------------------------------
+inventory_builder_array_list:       # List of array name-ip address pairs that will be used to generate array templates.
+  # List of array specific values. The dictionary key should be the array name.
+
+  #  array_001:
+  #    eseries_management_interfaces:
+  #      controller_a:
+  #        - address: 10.113.1.192
+  #      controller_b:
+  #        - address: 10.113.1.193
+  #  array_002:
+  #    eseries_management_interfaces:
+  #      controller_a:
+  #        - address: 10.113.1.11
+  #      controller_b:
+  #        - address: 10.113.1.193
+  #  array_003:
+  #    eseries_management_interfaces:
+  #      controller_a:
+  #        - address: 10.113.1.192
+  #      controller_b:
+  #        - address: 10.113.1.193

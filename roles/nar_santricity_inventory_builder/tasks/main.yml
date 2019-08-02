@@ -1,0 +1,26 @@
+- name: Ensure directory structure exists
+  file:
+    path: "{{ playbook_dir }}/{{ item }}"
+    state: directory
+  loop:
+    - host_vars
+    - group_vars
+
+- name: Ensure hosts.yml inventory file exists
+  template:
+    src: inventory_template.j2
+    dest: "{{ playbook_dir }}/{{ inventory_builder_inventory_file }}.yml"
+
+- name: Ensure group inventory files exists
+  copy:
+    dest: "{{ playbook_dir }}/group_vars/{{ item }}.yml"
+    content: "{{ inventory_builder_group_defaults | combine(inventory_builder_group_list[item]) | to_nice_yaml }}"
+  loop: "{{ lookup('list', (inventory_builder_group_list.keys() | list)) }}"
+  when: inventory_builder_group_list
+
+- name: Ensure array inventory files exists
+  copy:
+    dest: "{{ playbook_dir }}/host_vars/{{ item }}.yml"
+    content: "{{ inventory_builder_array_defaults | combine(inventory_builder_array_list[item]) | to_nice_yaml }}"
+  loop: "{{ lookup('list', (inventory_builder_array_list.keys() | list)) }}"
+  when: inventory_builder_array_list

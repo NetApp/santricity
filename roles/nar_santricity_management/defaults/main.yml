@@ -25,6 +25,16 @@ eseries_ssid: 1                                          # Storage array identif
 
 # Storage management interface defaults
 # -------------------------------------
+#eseries_management_config_method:
+#eseries_management_subnet_mask:
+#eseries_management_gateway_mask:
+#eseries_management_dns_config_method:
+#eseries_management_dns_address:
+#eseries_management_dns_address_backup:
+#eseries_management_ntp_config_method:
+#eseries_management_ntp_address:
+#eseries_management_ntp_address_backup:
+#eseries_management_ssh:
 #eseries_management_interfaces:
 #  update_santricity_web_services_proxy:  # Forces the url to be updated in the web services proxy
 #  config_method:
