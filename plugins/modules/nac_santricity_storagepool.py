@@ -539,7 +539,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
                         self.criteria_min_usable_capacity > int(candidate["usableSize"])):
                     continue
             if self.criteria_drive_min_size:
-                if self.criteria_drive_min_size > min(self.get_available_drive_capacities(candidate["drives"])):
+                if self.criteria_drive_min_size > min(self.get_available_drive_capacities(candidate["driveRefList"]["driveRef"])):
                     continue
 
             return candidate
