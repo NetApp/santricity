@@ -230,7 +230,7 @@ class Host(object):
             self.url += '/'
 
         # Ensure when state==present then host_type_index is defined
-        if self.state == "present" and not self.host_type_index:
+        if self.state == "present" and self.host_type_index is None:
             self.module.fail_json(msg="Host_type_index is required when state=='present'. Array Id: [%s]" % self.ssid)
 
         # Fix port representation if they are provided with colons
