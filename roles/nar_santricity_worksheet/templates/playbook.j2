@@ -1,0 +1,12 @@
+- hosts: {{ group_name }}
+  gather_facts: false
+  connection: local
+
+  collections:
+    - netapp_eseries.santricity
+
+  tasks:
+    - import_role:
+        name: nar_santricity_management
+    - import_role:
+        name: nar_santricity_host

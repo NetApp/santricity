@@ -16,7 +16,7 @@ DOCUMENTATION = """
 module: nac_santricity_storagepool
 short_description: NetApp E-Series manage volume groups and disk pools
 description: Create or remove volume groups and disk pools for NetApp E-series storage arrays.
-version_added: "2.2"
+version_added: '2.2'
 author:
   - Kevin Hulquest (@hulquest)
   - Nathan Swartz (@ndswartz)
@@ -74,7 +74,7 @@ options:
       - Only available for new storage pools; existing storage pools cannot be converted.
     default: false
     type: bool
-    version_added: 2.8
+    version_added: '2.9'
   criteria_drive_require_fde:
     description:
      - Whether full disk encryption ability is required for drives to be added to the storage pool
@@ -142,7 +142,6 @@ msg:
     type: str
     sample: Json facts for the pool that was created.
 """
-
 import functools
 from itertools import groupby
 from time import sleep
@@ -150,16 +149,6 @@ from time import sleep
 from pprint import pformat
 from ansible.module_utils._text import to_native
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
-
-try:
-    from ansible.module_utils.ansible_release import __version__ as ansible_version
-except ImportError:
-    ansible_version = 'unknown'
-
-try:
-    from urlparse import urlparse, urlunparse
-except ImportError:
-    from urllib.parse import urlparse, urlunparse
 
 
 def get_most_common_elements(iterator):
