@@ -18,7 +18,6 @@ class LookupModule(LookupBase):
             raise AnsibleError("Storage array information not available. Collect facts using na_santricity_facts module.")
 
         luns_by_target = inventory["storage_array_facts"]["storage_array_facts"]["netapp_luns_by_target"]
-
         mapping_info = list()
         for volume in volumes:
 
@@ -56,8 +55,14 @@ class LookupModule(LookupBase):
 
                 # Map volume to host
                 else:
-                    luns_by_target.update({volume["host"]: [("access", 7), ('_', 1)]})
-                    mapping_info.append({"volume": volume["name"], "target": volume["host"], "lun": 1})
+                    luns_by_target.update({volume["host"]: luns_by_target["default_hostgroup"]})
+
+                    used_list = [lun for vol, lun in luns_by_target[volume["host"]]]
+                    next_lun = 1
+                    while next_lun in used_list:
+                        next_lun += 1
+
+                    mapping_info.append({"volume": volume["name"], "target": volume["host"], "lun": next_lun})
 
         # Add an manually created hosts
         return mapping_info

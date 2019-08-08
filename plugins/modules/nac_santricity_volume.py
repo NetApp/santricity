@@ -260,18 +260,9 @@ msg:
 """
 
 import time
-from ansible.module_utils._text import to_native
+
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
-
-try:
-    from ansible.module_utils.ansible_release import __version__ as ansible_version
-except ImportError:
-    ansible_version = 'unknown'
-
-try:
-    from urlparse import urlparse, urlunparse
-except ImportError:
-    from urllib.parse import urlparse, urlunparse
+from ansible.module_utils._text import to_native
 
 
 class NetAppESeriesVolume(NetAppESeriesModule):

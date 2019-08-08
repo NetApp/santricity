@@ -29,9 +29,6 @@ class LookupModule(LookupBase):
                 len(inventory["eseries_storage_pool_configuration"]) == 0):
             return list()
 
-        if "storage_array_facts" not in inventory.keys():
-            raise AnsibleError("Storage array information not available. Collect facts using na_santricity_facts module.")
-
         if "eseries_storage_pool_configuration" not in inventory.keys():
             raise AnsibleError("eseries_storage_pool_configuration must be defined. See nar_santricity_host role documentation.")
 
@@ -68,16 +65,7 @@ class LookupModule(LookupBase):
                                                                                        "host_type": volume["host_type"] if "host_type" in volume else "0",
                                                                                        "group": volume["host"]}})
 
-                                    # Determine if group exists on the storage array and any hosts associated
-                                    group_current_hosts = []
-                                    for group in inventory["storage_array_facts"]["storage_array_facts"]["netapp_host_groups"]:
-                                        if volume["host"] == group["id"] or volume["host"] == group["name"]:
-                                            for current_host in inventory["storage_array_facts"]["storage_array_facts"]["netapp_hosts"]:
-                                                if group["id"] == current_host["group_id"]:
-                                                    group_current_hosts.append(current_host["name"])
-                                                    info["current_hosts"].update({current_host["name"]: {"group": volume["host"], "ports": current_host["ports"]}})
-
-                                    info["host_groups"].update({volume["host"]: group_current_hosts})
+                                    info["host_groups"].update({volume["host"]: inventory["groups"][volume["host"]]})
 
                             elif volume["host"] in hosts:
                                 info["expected_hosts"].update({volume["host"]: {"state": "present",
@@ -87,4 +75,5 @@ class LookupModule(LookupBase):
                             elif volume["host"] not in non_inventory_hosts and volume["host"] not in non_inventory_groups:
                                 raise AnsibleError("Expected host or host group does not exist in your Ansible inventory and is not specified in"
                                                    " eseries_host_object variable!")
+
         return [info]

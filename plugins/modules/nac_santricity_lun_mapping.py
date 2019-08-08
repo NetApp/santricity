@@ -38,6 +38,7 @@ options:
   volume_name:
     description:
       - The name of the volume you wish to include in the mapping.
+      - Use ACCESS_VOLUME to reference the in-band access management volume.
     required: True
     aliases:
         - volume
@@ -113,8 +114,8 @@ class LunMapping(object):
         args = self.module.params
 
         self.state = args["state"] in ["present"]
-        self.target = args["target"]
-        self.volume = args["volume_name"]
+        self.target = args["target"] if args["target"] else "DEFAULT_HOSTGROUP"
+        self.volume = args["volume_name"] if args["volume_name"] != "ACCESS_VOLUME" else "Access"
         self.lun = args["lun"]
         self.target_type = args["target_type"]
         self.ssid = args["ssid"]
@@ -163,6 +164,10 @@ class LunMapping(object):
                 target_name.update({cluster["name"]: cluster["clusterRef"]})
                 target_type.update({cluster["name"]: "group"})
 
+        target_reference.update({"0000000000000000000000000000000000000000": "DEFAULT_HOSTGROUP"})
+        target_name.update({"DEFAULT_HOSTGROUP": "0000000000000000000000000000000000000000"})
+        target_type.update({"DEFAULT_HOSTGROUP": "group"})
+
         volume_reference = {}
         volume_name = {}
         lun_name = {}
@@ -176,6 +181,9 @@ class LunMapping(object):
             volume_name.update({volume["name"]: volume["volumeRef"]})
             if volume["listOfMappings"]:
                 lun_name.update({volume["name"]: volume["listOfMappings"][0]["lun"]})
+
+        volume_name.update({response["sa"]["accessVolume"]["name"]: response["sa"]["accessVolume"]["accessVolumeRef"]})
+        volume_reference.update({response["sa"]["accessVolume"]["accessVolumeRef"]: response["sa"]["accessVolume"]["name"]})
 
         # Build current mapping object
         self.mapping_info = dict(lun_mapping=[dict(volume_reference=mapping["volumeRef"],

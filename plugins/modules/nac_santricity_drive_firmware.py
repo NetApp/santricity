@@ -26,7 +26,7 @@ options:
     firmware:
         description:
             - list of drive firmware file paths.
-            - NetApp E-Series drives require special firmware which can be download from https://mysupport.netapp.com/NOW/download/tools/diskfw_eseries/
+            - NetApp E-Series drives require special firmware which can be downloaded from https://mysupport.netapp.com/NOW/download/tools/diskfw_eseries/
         type: list
         required: True
     wait_for_completion:
@@ -36,12 +36,12 @@ options:
         default: false
     ignore_inaccessible_drives:
         description:
-            - This flag will determine whether drive firmware upgrade should fail if any effected drives are inaccessible.
+            - This flag will determine whether drive firmware upgrade should fail if any affected drives are inaccessible.
         type: bool
         default: false
     upgrade_drives_online:
         description:
-            - This flag will determine whether drive firmware is upgrade while drives are accepting I/O.
+            - This flag will determine whether drive firmware can be upgrade while drives are accepting I/O.
             - When I(upgrade_drives_online==False) stop all I/O before running task.
         type: bool
         default: true
@@ -66,6 +66,7 @@ msg:
     sample:
         { changed: True, upgrade_in_process: True }
 """
+import os
 import re
 
 from time import sleep
@@ -100,9 +101,9 @@ class NetAppESeriesDriveFirmware(NetAppESeriesModule):
         self.drive_info_cache = None
 
     def upload_firmware(self):
-        """Ensure firmware has been upload prior to upgrade."""
+        """Ensure firmware has been upload prior to uploaded."""
         for firmware in self.firmware_list:
-            firmware_name = re.split(r"/", firmware)[-1]
+            firmware_name = os.path.basename(firmware)
             files = [("file", firmware_name, firmware)]
             headers, data = create_multipart_formdata(files)
             try:
@@ -119,7 +120,7 @@ class NetAppESeriesDriveFirmware(NetAppESeriesModule):
 
                 # Create upgrade list, this ensures only the firmware uploaded is applied
                 for firmware in self.firmware_list:
-                    filename = re.split(r"/", firmware)[-1]
+                    filename = os.path.basename(firmware)
 
                     for uploaded_firmware in response["compatibilities"]:
                         if uploaded_firmware["filename"] == filename:

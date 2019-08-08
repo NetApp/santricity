@@ -145,29 +145,32 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
 
         self.current_host_group = None
 
+        self.hosts_cache = None
+
     @property
     def hosts(self):
         """Retrieve a list of host reference identifiers should be associated with the host group."""
-        host_list = []
-        existing_hosts = []
+        if self.hosts_cache is None:
+            self.hosts_cache = []
+            existing_hosts = []
 
-        if self.hosts_list:
-            try:
-                rc, existing_hosts = self.request("storage-systems/%s/hosts" % self.ssid)
-            except Exception as error:
-                self.module.fail_json(msg="Failed to retrieve hosts information. Array id [%s].  Error[%s]."
-                                          % (self.ssid, to_native(error)))
+            if self.hosts_list:
+                try:
+                    rc, existing_hosts = self.request("storage-systems/%s/hosts" % self.ssid)
+                except Exception as error:
+                    self.module.fail_json(msg="Failed to retrieve hosts information. Array id [%s].  Error[%s]."
+                                              % (self.ssid, to_native(error)))
 
-            for host in self.hosts_list:
-                for existing_host in existing_hosts:
-                    if host in existing_host["id"] or host in existing_host["name"]:
-                        host_list.append(existing_host["id"])
-                        break
-                else:
-                    self.module.fail_json(msg="Expected host does not exist. Array id [%s].  Host [%s]."
-                                              % (self.ssid, host))
-
-        return host_list
+                for host in self.hosts_list:
+                    for existing_host in existing_hosts:
+                        if host in existing_host["id"] or host in existing_host["name"]:
+                            self.hosts_cache.append(existing_host["id"])
+                            break
+                    else:
+                        self.module.fail_json(msg="Expected host does not exist. Array id [%s].  Host [%s]."
+                                                  % (self.ssid, host))
+            self.hosts_cache.sort()
+        return self.hosts_cache
 
     @property
     def host_groups(self):
@@ -268,11 +271,15 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
         for group in self.host_groups:
             if (self.id and group["id"] == self.id) or (self.name and group["name"] == self.name):
                 self.current_host_group = group
+                self.current_host_group["hosts"].sort()
+                break
 
         # Determine whether changes are required
         if self.state == "present":
             if self.current_host_group:
-                if (self.new_name and self.new_name != self.name) or self.hosts != self.current_host_group["hosts"]:
+                if self.new_name and self.new_name != self.name:
+                    changes_required = True
+                if self.hosts and self.hosts != self.current_host_group["hosts"]:
                     changes_required = True
             else:
                 if not self.name:

@@ -531,51 +531,50 @@ class Facts(NetAppESeriesModule):
 
         lun_mappings = dict()
         for mapping in array_facts['storagePoolBundle']['lunMapping']:
-            if mapping['lun'] != 7:     # ignore access volumes
 
-                # Determine volume name
-                volume_name = ""
-                for volume in facts['netapp_volumes']:
-                    if volume['id'] == mapping['volumeRef']:
-                        volume_name = volume['name']
+            volume_name = "Access"
+            for volume in facts['netapp_volumes']:
+                if volume['id'] == mapping['volumeRef']:
+                    volume_name = volume['name']
 
-                # Search existing groups
-                if mapping['type'] == 'cluster':
-                    for group in facts['netapp_host_groups']:
-                        if group['id'] == mapping['mapRef']:
+            if mapping['type'] == 'host':
+                for host in facts['netapp_hosts']:
+                    if host['id'] == mapping['mapRef']:
 
-                            if group['name'] not in lun_mappings:
-                                lun_mappings.update({group['name']: [("access", 7), (volume_name, mapping['lun'])]})
-                            else:
-                                lun_mappings[group['name']].append((volume_name, mapping['lun']))
+                        # Add volume name, lun tuple to host's list.
+                        if host['name'] not in lun_mappings:
+                            lun_mappings.update({host['name']: [(volume_name, mapping['lun'])]})
+                        else:
+                            lun_mappings[host['name']].append((volume_name, mapping['lun']))
 
-                            for host in group['hosts']:
-                                if host not in lun_mappings:
-                                    lun_mappings.update({host: [("access", 7), ("_", mapping['lun'])]})
+                        # Search for host-associated groups and add volume name, lun tuple to its list.
+                        for group in facts['netapp_host_groups']:
+                            if host['group_id'] == group['id']:
+                                if group['name'] not in lun_mappings:
+                                    lun_mappings.update({group['name']: [(volume_name, mapping['lun'])]})
                                 else:
-                                    lun_mappings[host].append(("_", mapping['lun']))
+                                    lun_mappings[group['name']].append((volume_name, mapping['lun']))
 
-                elif mapping['type'] == 'host':
-                    for host in facts['netapp_hosts']:
-                        if host['id'] == mapping['mapRef']:
+            elif mapping['type'] == 'cluster':
+                for group in facts['netapp_host_groups']:
+                    if group['id'] == mapping['mapRef']:
 
-                            if host['name'] not in lun_mappings:
-                                lun_mappings.update({host['name']: [("access", 7), (volume_name, mapping['lun'])]})
+                        # Add volume name, lun tuple to group's list.
+                        if group['name'] not in lun_mappings:
+                            lun_mappings.update({group['name']: [(volume_name, mapping['lun'])]})
+                        else:
+                            lun_mappings[group['name']].append((volume_name, mapping['lun']))
+
+                        # Add volume name, lun tuple to all associated hosts list.
+                        for host in group['hosts']:
+                            if host not in lun_mappings:
+                                lun_mappings.update({host: [("_", mapping['lun'])]})
                             else:
-                                lun_mappings[host['name']].append((volume_name, mapping['lun']))
+                                lun_mappings[host].append(("_", mapping['lun']))
 
-                            for group in facts['netapp_host_groups']:
-                                if host['group_id'] == group['id']:
-                                    if group['name'] not in lun_mappings:
-                                        lun_mappings.update({group['name']: [(7, "access"), (volume_name, mapping['lun'])]})
-                                    else:
-                                        lun_mappings[group['name']].append((volume_name, mapping['lun']))
+            elif mapping["type"] == "all" and mapping["mapRef"] == "0000000000000000000000000000000000000000":  # default group
+                lun_mappings.update({"default_hostgroup": [(volume_name, mapping["lun"])], "access_volume_lun": mapping["lun"]})
 
-                elif mapping['type'] == 'all':
-                    if 'all' not in lun_mappings:
-                        lun_mappings.update({'all': [("access", 7), ('_', mapping['lun'])]})
-                    else:
-                        lun_mappings['all'].append(('_', mapping['lun']))
         facts['netapp_luns_by_target'] = lun_mappings
 
         workload_tags = None

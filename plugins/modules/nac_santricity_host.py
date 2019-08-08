@@ -335,9 +335,6 @@ class Host(object):
                 return group_obj['id']
             except IndexError:
                 self.module.fail_json(msg="No group with the name: %s exists" % self.group)
-        else:
-            # Return the value equivalent of no group
-            return "0000000000000000000000000000000000000000"
 
     @property
     def host_exists(self):
@@ -383,9 +380,10 @@ class Host(object):
         (newPorts), on self.
         """
         changed = False
-        if (self.host_obj["clusterRef"].lower() != self.group_id.lower() or
-                self.host_obj["hostTypeIndex"] != self.host_type_index):
-            self._logger.info("Either hostType or the clusterRef doesn't match, an update is required.")
+        if self.group_id and self.host_obj["clusterRef"].lower() != self.group_id.lower():
+            changed = True
+
+        if self.host_obj["hostTypeIndex"] != self.host_type_index:
             changed = True
 
         current_host_ports = dict((port["id"], {"type": port["type"], "port": port["address"], "label": port["label"]})
@@ -445,8 +443,6 @@ class Host(object):
 
         if self.group:
             self.post_body['groupId'] = self.group_id
-        else:
-            self.post_body['groupId'] = "0000000000000000000000000000000000000000"
 
         self.post_body['hostType'] = dict(index=self.host_type_index)
 
