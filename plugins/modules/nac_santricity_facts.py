@@ -387,6 +387,10 @@ class Facts(NetAppESeriesModule):
                 name=group['name'],
                 hosts=[host['name'] for host in facts['netapp_hosts'] if host['group_id'] == group['id']]
             ) for group in array_facts['storagePoolBundle']['cluster']]
+        facts['netapp_host_groups'].append(dict(
+            id='0000000000000000000000000000000000000000',
+            name='default_hostgroup',
+            hosts=[host["name"] for host in facts['netapp_hosts'] if host['group_id'] == '0000000000000000000000000000000000000000']))
 
         facts['netapp_host_types'] = [
             dict(
@@ -530,52 +534,58 @@ class Facts(NetAppESeriesModule):
             ) for v in all_volumes]
 
         lun_mappings = dict()
-        for mapping in array_facts['storagePoolBundle']['lunMapping']:
+        for host in facts['netapp_hosts']:
+            lun_mappings.update({host["name"]: []})
+        for host in facts['netapp_host_groups']:
+            lun_mappings.update({host["name"]: []})
 
-            volume_name = "Access"
-            for volume in facts['netapp_volumes']:
-                if volume['id'] == mapping['volumeRef']:
-                    volume_name = volume['name']
+        facts['netapp_default_hostgroup_access_volume_lun'] = None
+        for lun in [a['lun'] for a in array_facts['storagePoolBundle']['lunMapping']
+                    if a['type'] == 'all' and a['mapRef'] == '0000000000000000000000000000000000000000']:
+            facts['netapp_default_hostgroup_access_volume_lun'] = lun
 
-            if mapping['type'] == 'host':
-                for host in facts['netapp_hosts']:
-                    if host['id'] == mapping['mapRef']:
+        # Get all host mappings
+        host_mappings = dict()
+        for host_mapping in [h for h in array_facts['storagePoolBundle']['lunMapping'] if h['type'] == 'host']:
+            for host_name in [h['name'] for h in facts['netapp_hosts'] if h['id'] == host_mapping['mapRef']]:
+                for volume in [v['name'] for v in facts['netapp_volumes'] if v['id'] == host_mapping['volumeRef']]:
+                    if host_name in host_mappings.keys():
+                        host_mappings[host_name].append((volume, host_mapping['lun']))
+                    else:
+                        host_mappings[host_name] = [(volume, host_mapping['lun'])]
 
-                        # Add volume name, lun tuple to host's list.
-                        if host['name'] not in lun_mappings:
-                            lun_mappings.update({host['name']: [(volume_name, mapping['lun'])]})
+        # Get all host group mappings
+        group_mappings = dict()
+        for group_mapping in [h for h in array_facts['storagePoolBundle']['lunMapping'] if h['type'] == 'cluster']:
+            for group_name, group_hosts in [(g['name'], g['hosts']) for g in facts['netapp_host_groups'] if g['id'] == group_mapping['mapRef']]:
+                for volume in [v['name'] for v in facts['netapp_volumes'] if v['id'] == group_mapping['volumeRef']]:
+                    if group_name in group_mappings.keys():
+                        group_mappings[group_name].append((volume, group_mapping['lun']))
+                    else:
+                        group_mappings[group_name] = [(volume, group_mapping['lun'])]
+
+                    for host_name in [h for h in group_hosts if h in host_mappings.keys()]:
+                        if host_name in host_mappings.keys():
+                            host_mappings[host_name].append((volume, group_mapping['lun']))
                         else:
-                            lun_mappings[host['name']].append((volume_name, mapping['lun']))
-
-                        # Search for host-associated groups and add volume name, lun tuple to its list.
-                        for group in facts['netapp_host_groups']:
-                            if host['group_id'] == group['id']:
-                                if group['name'] not in lun_mappings:
-                                    lun_mappings.update({group['name']: [(volume_name, mapping['lun'])]})
-                                else:
-                                    lun_mappings[group['name']].append((volume_name, mapping['lun']))
-
-            elif mapping['type'] == 'cluster':
-                for group in facts['netapp_host_groups']:
-                    if group['id'] == mapping['mapRef']:
-
-                        # Add volume name, lun tuple to group's list.
-                        if group['name'] not in lun_mappings:
-                            lun_mappings.update({group['name']: [(volume_name, mapping['lun'])]})
-                        else:
-                            lun_mappings[group['name']].append((volume_name, mapping['lun']))
-
-                        # Add volume name, lun tuple to all associated hosts list.
-                        for host in group['hosts']:
-                            if host not in lun_mappings:
-                                lun_mappings.update({host: [("_", mapping['lun'])]})
-                            else:
-                                lun_mappings[host].append(("_", mapping['lun']))
-
-            elif mapping["type"] == "all" and mapping["mapRef"] == "0000000000000000000000000000000000000000":  # default group
-                lun_mappings.update({"default_hostgroup": [(volume_name, mapping["lun"])], "access_volume_lun": mapping["lun"]})
+                            host_mappings[host_name] = [(volume, group_mapping['lun'])]
 
         facts['netapp_luns_by_target'] = lun_mappings
+        if host_mappings:
+            facts['netapp_luns_by_target'].update(host_mappings)
+        if group_mappings:
+            facts['netapp_luns_by_target'].update(group_mappings)
+
+        # Add all host mappings to respective groups mappings
+        for host_group in facts['netapp_host_groups']:
+            group_name = host_group['name']
+            for host in host_group['hosts']:
+                facts['netapp_luns_by_target'][group_name].extend(facts['netapp_luns_by_target'][host])
+
+        # Remove duplicate entries
+        for obj in facts['netapp_luns_by_target'].keys():
+            tmp = dict(facts['netapp_luns_by_target'][obj])
+            facts['netapp_luns_by_target'][obj] = [(k, tmp[k]) for k in tmp.keys()]
 
         workload_tags = None
         try:

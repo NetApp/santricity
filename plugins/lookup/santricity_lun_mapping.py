@@ -17,52 +17,111 @@ class LookupModule(LookupBase):
         if "storage_array_facts" not in inventory.keys():
             raise AnsibleError("Storage array information not available. Collect facts using na_santricity_facts module.")
 
-        luns_by_target = inventory["storage_array_facts"]["storage_array_facts"]["netapp_luns_by_target"]
+        self.array_facts = inventory["storage_array_facts"]["storage_array_facts"]
+        self.luns_by_target = self.array_facts["netapp_luns_by_target"]
+        self.access_volume_lun = self.array_facts["netapp_default_hostgroup_access_volume_lun"]
+
+        # Search for volumes that have a specified host or host group initiator
         mapping_info = list()
         for volume in volumes:
+            if "host" in volume.keys():
 
-            # Check whether storage pool has specified a target host
-            if "host" in volume:
+                # host initiator is already mapped on the storage system
+                if volume["host"] in self.luns_by_target:
 
-                # Existing lun mappings
-                if volume["host"] in luns_by_target:
-                    for mapped_volume_name, mapped_lun in luns_by_target[volume["host"]]:
-                        if mapped_volume_name == volume["name"]:
-                            mapping_info.append({"volume": volume["name"], "target": volume["host"], "lun": mapped_lun})
+                    used_luns = [lun for name, lun in self.luns_by_target[volume["host"]]]
+                    for host_group in self.array_facts["netapp_host_groups"]:
+                        if volume["host"] == host_group["name"]:
+                            for host in host_group["hosts"]:
+                                used_luns.extend([lun for name, lun in self.luns_by_target[host]])
                             break
+                        elif volume["host"] in host_group["hosts"]:
+                            used_luns.extend([lun for name, lun in self.luns_by_target[host_group["name"]]])
+                            break
+
+                    for name, lun in self.luns_by_target[volume["host"]]:
+
+                        # Check whether volume is mapped to the expected host
+                        if name == volume["name"]:
+
+                            # Check whether lun option differs from existing lun
+                            if "lun" in volume and volume["lun"] != lun:
+                                self.move_volume_mapping(volume["name"], volume["host"], volume["lun"])
+                                lun = volume["lun"]
+
+                                if lun in used_luns:
+                                    raise AnsibleError("Volume [%s] cannot be mapped to host or host group [%s] using lun number %s!"
+                                                       % (name, volume["host"], lun))
+
+                            mapping_info.append({"volume": volume["name"], "target": volume["host"], "lun": lun})
+                            break
+
+                    # Volume has not been mapped to host initiator
                     else:
-                        used_list = [lun for vol, lun in luns_by_target[volume["host"]]]
-                        next_lun = 1
-                        while next_lun in used_list:
-                            next_lun += 1
 
-                        luns_by_target[volume["host"]].append(('_', next_lun))
-                        mapping_info.append({"volume": volume["name"], "target": volume["host"], "lun": next_lun})
+                        # Check whether lun option has been used
+                        if "lun" in volume and volume["lun"] in used_luns:
+                                raise AnsibleError("Volume [%s] cannot be mapped to host or host group [%s] using lun number %s!"
+                                                   % (volume["name"], volume["host"], volume["lun"]))
 
-                # Map volume to host groups
-                elif volume["host"] in inventory["groups"]:
-                    mapped_luns = []
-                    for host in inventory["groups"][volume["host"]]:
-                        if host in luns_by_target:
-                            mapped_luns.extend(luns_by_target[host])
-                    luns_by_target.update({volume["host"]: mapped_luns})
+                        lun = self.next_available_lun(used_luns)
+                        mapping_info.append({"volume": volume["name"], "target": volume["host"], "lun": lun})
+                        self.add_volume_mapping(volume["name"], volume["host"], lun)
 
-                    used_list = [lun for vol, lun in luns_by_target[volume["host"]]]
-                    next_lun = 1
-                    while next_lun in used_list:
-                        next_lun += 1
-                    mapping_info.append({"volume": volume["name"], "target": volume["host"], "lun": next_lun})
-
-                # Map volume to host
-                else:
-                    luns_by_target.update({volume["host"]: luns_by_target["default_hostgroup"]})
-
-                    used_list = [lun for vol, lun in luns_by_target[volume["host"]]]
-                    next_lun = 1
-                    while next_lun in used_list:
-                        next_lun += 1
-
-                    mapping_info.append({"volume": volume["name"], "target": volume["host"], "lun": next_lun})
-
-        # Add an manually created hosts
         return mapping_info
+
+    def next_available_lun(self, used_luns):
+        """Find next available lun numbers."""
+        if self.access_volume_lun is not None:
+            used_luns.append(self.access_volume_lun)
+
+        lun = 0
+        while lun in used_luns:
+            lun += 1
+
+        return lun
+
+    def add_volume_mapping(self, name, host, lun):
+        """Add volume mapping to record table (luns_by_target)."""
+        # Find associated group and the groups hosts
+        for host_group in self.array_facts["netapp_host_groups"]:
+
+            if host == host_group["name"]:  # or name in host_group["hosts"]:
+                # add to group
+                self.luns_by_target[host].append([name, lun])
+
+                # add to hosts
+                for hostgroup_host in host_group["hosts"]:
+                    self.luns_by_target[hostgroup_host].append([name, lun])
+
+                break
+        else:
+            self.luns_by_target[host].append([name, lun])
+
+    def remove_volume_mapping(self, name, host):
+        """remove volume mapping to record table (luns_by_target)."""
+        # Find associated group and the groups hosts
+        for host_group in self.array_facts["netapp_host_groups"]:
+
+            if host == host_group["name"]:      # or name in host_group["hosts"]:
+                # add to group
+                for index, entry in enumerate(self.luns_by_target[host_group["name"]]):
+                    if entry[0] == name:
+                        self.luns_by_target[host].pop(index)
+
+                # add to hosts
+                for hostgroup_host in host_group["hosts"]:
+                    for index, entry in enumerate(self.luns_by_target[hostgroup_host]):
+                        if entry[0] == name:
+                            self.luns_by_target[host].pop(index)
+                break
+        else:
+            for index, entry in enumerate(self.luns_by_target[host]):
+                if entry[0] == name:
+                    self.luns_by_target[host].pop(index)
+
+
+    def change_volume_mapping_lun(self, name, host, lun):
+        """remove volume mapping to record table (luns_by_target)."""
+        self.remove_volume_mapping(name, host)
+        self.add_volume_mapping(name, host, lun)
