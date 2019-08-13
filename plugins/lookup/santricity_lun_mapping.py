@@ -7,17 +7,17 @@ from ansible.errors import AnsibleError
 
 class LookupModule(LookupBase):
 
-    def run(self, inventory, volumes, **kwargs):
-        if isinstance(inventory, list):
-            inventory = inventory[0]
+    def run(self, array_facts, volumes, **kwargs):
+        if isinstance(array_facts, list):
+            array_facts = array_facts[0]
 
         if isinstance(volumes, dict):   # This means that there is only one volume and volumes was stripped of its list
             volumes = [volumes]
 
-        if "storage_array_facts" not in inventory.keys():
+        if "storage_array_facts" not in array_facts.keys():
             raise AnsibleError("Storage array information not available. Collect facts using na_santricity_facts module.")
 
-        self.array_facts = inventory["storage_array_facts"]["storage_array_facts"]
+        self.array_facts = array_facts["storage_array_facts"]
         self.luns_by_target = self.array_facts["netapp_luns_by_target"]
         self.access_volume_lun = self.array_facts["netapp_default_hostgroup_access_volume_lun"]
 
@@ -43,10 +43,9 @@ class LookupModule(LookupBase):
 
                         # Check whether volume is mapped to the expected host
                         if name == volume["name"]:
-
                             # Check whether lun option differs from existing lun
                             if "lun" in volume and volume["lun"] != lun:
-                                self.move_volume_mapping(volume["name"], volume["host"], volume["lun"])
+                                self.change_volume_mapping_lun(volume["name"], volume["host"], volume["lun"])
                                 lun = volume["lun"]
 
                                 if lun in used_luns:
@@ -60,11 +59,14 @@ class LookupModule(LookupBase):
                     else:
 
                         # Check whether lun option has been used
-                        if "lun" in volume and volume["lun"] in used_luns:
+                        if "lun" in volume:
+                            if volume["lun"] in used_luns:
                                 raise AnsibleError("Volume [%s] cannot be mapped to host or host group [%s] using lun number %s!"
                                                    % (volume["name"], volume["host"], volume["lun"]))
+                            lun = volume["lun"]
+                        else:
+                            lun = self.next_available_lun(used_luns)
 
-                        lun = self.next_available_lun(used_luns)
                         mapping_info.append({"volume": volume["name"], "target": volume["host"], "lun": lun})
                         self.add_volume_mapping(volume["name"], volume["host"], lun)
 
@@ -86,7 +88,7 @@ class LookupModule(LookupBase):
         # Find associated group and the groups hosts
         for host_group in self.array_facts["netapp_host_groups"]:
 
-            if host == host_group["name"]:  # or name in host_group["hosts"]:
+            if host == host_group["name"]:
                 # add to group
                 self.luns_by_target[host].append([name, lun])
 
@@ -102,24 +104,21 @@ class LookupModule(LookupBase):
         """remove volume mapping to record table (luns_by_target)."""
         # Find associated group and the groups hosts
         for host_group in self.array_facts["netapp_host_groups"]:
-
-            if host == host_group["name"]:      # or name in host_group["hosts"]:
+            if host == host_group["name"]:
                 # add to group
-                for index, entry in enumerate(self.luns_by_target[host_group["name"]]):
+                for entry in self.luns_by_target[host_group["name"]]:
                     if entry[0] == name:
-                        self.luns_by_target[host].pop(index)
-
+                        del entry
                 # add to hosts
                 for hostgroup_host in host_group["hosts"]:
-                    for index, entry in enumerate(self.luns_by_target[hostgroup_host]):
+                    for entry in self.luns_by_target[hostgroup_host]:
                         if entry[0] == name:
-                            self.luns_by_target[host].pop(index)
+                            del entry
                 break
         else:
             for index, entry in enumerate(self.luns_by_target[host]):
                 if entry[0] == name:
                     self.luns_by_target[host].pop(index)
-
 
     def change_volume_mapping_lun(self, name, host, lun):
         """remove volume mapping to record table (luns_by_target)."""
