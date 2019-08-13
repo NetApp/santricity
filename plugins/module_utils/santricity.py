@@ -207,7 +207,7 @@ class NetAppESeriesModule(object):
             path = path[1:]
         request_url = self.url + self.DEFAULT_REST_API_PATH + path
 
-        if self.log_requests or True:
+        if self.log_requests:
             self.module.log(pformat(dict(url=request_url, data=data, method=method)))
 
         return request(url=request_url, data=data, method=method, headers=headers, use_proxy=True, force=False, last_mod_time=None,
