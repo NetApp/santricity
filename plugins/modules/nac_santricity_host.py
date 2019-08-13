@@ -81,17 +81,6 @@ options:
         required: false
         type: bool
         version_added: 2.7
-    group:
-        description:
-            - The unique identifier of the host-group you want the host to be a member of; this is used for clustering.
-        required: False
-        aliases:
-            - cluster
-    log_path:
-        description:
-            - A local path to a file to be used for debug logging
-        required: False
-        version_added: 2.7
 """
 
 EXAMPLES = """
@@ -157,7 +146,6 @@ api_url:
     version_added: "2.6"
 """
 import json
-import logging
 import re
 from pprint import pformat
 
@@ -178,18 +166,15 @@ class Host(object):
         argument_spec = eseries_host_argument_spec()
         argument_spec.update(dict(
             state=dict(type='str', default='present', choices=['absent', 'present']),
-            group=dict(type='str', required=False, aliases=['cluster']),
             ports=dict(type='list', required=False),
             force_port=dict(type='bool', default=False),
             name=dict(type='str', required=True, aliases=['label']),
-            host_type_index=dict(type='str', aliases=['host_type']),
-            log_path=dict(type='str', required=False),
+            host_type_index=dict(type='str', aliases=['host_type'])
         ))
 
         self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
         self.check_mode = self.module.check_mode
         args = self.module.params
-        self.group = args['group']
         self.ports = args['ports']
         self.force_port = args['force_port']
         self.name = args['name']
@@ -218,13 +203,6 @@ class Host(object):
             else:
                 self.module.fail_json(msg="host_type must be either a host type name or host type index found integer"
                                           " the documentation.")
-
-        # logging setup
-        self._logger = logging.getLogger(self.__class__.__name__)
-        if args['log_path']:
-            logging.basicConfig(
-                level=logging.DEBUG, filename=args['log_path'], filemode='w',
-                format='%(relativeCreated)dms %(levelname)s %(module)s.%(funcName)s:%(lineno)d\n %(message)s')
 
         if not self.url.endswith('/'):
             self.url += '/'
@@ -320,23 +298,6 @@ class Host(object):
         return used_host_ports
 
     @property
-    def group_id(self):
-        if self.group:
-            try:
-                (rc, all_groups) = request(self.url + 'storage-systems/%s/host-groups' % self.ssid,
-                                           url_password=self.pwd,
-                                           url_username=self.user, validate_certs=self.certs, headers=HEADERS)
-            except Exception as err:
-                self.module.fail_json(
-                    msg="Failed to get host groups. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
-
-            try:
-                group_obj = list(filter(lambda group: group['name'] == self.group, all_groups))[0]
-                return group_obj['id']
-            except IndexError:
-                self.module.fail_json(msg="No group with the name: %s exists" % self.group)
-
-    @property
     def host_exists(self):
         """Determine if the requested host exists
         As a side effect, set the full list of defined hosts in 'all_hosts', and the target host in 'host_obj'.
@@ -380,9 +341,6 @@ class Host(object):
         (newPorts), on self.
         """
         changed = False
-        if self.group_id and self.host_obj["clusterRef"].lower() != self.group_id.lower():
-            changed = True
-
         if self.host_obj["hostTypeIndex"] != self.host_type_index:
             changed = True
 
@@ -428,7 +386,7 @@ class Host(object):
         return False
 
     def update_host(self):
-        self._logger.info("Beginning the update for host=%s.", self.name)
+        self.module.log("Beginning the update for host=%s." % self.name)
 
         if self.ports:
 
@@ -437,17 +395,14 @@ class Host(object):
 
             self.post_body["portsToUpdate"] = self.portsForUpdate
             self.post_body["ports"] = self.newPorts
-            self._logger.info("Requested ports: %s", pformat(self.ports))
+            self.module.log("Requested ports: %s" % pformat(self.ports))
         else:
-            self._logger.info("No host ports were defined.")
-
-        if self.group:
-            self.post_body['groupId'] = self.group_id
+            self.module.log("No host ports were defined.")
 
         self.post_body['hostType'] = dict(index=self.host_type_index)
 
         api = self.url + 'storage-systems/%s/hosts/%s' % (self.ssid, self.host_obj['id'])
-        self._logger.info("POST => url=%s, body=%s.", api, pformat(self.post_body))
+        self.module.log("POST => url=%s, body=%s." % (api, pformat(self.post_body)))
 
         if not self.check_mode:
             try:
@@ -461,7 +416,7 @@ class Host(object):
         self.module.exit_json(changed=True, **payload)
 
     def create_host(self):
-        self._logger.info("Creating host definition.")
+        self.module.log("Creating host definition.")
 
         # Remove ports that need reassigning from their current host.
         self.assigned_host_ports(apply_unassigning=True)
@@ -469,15 +424,14 @@ class Host(object):
         # needs_reassignment = False
         post_body = dict(
             name=self.name,
-            hostType=dict(index=self.host_type_index),
-            groupId=self.group_id,
+            hostType=dict(index=self.host_type_index)
         )
 
         if self.ports:
             post_body.update(ports=self.ports)
 
         api = self.url + "storage-systems/%s/hosts" % self.ssid
-        self._logger.info('POST => url=%s, body=%s', api, pformat(post_body))
+        self.module.log('POST => url=%s, body=%s' % (api, pformat(post_body)))
 
         if not (self.host_exists and self.check_mode):
             try:
