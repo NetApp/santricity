@@ -94,6 +94,6 @@
       volume: "{{ item['volume'] }}"
       target: "{{ item['target'] | default(eseries_lun_mapping_host) }}"
       lun: "{{ item['lun'] }}"
-    loop: "{{ lookup('netapp_eseries.santricity.santricity_lun_mapping', hostvars[inventory_hostname],
+    loop: "{{ lookup('netapp_eseries.santricity.santricity_lun_mapping', storage_array_facts,
                      volumes=lookup('netapp_eseries.santricity.santricity_volume', hostvars[inventory_hostname]), wantlist=True) }}"
   when: hosts != []
