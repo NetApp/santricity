@@ -39,11 +39,6 @@ options:
         required: false
         description:
             - Specify this when you need to update the name of a host group
-    id:
-        required: false
-        description:
-            - Host reference identifier for the host group to manage.
-            - This option is mutually exclusive with I(name).
     hosts:
         required: false
         description:
@@ -130,17 +125,14 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
             new_name=dict(required=False, type="str"),
             id=dict(required=False, type="str"),
             hosts=dict(required=False, type="list"))
-        mutually_exclusive = [["name", "id"]]
         super(NetAppESeriesHostGroup, self).__init__(ansible_options=ansible_options,
                                                      web_services_version=version,
-                                                     supports_check_mode=True,
-                                                     mutually_exclusive=mutually_exclusive)
+                                                     supports_check_mode=True)
 
         args = self.module.params
         self.state = args["state"]
         self.name = args["name"]
         self.new_name = args["new_name"]
-        self.id = args["id"]
         self.hosts_list = args["hosts"]
 
         self.current_host_group = None
@@ -199,7 +191,7 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
         """Retrieve the current hosts associated with the current hostgroup."""
         current_hosts = []
         for group in self.host_groups:
-            if (self.name and group["name"] == self.name) or (self.id and group["id"] == self.id):
+            if self.name and group["name"] == self.name:
                 current_hosts = group["hosts"]
 
         return current_hosts
@@ -269,7 +261,7 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
 
         # Search for existing host group match
         for group in self.host_groups:
-            if (self.id and group["id"] == self.id) or (self.name and group["name"] == self.name):
+            if self.name and group["name"] == self.name:
                 self.current_host_group = group
                 self.current_host_group["hosts"].sort()
                 break
