@@ -7,9 +7,9 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {"metadata_version": "1.1",
+                    "status": ["preview"],
+                    "supported_by": "community"}
 
 DOCUMENTATION = """
 ---
@@ -17,7 +17,7 @@ module: nac_santricity_asup
 short_description: NetApp E-Series manage auto-support settings
 description:
     - Allow the auto-support settings to be configured for an individual E-Series storage-system
-version_added: '2.7'
+version_added: "2.7"
 author:
     - Michael Price (@lmprice)
     - Nathan Swartz (@ndswartz)
@@ -40,7 +40,7 @@ options:
             - autosupport
     active:
         description:
-            - Enable active/proactive monitoring for ASUP. When a problem is detected by our monitoring systems, it's
+            - Enable active/proactive monitoring for ASUP. When a problem is detected by our monitoring systems, it"s
               possible that the bundle did not contain all of the required information at the time of the event.
               Enabling this option allows NetApp support personnel to manually request transmission or re-transmission
               of support data in order ot resolve the problem.
@@ -232,43 +232,30 @@ cfg:
 """
 
 import json
-import logging
-from pprint import pformat
 
-from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import request, eseries_host_argument_spec
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 
-HEADERS = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-}
 
-
-class Asup(object):
-    DAYS_OPTIONS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+class NetAppESeriesAsup(NetAppESeriesModule):
+    DAYS_OPTIONS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
 
     def __init__(self):
-        argument_spec = eseries_host_argument_spec()
-        argument_spec.update(dict(
-            state=dict(type='str', required=False, default='enabled', aliases=['asup', 'auto_support', 'autosupport'],
-                       choices=['enabled', 'disabled']),
-            active=dict(type='bool', required=False, default=True, ),
-            days=dict(type='list', required=False, aliases=['schedule_days', 'days_of_week'],
-                      choices=self.DAYS_OPTIONS),
-            start=dict(type='int', required=False, default=0, aliases=['start_time']),
-            end=dict(type='int', required=False, default=24, aliases=['end_time']),
-            method=dict(type='str', required=False, choices=['https', 'http', 'email'], default='https'),
-            routing_type=dict(type='str', required=False, choices=['direct', 'proxy', 'script'], default='direct'),
-            proxy=dict(type='dict', required=False, options=dict(host=dict(type='str', required=False),
-                                                                 port=dict(type='str', required=False),
-                                                                 script=dict(type='str', required=False))),
-            email=dict(type='dict', required=False, options=dict(server=dict(type='str', required=False),
-                                                                 sender=dict(type='str', required=False),
-                                                                 test_recipient=dict(type='str', required=False))),
-            validate=dict(type='bool', require=False, default=False),
-            verbose=dict(type='bool', required=False, default=False),
-            log_path=dict(type='str', required=False),
+        ansible_options = (dict(
+            state=dict(type="str", required=False, default="enabled", aliases=["asup", "auto_support", "autosupport"], choices=["enabled", "disabled"]),
+            active=dict(type="bool", required=False, default=True, ),
+            days=dict(type="list", required=False, aliases=["schedule_days", "days_of_week"], choices=self.DAYS_OPTIONS),
+            start=dict(type="int", required=False, default=0, aliases=["start_time"]),
+            end=dict(type="int", required=False, default=24, aliases=["end_time"]),
+            method=dict(type="str", required=False, choices=["https", "http", "email"], default="https"),
+            routing_type=dict(type="str", required=False, choices=["direct", "proxy", "script"], default="direct"),
+            proxy=dict(type="dict", required=False, options=dict(host=dict(type="str", required=False),
+                                                                 port=dict(type="str", required=False),
+                                                                 script=dict(type="str", required=False))),
+            email=dict(type="dict", required=False, options=dict(server=dict(type="str", required=False),
+                                                                 sender=dict(type="str", required=False),
+                                                                 test_recipient=dict(type="str", required=False))),
+            validate=dict(type="bool", require=False, default=False)
         ))
 
         mutually_exclusive = [["host", "script"],
@@ -278,47 +265,38 @@ class Asup(object):
                        ["method", "http", ["routing_type"]],
                        ["method", "email", ["email"]]]
 
-        self.module = AnsibleModule(argument_spec=argument_spec,
-                                    mutually_exclusive=mutually_exclusive,
-                                    required_if=required_if,
-                                    supports_check_mode=True)
+        super(NetAppESeriesAsup, self).__init__(ansible_options=ansible_options,
+                                                web_services_version="02.00.0000.0000",
+                                                mutually_exclusive=mutually_exclusive,
+                                                required_if=required_if,
+                                                supports_check_mode=True)
+
         args = self.module.params
-        self.asup = args['state'] == 'enabled'
-        self.active = args['active']
-        self.days = args['days']
-        self.start = args['start']
-        self.end = args['end']
-        self.verbose = args['verbose']
+        self.asup = args["state"] == "enabled"
+        self.active = args["active"]
+        self.days = args["days"]
+        self.start = args["start"]
+        self.end = args["end"]
 
-        self.method = args['method']
-        self.routing_type = args['routing_type'] if args['routing_type'] else "none"
-        self.proxy = args['proxy']
-        self.email = args['email']
-        self.validate = args['validate']
+        self.method = args["method"]
+        self.routing_type = args["routing_type"] if args["routing_type"] else "none"
+        self.proxy = args["proxy"]
+        self.email = args["email"]
+        self.validate = args["validate"]
 
-        self.ssid = args['ssid']
-        self.url = args['api_url']
-        self.creds = dict(url_password=args['api_password'],
-                          validate_certs=args['validate_certs'],
-                          url_username=args['api_username'], )
+        self.ssid = args["ssid"]
+        self.url = args["api_url"]
+        self.creds = dict(url_password=args["api_password"],
+                          validate_certs=args["validate_certs"],
+                          url_username=args["api_username"], )
 
-        if self.validate and self.email and 'test_recipient' not in self.email.keys():
+        if self.validate and self.email and "test_recipient" not in self.email.keys():
             self.module.fail_json(msg="test_recipient must be provided for validating email delivery method. Array [%s]" % self.ssid)
 
         self.check_mode = self.module.check_mode
 
-        log_path = args['log_path']
-
-        # logging setup
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        if log_path:
-            logging.basicConfig(
-                level=logging.DEBUG, filename=log_path, filemode='w',
-                format='%(relativeCreated)dms %(levelname)s %(module)s.%(funcName)s:%(lineno)d\n %(message)s')
-
-        if not self.url.endswith('/'):
-            self.url += '/'
+        if not self.url.endswith("/"):
+            self.url += "/"
 
         if self.start >= self.end:
             self.module.fail_json(msg="The value provided for the start time is invalid."
@@ -335,17 +313,21 @@ class Asup(object):
         if not self.days:
             self.days = self.DAYS_OPTIONS
 
+        # Check whether request needs to be forwarded on to the controller web services rest api.
+        self.url_path_prefix = ""
+        if not self.is_embedded() and self.ssid != 0:
+            self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid
+
     def get_configuration(self):
         try:
-            (rc, result) = request(self.url + 'device-asup', headers=HEADERS, **self.creds)
+            (rc, result) = self.request(self.url_path_prefix + "device-asup")
 
-            if not (result['asupCapable'] and result['onDemandCapable']):
-                self.module.fail_json(msg="ASUP is not supported on this device. Array Id [%s]." % (self.ssid))
+            if not (result["asupCapable"] and result["onDemandCapable"]):
+                self.module.fail_json(msg="ASUP is not supported on this device. Array Id [%s]." % self.ssid)
             return result
 
         except Exception as err:
-            self.module.fail_json(msg="Failed to retrieve ASUP configuration! Array Id [%s]. Error [%s]."
-                                      % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to retrieve ASUP configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def update_configuration(self):
         config = self.get_configuration()
@@ -354,110 +336,97 @@ class Asup(object):
 
         if self.asup:
             body = dict(asupEnabled=True)
-            if not config['asupEnabled']:
+            if not config["asupEnabled"]:
                 update = True
 
-            if (config['onDemandEnabled'] and config['remoteDiagsEnabled']) != self.active:
+            if (config["onDemandEnabled"] and config["remoteDiagsEnabled"]) != self.active:
                 update = True
                 body.update(dict(onDemandEnabled=self.active,
                                  remoteDiagsEnabled=self.active))
             self.days.sort()
-            config['schedule']['daysOfWeek'].sort()
+            config["schedule"]["daysOfWeek"].sort()
 
-            body['schedule'] = dict(daysOfWeek=self.days,
+            body["schedule"] = dict(daysOfWeek=self.days,
                                     dailyMinTime=self.start,
                                     dailyMaxTime=self.end,
                                     weeklyMinTime=self.start,
                                     weeklyMaxTime=self.end)
 
-            if self.days != config['schedule']['daysOfWeek']:
+            if self.days != config["schedule"]["daysOfWeek"]:
                 update = True
-            if self.start != config['schedule']['dailyMinTime'] or self.start != config['schedule']['weeklyMinTime']:
+            if self.start != config["schedule"]["dailyMinTime"] or self.start != config["schedule"]["weeklyMinTime"]:
                 update = True
-            elif self.end != config['schedule']['dailyMaxTime'] or self.end != config['schedule']['weeklyMaxTime']:
+            elif self.end != config["schedule"]["dailyMaxTime"] or self.end != config["schedule"]["weeklyMaxTime"]:
                 update = True
 
-            if self.method in ['https', 'http']:
-                if self.routing_type == 'direct':
-                    body['delivery'] = dict(method=self.method,
-                                            routingType='direct')
-                elif self.routing_type == 'proxy':
-                    body['delivery'] = dict(method=self.method,
-                                            proxyHost=self.proxy['host'],
-                                            proxyPort=self.proxy['port'],
-                                            routingType='proxyServer')
-                elif self.routing_type == 'script':
-                    body['delivery'] = dict(method=self.method,
-                                            proxyScript=self.proxy['script'],
-                                            routingType='proxyScript')
+            if self.method in ["https", "http"]:
+                if self.routing_type == "direct":
+                    body["delivery"] = dict(method=self.method,
+                                            routingType="direct")
+                elif self.routing_type == "proxy":
+                    body["delivery"] = dict(method=self.method,
+                                            proxyHost=self.proxy["host"],
+                                            proxyPort=self.proxy["port"],
+                                            routingType="proxyServer")
+                elif self.routing_type == "script":
+                    body["delivery"] = dict(method=self.method,
+                                            proxyScript=self.proxy["script"],
+                                            routingType="proxyScript")
 
             else:
-                body['delivery'] = dict(method='smtp',
-                                        mailRelayServer=self.email['server'],
-                                        mailSenderAddress=self.email['sender'],
-                                        routingType='none')
+                body["delivery"] = dict(method="smtp",
+                                        mailRelayServer=self.email["server"],
+                                        mailSenderAddress=self.email["sender"],
+                                        routingType="none")
 
-            if config['delivery']['method'] != body['delivery']['method']:
+            if config["delivery"]["method"] != body["delivery"]["method"]:
                 update = True
-            elif config['delivery']['method'] in ['https', 'http']:
-                if config['delivery']['routingType'] != body['delivery']['routingType']:
+            elif config["delivery"]["method"] in ["https", "http"]:
+                if config["delivery"]["routingType"] != body["delivery"]["routingType"]:
                     update = True
-                elif (config['delivery']['routingType'] == 'proxy' and
-                      config['delivery']['proxyHost'] != body['delivery']['proxyHost'] and
-                      config['delivery']['proxyPort'] != body['delivery']['proxyPort']):
+                elif (config["delivery"]["routingType"] == "proxy" and
+                      config["delivery"]["proxyHost"] != body["delivery"]["proxyHost"] and
+                      config["delivery"]["proxyPort"] != body["delivery"]["proxyPort"]):
                     update = True
-                elif config['delivery']['routingType'] == 'script' and config['delivery']['proxyScript'] != body['delivery']['proxyScript']:
+                elif config["delivery"]["routingType"] == "script" and config["delivery"]["proxyScript"] != body["delivery"]["proxyScript"]:
                     update = True
-            elif (config['delivery']['method'] == 'smtp' and
-                  config['delivery']['mailRelayServer'] != body['delivery']['mailRelayServer'] and
-                  config['delivery']['mailSenderAddress'] != body['delivery']['mailSenderAddress']):
+            elif (config["delivery"]["method"] == "smtp" and
+                  config["delivery"]["mailRelayServer"] != body["delivery"]["mailRelayServer"] and
+                  config["delivery"]["mailSenderAddress"] != body["delivery"]["mailSenderAddress"]):
                 update = True
 
-        elif config['asupEnabled']:     # Disable asupEnable is asup is disabled.
+        elif config["asupEnabled"]:     # Disable asupEnable is asup is disabled.
             body = dict(asupEnabled=False)
             update = True
-
-        self._logger.info(pformat(body))
 
         if update and not self.check_mode:
 
             if self.validate:
-                validate_body = dict(delivery=body['delivery'])
+                validate_body = dict(delivery=body["delivery"])
                 if self.email:
-                    validate_body['mailReplyAddress'] = self.email['test_recipient']
+                    validate_body["mailReplyAddress"] = self.email["test_recipient"]
 
                 try:
-                    rc, result = request(self.url + 'device-asup/verify-config', method='POST',
-                                         data=json.dumps(validate_body), headers=HEADERS, **self.creds)
+                    rc, response = self.request(self.url_path_prefix + "device-asup/verify-config", method="POST", data=validate_body)
                 except Exception as err:
                     self.module.fail_json(msg="We failed to verify ASUP configuration! Array Id [%s]. Error [%s]."
                                               % (self.ssid, to_native(err)))
 
             try:
-                (rc, result) = request(self.url + 'device-asup', method='POST',
-                                       data=json.dumps(body), headers=HEADERS, **self.creds)
+                rc, response = self.request(self.url_path_prefix + "device-asup", method="POST", data=body)
             # This is going to catch cases like a connection failure
             except Exception as err:
-                self.module.fail_json(msg="We failed to set the storage-system name! Array Id [%s]. Error [%s]."
-                                          % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="We failed to set the storage-system name! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         return update
 
     def apply(self):
         update = self.update_configuration()
         cfg = self.get_configuration()
-        if self.verbose:
-            self.module.exit_json(msg="The ASUP settings have been updated.", changed=update,
-                                  asup=cfg['asupEnabled'], active=cfg['onDemandEnabled'], cfg=cfg)
-        else:
-            self.module.exit_json(msg="The ASUP settings have been updated.", changed=update,
-                                  asup=cfg['asupEnabled'], active=cfg['onDemandEnabled'])
+
+        self.module.exit_json(msg="The ASUP settings have been updated.", changed=update, asup=cfg["asupEnabled"], active=cfg["onDemandEnabled"], cfg=cfg)
 
 
-def main():
-    settings = Asup()
-    settings.apply()
-
-
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    asup = NetAppESeriesAsup()
+    asup.apply()
