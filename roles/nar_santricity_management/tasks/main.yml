@@ -18,5 +18,9 @@
   delegate_to: localhost
 
 - name: Ensure all management settings are configured
+  import_tasks: certificates.yml
+  delegate_to: localhost
+
+- name: Ensure all management settings are configured
   import_tasks: management.yml
   delegate_to: localhost

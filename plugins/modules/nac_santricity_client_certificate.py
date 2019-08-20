@@ -32,14 +32,14 @@ options:
       - A randomly generated alias will be used when an alias is not given.
       - This option may not be available in older versions of NetApp E-Series web services.
     required: false
-  file_path:
+  certificates:
     description:
-      - Valid path to the remote server certificate
-      - Must be specified when I(state=="present")
-      - When alias is not known or specified the file can be used to identify existing certificate match.
+      - List of certificate files
+      - Each item must include the path to the file
     required: false
 note:
   - When I(state=="absent") either I(alias) or I(file_path) must be specified.
+  - Use M(ssid=0) to specifically reference SANtricity Web Services Proxy.
 '''
 EXAMPLES = '''
 '''
@@ -53,6 +53,7 @@ msg:
 '''
 
 import binascii
+import os
 import re
 
 from datetime import datetime
@@ -64,188 +65,155 @@ from ansible.module_utils._text import to_native
 
 class NetAppESeriesClientCertificate(NetAppESeriesModule):
     def __init__(self):
-        ansible_options = dict(state=dict(required=True, choices=["present", "absent"]),
-                               alias=dict(type="str", required=False),
-                               file_path=dict(type="str", required=False))
-        required_if = [["state", "present", ["file_path"]]]
+        ansible_options = dict(certificates=dict(type="list", required=False))
 
         super(NetAppESeriesClientCertificate, self).__init__(ansible_options=ansible_options,
                                                              web_services_version="02.00.0000.0000",
-                                                             supports_check_mode=True,
-                                                             required_if=required_if)
+                                                             supports_check_mode=True)
 
         args = self.module.params
-        self.state = args["state"]
-        self.alias = args["alias"]
-        self.file_path = args["file_path"]
-        self.certificate_cache = dict()
+        self.certificates = args["certificates"] if args["certificates"] else []
+
+        # Check whether request needs to be forwarded on to the controller web services rest api.
+        self.url_path_prefix = ""
+        if not self.is_embedded() and self.ssid != 0:
+            self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid
+
+        self.remove_certificates = list()
+        self.add_certificates = list()
         self.certificate_fingerprint_cache = None
         self.certificate_info_cache = None
 
-        if self.state == "absent" and not (self.alias or self.file_path):
-            self.module.fail_json(msg="Either alias or file_path must be specified in order to remove an existing"
-                                      " certificate. Array [%s]" % self.ssid)
-
-    @property
-    def certificate(self):
+    def determine_changes(self):
         """Search for remote server certificate that goes by the alias or has a matching fingerprint.
 
         :returns dict: dictionary containing information about the certificate."""
-        if not self.certificate_cache:
-            rc, certificates = self.request("certificates/remote-server", ignore_errors=True)
+        rc, current_certificates = self.request(self.url_path_prefix + "certificates/remote-server", ignore_errors=True)
 
-            if rc == 404:   # system down or endpoint does not exist
-                rc, certificates = self.request("sslconfig/ca", ignore_errors=True)
-                if rc > 299:
-                    self.module.fail_json(msg="Failed to retrieve remote server certificates. Array [%s]." % self.ssid)
+        if rc == 404:   # system down or endpoint does not exist
+            rc, current_certificates = self.request(self.url_path_prefix + "sslconfig/ca?useTruststore=true", ignore_errors=True)
 
-                if self.state == "present" and self.alias:
-                    self.module.fail_json(msg="User-defined aliases cannot be used to in this version of NetApp"
-                                              " E-Series Web Services. Please upgrade Web Services or just specifying"
-                                              " file_path option. Array [%s]." % self.ssid)
-
-                for certificate in certificates:
-                    tmp = dict(subject_dn=[re.sub(r".*=", "", item) for item in certificate["subjectDN"].split(", ")],
-                               issuer_dn=[re.sub(r".*=", "", item) for item in certificate["issuerDN"].split(", ")],
-                               start_date=datetime.strptime(certificate["start"].split(".")[0], "%Y-%m-%dT%H:%M:%S"),
-                               expire_date=datetime.strptime(certificate["expire"].split(".")[0], "%Y-%m-%dT%H:%M:%S"))
-
-                    if (all([attr in self.certificate_info["subject_dn"] for attr in tmp["subject_dn"]]) and
-                            all([attr in self.certificate_info["issuer_dn"] for attr in tmp["issuer_dn"]]) and
-                            tmp["start_date"] == self.certificate_info["start_date"] and
-                            tmp["expire_date"] == self.certificate_info["expire_date"]):
-                        self.alias = certificate["alias"]
-                        self.certificate_cache = tmp
-                        break
-
-            elif rc > 299:
+            if rc > 299:
                 self.module.fail_json(msg="Failed to retrieve remote server certificates. Array [%s]." % self.ssid)
-            else:
-                for certificate in certificates:
-                    if (certificate["alias"] == self.alias or
-                            self.certificate_fingerprint == certificate["sha256Fingerprint"] or
-                            self.certificate_fingerprint == certificate["shaFingerprint"]):
-                        self.certificate_cache = certificate
+
+            user_installed_certificates = [certificate for certificate in current_certificates if certificate["isUserInstalled"]]
+            existing_certificates = []
+
+            for path in self.certificates:
+                for current_certificate in user_installed_certificates:
+                    info = self.certificate_info(path)
+                    tmp = dict(subject_dn=[re.sub(r".*=", "", item) for item in current_certificate["subjectDN"].split(", ")],
+                               issuer_dn=[re.sub(r".*=", "", item) for item in current_certificate["issuerDN"].split(", ")],
+                               start_date=datetime.strptime(current_certificate["start"].split(".")[0], "%Y-%m-%dT%H:%M:%S"),
+                               expire_date=datetime.strptime(current_certificate["expire"].split(".")[0], "%Y-%m-%dT%H:%M:%S"))
+
+                    if (all([attr in info["subject_dn"] for attr in tmp["subject_dn"]]) and
+                            all([attr in info["issuer_dn"] for attr in tmp["issuer_dn"]]) and
+                            tmp["start_date"] == info["start_date"] and
+                            tmp["expire_date"] == info["expire_date"]):
+                        existing_certificates.append(current_certificate)
                         break
+                else:
+                    self.add_certificates.append(path)
+            self.remove_certificates = [certificate for certificate in user_installed_certificates if certificate not in existing_certificates]
 
-            self.module.debug(self.certificate_cache)
-        return self.certificate_cache
+        elif rc > 299:
+            self.module.fail_json(msg="Failed to retrieve remote server certificates. Array [%s]." % self.ssid)
 
-    @property
-    def certificate_info(self):
+        else:
+            user_installed_certificates = [certificate for certificate in current_certificates if certificate["isUserInstalled"]]
+            existing_certificates = []
+            for path in self.certificates:
+                for current_certificate in user_installed_certificates:
+                    fingerprint = self.certificate_fingerprint(path)
+                    if current_certificate["sha256Fingerprint"] == fingerprint or current_certificate["shaFingerprint"] == fingerprint:
+                        existing_certificates.append(current_certificate)
+                        break
+                else:
+                    self.add_certificates.append(path)
+            self.remove_certificates = [certificate for certificate in user_installed_certificates if certificate not in existing_certificates]
+
+    def certificate_info(self, path):
         """Determine the pertinent certificate information: alias, subjectDN, issuerDN, start and expire.
 
         Note: Use only when certificate/remote-server endpoints do not exist. Used to identify certificates through
         the sslconfig/ca endpoint.
         """
-        if not self.certificate_info_cache:
-            certificate = None
-            with open(self.file_path, "rb") as fh:
-                data = fh.read()
+        certificate = None
+        with open(path, "rb") as fh:
+            data = fh.read()
+            try:
+                certificate = x509.load_pem_x509_certificate(data, default_backend())
+            except Exception as error:
                 try:
-                    certificate = x509.load_pem_x509_certificate(data, default_backend())
+                    certificate = x509.load_der_x509_certificate(data, default_backend())
+                    pass
                 except Exception as error:
-                    try:
-                        certificate = x509.load_der_x509_certificate(data, default_backend())
-                        pass
-                    except Exception as error:
-                        self.module.fail_json(msg="Failed to load certificate. Array [%s]. Error [%s]."
-                                                  % (self.ssid, to_native(error)))
+                    self.module.fail_json(msg="Failed to load certificate. Array [%s]. Error [%s]."
+                                              % (self.ssid, to_native(error)))
 
-            if not isinstance(certificate, x509.Certificate):
-                self.module.fail_json(msg="Failed to open certificate file or invalid certificate object type. Array [%s]." % self.ssid)
+        if not isinstance(certificate, x509.Certificate):
+            self.module.fail_json(msg="Failed to open certificate file or invalid certificate object type. Array [%s]." % self.ssid)
 
-            self.certificate_info_cache = dict(start_date=certificate.not_valid_before,
-                                               expire_date=certificate.not_valid_after,
-                                               subject_dn=[attr.value for attr in certificate.subject],
-                                               issuer_dn=[attr.value for attr in certificate.issuer])
+        return dict(start_date=certificate.not_valid_before,
+                    expire_date=certificate.not_valid_after,
+                    subject_dn=[attr.value for attr in certificate.subject],
+                    issuer_dn=[attr.value for attr in certificate.issuer])
 
-        return self.certificate_info_cache
-
-    @property
-    def certificate_fingerprint(self):
+    def certificate_fingerprint(self, path):
         """Load x509 certificate that is either encoded DER or PEM encoding and return the certificate fingerprint."""
         certificate = None
-        if not self.certificate_fingerprint_cache:
-            with open(self.file_path, "rb") as fh:
-                data = fh.read()
+        with open(path, "rb") as fh:
+            data = fh.read()
+            try:
+                certificate = x509.load_pem_x509_certificate(data, default_backend())
+            except Exception as error:
                 try:
-                    certificate = x509.load_pem_x509_certificate(data, default_backend())
+                    certificate = x509.load_der_x509_certificate(data, default_backend())
                 except Exception as error:
-                    try:
-                        certificate = x509.load_der_x509_certificate(data, default_backend())
-                        pass
-                    except Exception as error:
-                        self.module.fail_json(msg="Failed to load certificate. Array [%s]. Error [%s]."
-                                                  % (self.ssid, to_native(error)))
-            self.certificate_fingerprint_cache = binascii.hexlify(
-                certificate.fingerprint(certificate.signature_hash_algorithm))
+                    self.module.fail_json(msg="Failed to determine certificate fingerprint. File [%s]. Array [%s]. Error [%s]."
+                                              % (path, self.ssid, to_native(error)))
 
-        return self.certificate_fingerprint_cache
+        return binascii.hexlify(certificate.fingerprint(certificate.signature_hash_algorithm)).decode("utf-8")
 
-    def certificate_match(self):
-        """Determine whether the certificate is different than the existing certificate in the truststore."""
-
-        if all([key in ["subject_dn", "issuer_dn", "start_date", "expire_date"] for key in self.certificate.keys()]):
-            if (all([attr in self.certificate_info["subject_dn"] for attr in self.certificate["subject_dn"]]) and
-                    all([attr in self.certificate_info["issuer_dn"] for attr in self.certificate["issuer_dn"]]) and
-                    self.certificate["start_date"] == self.certificate_info["start_date"] and
-                    self.certificate["expire_date"] == self.certificate_info["expire_date"]):
-                return True
-
-        elif any([key in ["sha256Fingerprint", "shaFingerprint"] for key in self.certificate.keys()]):
-            if (self.certificate_fingerprint == self.certificate["sha256Fingerprint"] or
-                    self.certificate_fingerprint == self.certificate["shaFingerprint"]):
-                return True
-
-        return False
-
-    def upload_certificate(self):
+    def upload_certificate(self, path):
         """Add or update remote server certificate to the storage array."""
-        url = "certificates/remote-server?alias=%s" % self.alias if self.alias else "certificates/remote-server"
-        headers, data = create_multipart_formdata(files=[("file", self.file_path)])
-        rc, resp = self.request(url, method="POST", headers=headers, data=data, ignore_errors=True)
-        if rc == 404:
-            rc, resp = self.request("sslconfig/ca", method="POST", headers=headers, data=data, ignore_errors=True)
+        file_name = os.path.basename(path)
+        headers, data = create_multipart_formdata(files=[("file", file_name, path)])
 
+        rc, resp = self.request(self.url_path_prefix + "certificates/remote-server", method="POST", headers=headers, data=data, ignore_errors=True)
+
+        if rc == 404:
+            rc, resp = self.request(self.url_path_prefix + "sslconfig/ca?useTruststore=true", method="POST", headers=headers, data=data, ignore_errors=True)
         if rc > 299:
             self.module.fail_json(msg="Failed to upload certificate. Array [%s]. Error [%s, %s]." % (self.ssid, rc, resp))
 
-    def delete_certificate(self):
+    def delete_certificate(self, info):
         """Delete existing remote server certificate in the storage array truststore."""
-        rc, resp = self.request("certificates/remote-server/%s" % self.alias, method="DELETE", ignore_errors=True)
+        rc, resp = self.request(self.url_path_prefix + "certificates/remote-server/%s" % info["alias"], method="DELETE", ignore_errors=True)
+
         if rc == 404:
-            rc, resp = self.request("sslconfig/ca/%s" % self.alias, method="DELETE", ignore_errors=True)
+            rc, resp = self.request(self.url_path_prefix + "sslconfig/ca/%s?useTruststore=true" % info["alias"], method="DELETE", ignore_errors=True)
 
         if rc > 204:
-            self.module.fail_json(msg="Failed to delete certificate. Alias [%s]. Array [%s]. Error [%s, %s]." % (self.alias, self.ssid, rc, resp))
+            self.module.fail_json(msg="Failed to delete certificate. Alias [%s]. Array [%s]. Error [%s, %s]." % (info["alias"], self.ssid, rc, resp))
 
     def apply(self):
         """Apply state changes to the storage array's truststore."""
-        change_required = False
-        message = "No changes were required. Array [%s]." % self.ssid
+        changed = False
 
-        if self.state == "present":
-            if self.certificate:
-                if not self.certificate_match():
-                    change_required = True
-            else:
-                change_required = True
-        elif self.certificate:
-            change_required = True
+        self.determine_changes()
+        if self.remove_certificates or self.add_certificates:
+            changed = True
 
-        if change_required and not self.module.check_mode:
-            if self.state == "present":
-                self.upload_certificate()
-                if self.certificate:
-                    message = "Certificate [%s] was successfully modified. Array [%s]." % (self.alias, self.ssid)
-                else:
-                    message = "Certificate [%s] was successfully uploaded. Array [%s]." % (self.alias, self.ssid)
-            elif self.certificate:
-                self.delete_certificate()
-                message = "Certificate [%s] was successfully removed. Array [%s]." % (self.alias, self.ssid)
+        if changed and not self.module.check_mode:
+            for info in self.remove_certificates:
+                self.delete_certificate(info)
 
-        self.module.exit_json(msg=message, changed=change_required)
+            for path in self.add_certificates:
+                self.upload_certificate(path)
+
+        self.module.exit_json(changed=changed, removed_certificates=self.remove_certificates, add_certificates=self.add_certificates)
 
 
 def main():
