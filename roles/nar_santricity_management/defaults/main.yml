@@ -23,6 +23,11 @@ eseries_ssid: 1                                          # Storage array identif
 # -----------------------------
 #eseries_system_name:                     # Name of the storage system.
 
+# Storage system SSL certificates
+# -------------------------------
+#eseries_client_certificate_certificates                # Dictionary containing the SSL certificate file paths. The key will be used as the alias.
+#eseries_client_certificate_absent_certificates         # List of aliases to remove from the storage array's trust store.
+
 # Storage management interface defaults
 # -------------------------------------
 #eseries_management_config_method:

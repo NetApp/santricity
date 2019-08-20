@@ -30,9 +30,9 @@ Example Playbook
       collection:
         - netapp_eseries.santricity
       tasks:
-      - name: Ensure NetApp E-Series storage system is properly configured
-        import_role:
-          name: nar_santricity_management
+        - name: Ensure NetApp E-Series storage system is properly configured
+          import_role:
+            name: nar_santricity_management
 
 Example Storage System Inventory File
 -------------------------------------
@@ -47,8 +47,6 @@ Example Storage System Inventory File
     eseries_asup_state: enabled
     eseries_asup_active: true
     eseries_asup_days:
-      - friday
-      - saturday
       - sunday
     eseries_asup_start: 17
     eseries_asup_end: 24
@@ -67,7 +65,6 @@ Example Storage System Inventory File
 
     eseries_firmware_firmware: "/home/user/Downloads/RCB_11.40.5_280x_5ceef00e.dlp"
     eseries_firmware_nvsram: "/home/user/Downloads/N280X-842834-D02.dlp"
-    eseries_drive_firmware_upgrade_drives_online: false
     eseries_drive_firmware_firmware_list:
       - "/home/user/Downloads/drive firmware/D_PX04SVQ160_30603183_MS00_6600_001.dlp"
       - "/home/user/Downloads/drive firmware/D_ST1200MM0017_30602214_MS02_5600_002.dlp"
@@ -97,8 +94,10 @@ Example Storage System Inventory File
       ntp_address_backup: 192.168.1.201
       controller_a:
         - address: 192.168.1.100
-      controller_b:
         - address: 192.168.1.101
+      controller_b:
+        - address: 192.168.1.102
+        - address: 192.168.1.103
 
     eseries_syslog_state: present
     eseries_syslog_address: 192.168.1.150
