@@ -15,7 +15,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = '''
 module: nac_santricity_storage_system
 version_added: "2.2"
-short_description: NetApp E-Series Web Services Proxy manage storage arrays
+short_description: NetApp E-Series manage SANtricity web services proxy storage arrays
 description:
 - Manage the arrays accessible via a NetApp Web Services Proxy for NetApp E-series storage arrays.
 options:

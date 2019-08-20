@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: nac_santricity_mgmt_interface
-short_description: NetApp E-Series management interface configuration
+short_description: NetApp E-Series manage management interface configuration
 description:
     - Configure the E-Series management interfaces
 version_added: '2.7'

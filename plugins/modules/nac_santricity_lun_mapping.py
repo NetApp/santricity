@@ -17,7 +17,7 @@ module: nac_santricity_lun_mapping
 author:
     - Kevin Hulquest (@hulquest)
     - Nathan Swartz (@ndswartz)
-short_description: NetApp E-Series create, delete, or modify lun mappings
+short_description: NetApp E-Series manage lun mappings
 description:
      - Create, delete, or modify mappings between a volume and a targeted host/host+ group.
 version_added: "2.2"
