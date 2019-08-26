@@ -29,10 +29,6 @@ options:
             - May be up to 30 characters in length.
         aliases:
             - label
-    log_path:
-        description:
-            - A local path to a file to be used for debug logging
-        required: no
 notes:
     - Check mode is supported.
     - This module requires Web Services API v1.3 or newer.
@@ -41,10 +37,12 @@ notes:
 EXAMPLES = """
     - name: Set the storage-system name
       nac_santricity_global:
-        name: myArrayName
-        api_url: "10.1.1.1:8443"
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
         api_username: "admin"
-        api_password: "myPass"
+        api_password: "adminpass"
+        validate_certs: true
+        name: myArrayName
 """
 
 RETURN = """
@@ -61,7 +59,6 @@ name:
     type: str
 """
 import json
-import logging
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import request, eseries_host_argument_spec
@@ -77,8 +74,7 @@ class GlobalSettings(object):
     def __init__(self):
         argument_spec = eseries_host_argument_spec()
         argument_spec.update(dict(
-            name=dict(type='str', required=False, aliases=['label']),
-            log_path=dict(type='str', required=False),
+            name=dict(type='str', required=False, aliases=['label'])
         ))
 
         self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True, )
@@ -92,16 +88,6 @@ class GlobalSettings(object):
                           url_username=args['api_username'], )
 
         self.check_mode = self.module.check_mode
-
-        log_path = args['log_path']
-
-        # logging setup
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        if log_path:
-            logging.basicConfig(
-                level=logging.DEBUG, filename=log_path, filemode='w',
-                format='%(relativeCreated)dms %(levelname)s %(module)s.%(funcName)s:%(lineno)d\n %(message)s')
 
         if not self.url.endswith('/'):
             self.url += '/'
@@ -128,9 +114,8 @@ class GlobalSettings(object):
 
         if update and not self.check_mode:
             try:
-                (rc, result) = request(self.url + 'storage-systems/%s/configuration' % self.ssid, method='POST',
-                                       data=json.dumps(body), headers=HEADERS, **self.creds)
-                self._logger.info("Set name to %s.", result['name'])
+                rc, result = request(self.url + 'storage-systems/%s/configuration' % self.ssid, method='POST',
+                                     data=json.dumps(body), headers=HEADERS, **self.creds)
             # This is going to catch cases like a connection failure
             except Exception as err:
                 self.module.fail_json(

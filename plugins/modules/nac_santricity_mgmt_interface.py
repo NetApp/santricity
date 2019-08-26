@@ -132,10 +132,6 @@ options:
             - This is a controller-level setting.
             - rlogin/telnet will be enabled for ancient equipment where ssh is not available.
         required: no
-    log_path:
-        description:
-            - A local path to a file to be used for debug logging
-        required: no
 notes:
     - Check mode is supported.
     - The interface settings are applied synchronously, but changes to the interface itself (receiving a new IP address
@@ -147,63 +143,68 @@ notes:
 EXAMPLES = """
     - name: Configure the first port on the A controller with a static IPv4 address
       nac_santricity_mgmt_interface:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         name: "1"
         controller: "A"
         config_method: static
         address: "192.168.1.100"
         subnet_mask: "255.255.255.0"
         gateway: "192.168.1.1"
-        ssid: "1"
-        api_url: "10.1.1.1:8443"
-        api_username: "admin"
-        api_password: "myPass"
 
     - name: Disable ipv4 connectivity for the second port on the B controller
       nac_santricity_mgmt_interface:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         name: "2"
         controller: "B"
         enable_interface: no
-        ssid: "{{ ssid }}"
-        api_url: "{{ netapp_api_url }}"
-        api_username: "{{ netapp_api_username }}"
-        api_password: "{{ netapp_api_password }}"
 
     - name: Enable ssh access for ports one and two on controller A
       nac_santricity_mgmt_interface:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         name: "{{ item }}"
         controller: "A"
         ssh: yes
-        ssid: "{{ ssid }}"
-        api_url: "{{ netapp_api_url }}"
-        api_username: "{{ netapp_api_username }}"
-        api_password: "{{ netapp_api_password }}"
       loop:
         - 1
         - 2
 
     - name: Configure static DNS settings for the first port on controller A
       nac_santricity_mgmt_interface:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         name: "1"
         controller: "A"
         dns_config_method: static
         dns_address: "192.168.1.100"
         dns_address_backup: "192.168.1.1"
-        ssid: "{{ ssid }}"
-        api_url: "{{ netapp_api_url }}"
-        api_username: "{{ netapp_api_username }}"
-        api_password: "{{ netapp_api_password }}"
 
     - name: Configure static NTP settings for ports one and two on controller B
       nac_santricity_mgmt_interface:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         name: "{{ item }}"
         controller: "B"
         ntp_config_method: static
         ntp_address: "129.100.1.100"
         ntp_address_backup: "127.100.1.1"
-        ssid: "{{ ssid }}"
-        api_url: "{{ netapp_api_url }}"
-        api_username: "{{ netapp_api_username }}"
-        api_password: "{{ netapp_api_password }}"
       loop:
         - 1
         - 2
@@ -225,10 +226,8 @@ enabled:
     type: bool
 """
 import json
-import logging
-from pprint import pformat, pprint
-import time
 import socket
+import time
 
 try:
     import urlparse
@@ -266,8 +265,7 @@ class MgmtInterface(object):
             ntp_config_method=dict(type="str", required=False, choices=["disable", "dhcp", "static"]),
             ntp_address=dict(type="str", required=False),
             ntp_address_backup=dict(type="str", required=False),
-            ssh=dict(type="bool", required=False),
-            log_path=dict(type="str", required=False),
+            ssh=dict(type="bool", required=False)
         ))
 
         required_if = [
@@ -317,16 +315,6 @@ class MgmtInterface(object):
 
         self.check_mode = self.module.check_mode
         self.post_body = dict()
-
-        log_path = args["log_path"]
-
-        # logging setup
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        if log_path:
-            logging.basicConfig(
-                level=logging.DEBUG, filename=log_path, filemode='w',
-                format='%(relativeCreated)dms %(levelname)s %(module)s.%(funcName)s:%(lineno)d\n %(message)s')
 
         if not self.url.endswith('/'):
             self.url += '/'
@@ -550,8 +538,6 @@ class MgmtInterface(object):
             url_address_info = socket.getaddrinfo(iface["address"], 8443)
             update_used_matching_address = any(info in url_address_info for info in address_info)
 
-        self._logger.info("update_used_matching_address: %s", update_used_matching_address)
-
         # Populate the body of the request and check for changes
         if self.enable_interface is not None:
             update, expected_iface, body = self.get_enable_interface_settings(iface, expected_iface, update, body)
@@ -569,11 +555,6 @@ class MgmtInterface(object):
             update, body = self.get_remote_ssh_settings(settings, update, body)
             iface["ssh"] = self.ssh
             expected_iface["ssh"] = self.ssh
-
-        # debug information
-        self._logger.info(pformat(body))
-        self._logger.info(pformat(iface))
-        self._logger.info(pformat(expected_iface))
 
         if self.check_mode:
             return update
@@ -622,16 +603,12 @@ class MgmtInterface(object):
                 domain[0] = self.address
                 url_parts[1] = ":".join(domain)
                 expected_url = urlparse.urlunparse(url_parts)
-                self._logger.info(pformat(expected_url))
 
                 (rc, data) = request(expected_url + 'storage-systems/%s/configuration/ethernet-interfaces' % self.ssid,
                                      headers=HEADERS, timeout=300, **self.creds)
                 return
         except Exception as err:
-            self._logger.info(type(err))
-            self.module.fail_json(
-                msg="Connection failure: we failed to modify the network settings! Array Id [%s]. Error [%s]."
-                    % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Connection failure: we failed to modify the network settings! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def validate_changes(self, expected_iface, retry=6):
         """Validate interface changes were applied to the controller interface port. 30 second timeout"""
@@ -658,7 +635,6 @@ class MgmtInterface(object):
             if rc == 424:
                 if self.retries < self.MAX_RETRIES:
                     self.retries += 1
-                    self._logger.info("We hit a 424, retrying in 5s.")
                     time.sleep(5)
                     self.check_health()
                 else:
@@ -672,7 +648,6 @@ class MgmtInterface(object):
         # This is going to catch cases like a connection failure
         except Exception as err:
             if self.retries < self.MAX_RETRIES:
-                self._logger.info("We hit a connection failure, retrying in 5s.")
                 self.retries += 1
                 time.sleep(5)
                 self.check_health()
@@ -689,20 +664,11 @@ class MgmtInterface(object):
         # make the necessary changes to the storage system
         settings = self.controllers[self.controller]
         iface = self.interface
-        self._logger.info(pformat(settings))
-        self._logger.info(pformat(iface))
         update = self.update_array(settings, iface)
 
         self.module.exit_json(msg="The interface settings have been updated.", changed=update)
 
-    def __call__(self, *args, **kwargs):
-        self.update()
-
-
-def main():
-    iface = MgmtInterface()
-    iface()
-
 
 if __name__ == '__main__':
-    main()
+    iface = MgmtInterface()
+    iface.update()

@@ -36,11 +36,11 @@ options:
 EXAMPLES = """
 - name: Enable feature pack
   nac_santricity_feature_pack:
-    ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
-    api_username: "{{ eseries_api_username }}"
-    api_password: "{{ eseries_api_password }}"
-    validate_certs: "{{ eseries_validate_certs }}"
+    ssid: "1"
+    api_url: "https://192.168.1.100:8443/devmgr/v2"
+    api_username: "admin"
+    api_password: "adminpass"
+    validate_certs: true
     feature_key: "path/to/feature-pack.key"
     wait_for_reboot: True
 """

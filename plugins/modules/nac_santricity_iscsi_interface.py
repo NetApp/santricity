@@ -85,10 +85,6 @@ options:
         default: 1500
         aliases:
             - max_frame_size
-    log_path:
-        description:
-            - A local path to a file to be used for debug logging
-        required: no
 notes:
     - Check mode is supported.
     - The interface settings are applied synchronously, but changes to the interface itself (receiving a new IP address
@@ -100,38 +96,41 @@ notes:
 EXAMPLES = """
     - name: Configure the first port on the A controller with a static IPv4 address
       nac_santricity_iscsi_interface:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         name: "1"
         controller: "A"
         config_method: static
         address: "192.168.1.100"
         subnet_mask: "255.255.255.0"
         gateway: "192.168.1.1"
-        ssid: "1"
-        api_url: "10.1.1.1:8443"
-        api_username: "admin"
-        api_password: "myPass"
 
     - name: Disable ipv4 connectivity for the second port on the B controller
       nac_santricity_iscsi_interface:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         name: "2"
         controller: "B"
         state: disabled
-        ssid: "{{ ssid }}"
-        api_url: "{{ netapp_api_url }}"
-        api_username: "{{ netapp_api_username }}"
-        api_password: "{{ netapp_api_password }}"
 
     - name: Enable jumbo frames for the first 4 ports on controller A
       nac_santricity_iscsi_interface:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         name: "{{ item | int }}"
         controller: "A"
         state: enabled
         mtu: 9000
         config_method: dhcp
-        ssid: "{{ ssid }}"
-        api_url: "{{ netapp_api_url }}"
-        api_username: "{{ netapp_api_username }}"
-        api_password: "{{ netapp_api_password }}"
       loop:
         - 1
         - 2
@@ -155,8 +154,6 @@ enabled:
     type: bool
 """
 import json
-import logging
-from pprint import pformat
 import re
 
 from ansible.module_utils.basic import AnsibleModule
@@ -180,8 +177,7 @@ class IscsiInterface(object):
             subnet_mask=dict(type='str', required=False),
             gateway=dict(type='str', required=False),
             config_method=dict(type='str', required=False, default='dhcp', choices=['dhcp', 'static']),
-            mtu=dict(type='int', default=1500, required=False, aliases=['max_frame_size']),
-            log_path=dict(type='str', required=False),
+            mtu=dict(type='int', default=1500, required=False, aliases=['max_frame_size'])
         ))
 
         required_if = [
@@ -208,16 +204,6 @@ class IscsiInterface(object):
         self.check_mode = self.module.check_mode
         self.post_body = dict()
         self.controllers = list()
-
-        log_path = args['log_path']
-
-        # logging setup
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        if log_path:
-            logging.basicConfig(
-                level=logging.DEBUG, filename=log_path, filemode='w',
-                format='%(relativeCreated)dms %(levelname)s %(module)s.%(funcName)s:%(lineno)d\n %(message)s')
 
         if not self.url.endswith('/'):
             self.url += '/'
@@ -302,10 +288,6 @@ class IscsiInterface(object):
         body = dict(iscsiInterface=target_iface['id'])
         update_required = False
 
-        self._logger.info("Requested state=%s.", self.state)
-        self._logger.info("config_method: current=%s, requested=%s",
-                          target_iface['ipv4Data']['ipv4AddressConfigMethod'], self.config_method)
-
         if self.state == 'enabled':
             settings = dict()
             if not target_iface['ipv4Enabled']:
@@ -342,9 +324,6 @@ class IscsiInterface(object):
                 update_required = True
                 body['settings'] = dict(ipv4Enabled=[False])
 
-        self._logger.info("Update required ?=%s", update_required)
-        self._logger.info("Update body: %s", pformat(body))
-
         return update_required, body
 
     def update(self):
@@ -366,33 +345,20 @@ class IscsiInterface(object):
                 if rc == 422 and result['retcode'] in ['busy', '3']:
                     self.module.fail_json(
                         msg="The interface is currently busy (probably processing a previously requested modification"
-                            " request). This operation cannot currently be completed. Array Id [%s]. Error [%s]."
-                            % (self.ssid, result))
+                            " request). This operation cannot currently be completed. Array Id [%s]. Error [%s]." % (self.ssid, result))
                 # Handle authentication issues, etc.
                 elif rc != 200:
-                    self.module.fail_json(
-                        msg="Failed to modify the interface! Array Id [%s]. Error [%s]."
-                            % (self.ssid, to_native(result)))
-                self._logger.debug("Update request completed successfully.")
+                    self.module.fail_json(msg="Failed to modify the interface! Array Id [%s]. Error [%s]." % (self.ssid, to_native(result)))
             # This is going to catch cases like a connection failure
             except Exception as err:
                 self.module.fail_json(
-                    msg="Connection failure: we failed to modify the interface! Array Id [%s]. Error [%s]."
-                        % (self.ssid, to_native(err)))
+                    msg="Connection failure: we failed to modify the interface! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         iface_after = self.fetch_target_interface()
 
-        self.module.exit_json(msg="The interface settings have been updated.", changed=update_required,
-                              enabled=iface_after['ipv4Enabled'])
-
-    def __call__(self, *args, **kwargs):
-        self.update()
-
-
-def main():
-    iface = IscsiInterface()
-    iface()
+        self.module.exit_json(msg="The interface settings have been updated.", changed=update_required, enabled=iface_after['ipv4Enabled'])
 
 
 if __name__ == '__main__':
-    main()
+    iface = IscsiInterface()
+    iface.update()

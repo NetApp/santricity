@@ -93,10 +93,6 @@ options:
             - This is the attribute we will use to match the provided username when a user attempts to
               authenticate.
         default: sAMAccountName
-    log_path:
-        description:
-            - A local path to a file to be used for debug logging
-        required: no
 notes:
     - Check mode is supported.
     - This module allows you to define one or more LDAP domains identified uniquely by I(identifier) to use for
@@ -112,19 +108,30 @@ notes:
 EXAMPLES = '''
     - name: Disable LDAP authentication
       nac_santricity_ldap:
-        api_url: "10.1.1.1:8443"
-        api_username: "admin"
-        api_password: "myPass"
         ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         state: absent
 
     - name: Remove the 'default' LDAP domain configuration
       nac_santricity_ldap:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         state: absent
         identifier: default
 
     - name: Define a new LDAP domain, utilizing defaults where possible
       nac_santricity_ldap:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         state: present
         bind_username: "CN=MyBindAccount,OU=ServiceAccounts,DC=example,DC=com"
         bind_password: "mySecretPass"
@@ -147,7 +154,6 @@ msg:
 """
 
 import json
-import logging
 
 try:
     import urlparse
@@ -175,8 +181,7 @@ class Ldap(object):
             search_base=dict(type='str', required=False, ),
             role_mappings=dict(type='dict', required=False, ),
             user_attribute=dict(type='str', required=False, default='sAMAccountName'),
-            attributes=dict(type='list', default=['memberOf'], required=False, ),
-            log_path=dict(type='str', required=False),
+            attributes=dict(type='list', default=['memberOf'], required=False)
         ))
 
         required_if = [
@@ -204,16 +209,6 @@ class Ldap(object):
                           timeout=60)
 
         self.check_mode = self.module.check_mode
-
-        log_path = args['log_path']
-
-        # logging setup
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        if log_path:
-            logging.basicConfig(
-                level=logging.DEBUG, filename=log_path, filemode='w',
-                format='%(relativeCreated)dms %(levelname)s %(module)s.%(funcName)s:%(lineno)d\n %(message)s')
 
         if not self.url.endswith('/'):
             self.url += '/'
@@ -252,7 +247,7 @@ class Ldap(object):
         return domain
 
     def is_embedded(self):
-        """Determine whether or not we're using the embedded or proxy implemenation of Web Services"""
+        """Determine whether or not we're using the embedded or proxy implemention of Web Services"""
         if self.embedded is None:
             url = self.url
             try:
@@ -263,36 +258,28 @@ class Ldap(object):
                 (rc, result) = request(url + 'about', **self.creds)
                 self.embedded = not result['runningAsProxy']
             except Exception as err:
-                self._logger.exception("Failed to retrieve the About information.")
-                self.module.fail_json(msg="Failed to determine the Web Services implementation type!"
-                                          " Array Id [%s]. Error [%s]."
-                                          % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="Failed to determine the Web Services implementation type! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         return self.embedded
 
     def get_full_configuration(self):
         try:
-            (rc, result) = request(self.url + self.base_path, **self.creds)
+            rc, result = request(self.url + self.base_path, **self.creds)
             return result
         except Exception as err:
-            self._logger.exception("Failed to retrieve the LDAP configuration.")
-            self.module.fail_json(msg="Failed to retrieve LDAP configuration! Array Id [%s]. Error [%s]."
-                                      % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to retrieve LDAP configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def get_configuration(self, identifier):
         try:
-            (rc, result) = request(self.url + self.base_path + '%s' % (identifier), ignore_errors=True, **self.creds)
+            rc, result = request(self.url + self.base_path + '%s' % identifier, ignore_errors=True, **self.creds)
             if rc == 200:
                 return result
             elif rc == 404:
                 return None
             else:
-                self.module.fail_json(msg="Failed to retrieve LDAP configuration! Array Id [%s]. Error [%s]."
-                                          % (self.ssid, result))
+                self.module.fail_json(msg="Failed to retrieve LDAP configuration! Array Id [%s]. Error [%s]." % (self.ssid, result))
         except Exception as err:
-            self._logger.exception("Failed to retrieve the LDAP configuration.")
-            self.module.fail_json(msg="Failed to retrieve LDAP configuration! Array Id [%s]. Error [%s]."
-                                      % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to retrieve LDAP configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def update_configuration(self):
         # Define a new domain based on the user input
@@ -303,20 +290,17 @@ class Ldap(object):
 
         update = current != domain
         msg = "No changes were necessary for [%s]." % self.identifier
-        self._logger.info("Is updated: %s", update)
         if update and not self.check_mode:
             msg = "The configuration changes were made for [%s]." % self.identifier
             try:
                 if current is None:
                     api = self.base_path + 'addDomain'
                 else:
-                    api = self.base_path + '%s' % (domain['id'])
+                    api = self.base_path + '%s' % domain['id']
 
-                (rc, result) = request(self.url + api, method='POST', data=json.dumps(domain), **self.creds)
+                rc, result = request(self.url + api, method='POST', data=json.dumps(domain), **self.creds)
             except Exception as err:
-                self._logger.exception("Failed to modify the LDAP configuration.")
-                self.module.fail_json(msg="Failed to modify LDAP configuration! Array Id [%s]. Error [%s]."
-                                          % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="Failed to modify LDAP configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         return msg, update
 
@@ -332,10 +316,9 @@ class Ldap(object):
             msg = "The LDAP domain configuration for [%s] was cleared." % identifier
             if not self.check_mode:
                 try:
-                    (rc, result) = request(self.url + self.base_path + '%s' % identifier, method='DELETE', **self.creds)
+                    rc, result = request(self.url + self.base_path + '%s' % identifier, method='DELETE', **self.creds)
                 except Exception as err:
-                    self.module.fail_json(msg="Failed to remove LDAP configuration! Array Id [%s]. Error [%s]."
-                                              % (self.ssid, to_native(err)))
+                    self.module.fail_json(msg="Failed to remove LDAP configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
         return msg, updated
 
     def clear_configuration(self):
@@ -347,7 +330,7 @@ class Ldap(object):
             msg = "The LDAP configuration for all domains was cleared."
             if not self.check_mode:
                 try:
-                    (rc, result) = request(self.url + self.base_path, method='DELETE', ignore_errors=True, **self.creds)
+                    rc, result = request(self.url + self.base_path, method='DELETE', ignore_errors=True, **self.creds)
 
                     # Older versions of NetApp E-Series restAPI does not possess an API to remove all existing configs
                     if rc == 405:
@@ -355,8 +338,7 @@ class Ldap(object):
                             self.clear_single_configuration(config['id'])
 
                 except Exception as err:
-                    self.module.fail_json(msg="Failed to clear LDAP configuration! Array Id [%s]. Error [%s]."
-                                              % (self.ssid, to_native(err)))
+                    self.module.fail_json(msg="Failed to clear LDAP configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
         return msg, updated
 
     def get_base_path(self):
@@ -375,16 +357,9 @@ class Ldap(object):
             msg, update = self.clear_single_configuration()
         else:
             msg, update = self.clear_configuration()
-        self.module.exit_json(msg=msg, changed=update, )
-
-    def __call__(self, *args, **kwargs):
-        self.update()
-
-
-def main():
-    settings = Ldap()
-    settings()
+        self.module.exit_json(msg=msg, changed=update)
 
 
 if __name__ == '__main__':
-    main()
+    settings = Ldap()
+    settings.update()

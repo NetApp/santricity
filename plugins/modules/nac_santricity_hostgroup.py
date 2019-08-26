@@ -35,10 +35,6 @@ options:
         description:
             - Name of the host group to manage
             - This option is mutually exclusive with I(id).
-    new_name:
-        required: false
-        description:
-            - Specify this when you need to update the name of a host group
     hosts:
         required: false
         description:
@@ -47,12 +43,16 @@ options:
 EXAMPLES = """
     - name: Configure Hostgroup
       nac_santricity_hostgroup:
-        ssid: "{{ ssid }}"
-        api_url: "{{ netapp_api_url }}"
-        api_username: "{{ netapp_api_username }}"
-        api_password: "{{ netapp_api_password }}"
-        validate_certs: "{{ netapp_api_validate_certs }}"
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         state: present
+        name: example_hostgroup
+        hosts:
+          - host01
+          - host02
 """
 RETURN = """
 clusterRef:
@@ -121,9 +121,7 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
         version = "02.00.0000.0000"
         ansible_options = dict(
             state=dict(required=True, choices=["present", "absent"], type="str"),
-            name=dict(required=False, type="str"),
-            new_name=dict(required=False, type="str"),
-            id=dict(required=False, type="str"),
+            name=dict(required=True, type="str"),
             hosts=dict(required=False, type="list"))
         super(NetAppESeriesHostGroup, self).__init__(ansible_options=ansible_options,
                                                      web_services_version=version,
@@ -132,11 +130,9 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
         args = self.module.params
         self.state = args["state"]
         self.name = args["name"]
-        self.new_name = args["new_name"]
         self.hosts_list = args["hosts"]
 
         self.current_host_group = None
-
         self.hosts_cache = None
 
     @property
@@ -159,8 +155,7 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
                             self.hosts_cache.append(existing_host["id"])
                             break
                     else:
-                        self.module.fail_json(msg="Expected host does not exist. Array id [%s].  Host [%s]."
-                                                  % (self.ssid, host))
+                        self.module.fail_json(msg="Expected host does not exist. Array id [%s].  Host [%s]." % (self.ssid, host))
             self.hosts_cache.sort()
         return self.hosts_cache
 
@@ -191,8 +186,9 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
         """Retrieve the current hosts associated with the current hostgroup."""
         current_hosts = []
         for group in self.host_groups:
-            if self.name and group["name"] == self.name:
+            if group["name"] == self.name:
                 current_hosts = group["hosts"]
+                break
 
         return current_hosts
 
@@ -215,11 +211,9 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
             self.unassign_hosts()
 
         try:
-            rc, resp = self.request("storage-systems/%s/host-groups/%s" % (self.ssid, self.current_host_group["id"]),
-                                    method="DELETE")
+            rc, resp = self.request("storage-systems/%s/host-groups/%s" % (self.ssid, self.current_host_group["id"]), method="DELETE")
         except Exception as error:
-            self.module.fail_json(msg="Failed to delete host group. Array id [%s].  Error[%s]."
-                                      % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to delete host group. Array id [%s]. Error[%s]." % (self.ssid, to_native(error)))
 
     def create_host_group(self):
         """Create host group."""
@@ -229,15 +223,13 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
         try:
             rc, response = self.request("storage-systems/%s/host-groups" % self.ssid, method="POST", data=data)
         except Exception as error:
-            self.module.fail_json(msg="Failed to create host group. Array id [%s].  Error[%s]."
-                                      % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to create host group. Array id [%s]. Error[%s]." % (self.ssid, to_native(error)))
 
         return response
 
     def update_host_group(self):
         """Update host group."""
-        data = {"name": self.new_name if self.new_name else self.name,
-                "hosts": self.hosts}
+        data = {"name": self.name, "hosts": self.hosts}
 
         # unassign hosts that should not be part of the hostgroup
         desired_host_ids = self.hosts
@@ -247,11 +239,9 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
 
         update_response = None
         try:
-            rc, update_response = self.request("storage-systems/%s/host-groups/%s"
-                                               % (self.ssid, self.current_host_group["id"]), method="POST", data=data)
+            rc, update_response = self.request("storage-systems/%s/host-groups/%s" % (self.ssid, self.current_host_group["id"]), method="POST", data=data)
         except Exception as error:
-            self.module.fail_json(msg="Failed to create host group. Array id [%s].  Error[%s]."
-                                      % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to create host group. Array id [%s].  Error[%s]." % (self.ssid, to_native(error)))
 
         return update_response
 
@@ -261,7 +251,7 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
 
         # Search for existing host group match
         for group in self.host_groups:
-            if self.name and group["name"] == self.name:
+            if group["name"] == self.name:
                 self.current_host_group = group
                 self.current_host_group["hosts"].sort()
                 break
@@ -269,14 +259,11 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
         # Determine whether changes are required
         if self.state == "present":
             if self.current_host_group:
-                if self.new_name and self.new_name != self.name:
-                    changes_required = True
                 if self.hosts and self.hosts != self.current_host_group["hosts"]:
                     changes_required = True
             else:
                 if not self.name:
-                    self.module.fail_json(msg="The option name must be supplied when creating a new host group."
-                                              " Array id [%s]." % self.ssid)
+                    self.module.fail_json(msg="The option name must be supplied when creating a new host group. Array id [%s]." % self.ssid)
                 changes_required = True
 
         elif self.current_host_group:
@@ -288,16 +275,14 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
             msg = "No changes required."
             if self.state == "present":
                 if self.current_host_group:
-                    if ((self.new_name and self.new_name != self.name) or
-                            (self.hosts != self.current_host_group["hosts"])):
+                    if self.hosts != self.current_host_group["hosts"]:
                         msg = self.update_host_group()
                 else:
                     msg = self.create_host_group()
 
             elif self.current_host_group:
                 self.delete_host_group()
-                msg = "Host group deleted. Array Id [%s].  Host Name [%s].  Host Id [%s]."\
-                      % (self.ssid, self.current_host_group["name"], self.current_host_group["id"])
+                msg = "Host group deleted. Array Id [%s]. Host group [%s]." % (self.ssid, self.current_host_group["name"])
 
         self.module.exit_json(msg=msg, changed=changes_required)
 

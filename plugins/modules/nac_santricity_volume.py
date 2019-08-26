@@ -182,11 +182,11 @@ options:
 EXAMPLES = """
 - name: Create simple volume with workload tags (volume meta data)
   nac_santricity_volume:
-    ssid: "{{ ssid }}"
-    api_url: "{{ netapp_api_url }}"
-    api_username: "{{ netapp_api_username }}"
-    api_password: "{{ netapp_api_password }}"
-    validate_certs: "{{ netapp_api_validate_certs }}"
+    ssid: "1"
+    api_url: "https://192.168.1.100:8443/devmgr/v2"
+    api_username: "admin"
+    api_password: "adminpass"
+    validate_certs: true
     state: present
     name: volume
     storage_pool_name: storage_pool
@@ -196,13 +196,14 @@ EXAMPLES = """
     metadata:
       key1: value1
       key2: value2
+
 - name: Create a thin volume
   nac_santricity_volume:
-    ssid: "{{ ssid }}"
-    api_url: "{{ netapp_api_url }}"
-    api_username: "{{ netapp_api_username }}"
-    api_password: "{{ netapp_api_password }}"
-    validate_certs: "{{ netapp_api_validate_certs }}"
+    ssid: "1"
+    api_url: "https://192.168.1.100:8443/devmgr/v2"
+    api_username: "admin"
+    api_password: "adminpass"
+    validate_certs: true
     state: present
     name: volume1
     storage_pool_name: storage_pool
@@ -211,13 +212,14 @@ EXAMPLES = """
     thin_provision: true
     thin_volume_repo_size: 32
     thin_volume_max_repo_size: 1024
+
 - name: Expand thin volume's virtual size
   nac_santricity_volume:
-    ssid: "{{ ssid }}"
-    api_url: "{{ netapp_api_url }}"
-    api_username: "{{ netapp_api_username }}"
-    api_password: "{{ netapp_api_password }}"
-    validate_certs: "{{ netapp_api_validate_certs }}"
+    ssid: "1"
+    api_url: "https://192.168.1.100:8443/devmgr/v2"
+    api_username: "admin"
+    api_password: "adminpass"
+    validate_certs: true
     state: present
     name: volume1
     storage_pool_name: storage_pool
@@ -226,13 +228,14 @@ EXAMPLES = """
     thin_provision: true
     thin_volume_repo_size: 32
     thin_volume_max_repo_size: 1024
+
 - name: Expand thin volume's maximum repository size
   nac_santricity_volume:
-    ssid: "{{ ssid }}"
-    api_url: "{{ netapp_api_url }}"
-    api_username: "{{ netapp_api_username }}"
-    api_password: "{{ netapp_api_password }}"
-    validate_certs: "{{ netapp_api_validate_certs }}"
+    ssid: "1"
+    api_url: "https://192.168.1.100:8443/devmgr/v2"
+    api_username: "admin"
+    api_password: "adminpass"
+    validate_certs: true
     state: present
     name: volume1
     storage_pool_name: storage_pool
@@ -241,13 +244,14 @@ EXAMPLES = """
     thin_provision: true
     thin_volume_repo_size: 32
     thin_volume_max_repo_size: 2048
+
 - name: Delete volume
   nac_santricity_volume:
-    ssid: "{{ ssid }}"
-    api_url: "{{ netapp_api_url }}"
-    api_username: "{{ netapp_api_username }}"
-    api_password: "{{ netapp_api_password }}"
-    validate_certs: "{{ netapp_api_validate_certs }}"
+    ssid: "1"
+    api_url: "https://192.168.1.100:8443/devmgr/v2"
+    api_username: "admin"
+    api_password: "adminpass"
+    validate_certs: true
     state: absent
     name: volume
 """
@@ -273,8 +277,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             state=dict(required=True, choices=["present", "absent"]),
             name=dict(required=True, type="str"),
             storage_pool_name=dict(type="str"),
-            size_unit=dict(default="gb", choices=["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb"],
-                           type="str"),
+            size_unit=dict(default="gb", choices=["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb"], type="str"),
             size=dict(type="float"),
             segment_size_kb=dict(type="int", default=128),
             owning_controller=dict(required=False, choices=['A', 'B']),

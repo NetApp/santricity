@@ -32,26 +32,25 @@
     log_level: "{{ eseries_auditlog_log_level | default(omit) }}"
     max_records: "{{ eseries_auditlog_max_records | default(omit) }}"
     threshold: "{{ eseries_auditlog_threshold | default(omit) }}"
-  when: eseries_auditlog_enforce_policy is defined and eseries_auditlog_enforce_policy == True
   tags:
     - logging
     - auditlog
 
-#- name: Ensure syslog configuration
-#  nac_santricity_syslog:
-#    ssid: "{{ eseries_ssid }}"
-#    api_url: "{{ eseries_api_url }}"
-#    api_username: "{{ eseries_api_username }}"
-#    api_password: "{{ eseries_api_password }}"
-#    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-#    state: "{{ eseries_syslog_state }}"
-#    address: "{{ eseries_syslog_address }}"
-#    test: "{{ eseries_syslog_test | default(omit) }}"
-#    protocol: "{{ eseries_syslog_protocol | default(omit) }}"
-#    port: "{{ eseries_syslog_port | default(omit) }}"
-#    components: "{{ eseries_syslog_components | default(omit) }}"
-#  when: eseries_syslog_state is defined and eseries_syslog_address is defined
-#  tags:
-#    - logging
-#    - syslog
+- name: Ensure syslog configuration
+  nac_santricity_syslog:
+    ssid: "{{ eseries_ssid }}"
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    state: "{{ eseries_syslog_state }}"
+    address: "{{ eseries_syslog_address }}"
+    test: "{{ eseries_syslog_test | default(omit) }}"
+    protocol: "{{ eseries_syslog_protocol | default(omit) }}"
+    port: "{{ eseries_syslog_port | default(omit) }}"
+    components: "{{ eseries_syslog_components | default(omit) }}"
+  when: eseries_syslog_state is defined and eseries_syslog_address is defined
+  tags:
+    - logging
+    - syslog
 

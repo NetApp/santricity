@@ -52,9 +52,6 @@ options:
             - This is only applicable for I(full_policy=preventSystemAccess).
         type: bool
         default: no
-    log_path:
-        description: A local path to a file to be used for debug logging.
-        required: no
 notes:
     - Check mode is supported.
     - This module is currently only supported with the Embedded Web Services API v3.0 and higher.
@@ -63,33 +60,16 @@ notes:
 EXAMPLES = """
 - name: Define audit-log to prevent system access if records exceed 50000 with warnings occurring at 60% capacity.
   nac_santricity_auditlog:
-     api_url: "https://{{ netapp_e_api_host }}/devmgr/v2"
-     api_username: "{{ netapp_e_api_username }}"
-     api_password: "{{ netapp_e_api_password }}"
-     ssid: "{{ netapp_e_ssid }}"
-     validate_certs: no
-     max_records: 50000
-     log_level: all
-     full_policy: preventSystemAccess
-     threshold: 60
-     log_path: /path/to/log_file.log
-- name: Define audit-log utilize the default values.
-  nac_santricity_auditlog:
-     api_url: "https://{{ netapp_e_api_host }}/devmgr/v2"
-     api_username: "{{ netapp_e_api_username }}"
-     api_password: "{{ netapp_e_api_password }}"
-     ssid: "{{ netapp_e_ssid }}"
-- name: Force audit-log configuration when full or warning conditions occur while enacting preventSystemAccess policy.
-  nac_santricity_auditlog:
-     api_url: "https://{{ netapp_e_api_host }}/devmgr/v2"
-     api_username: "{{ netapp_e_api_username }}"
-     api_password: "{{ netapp_e_api_password }}"
-     ssid: "{{ netapp_e_ssid }}"
-     max_records: 5000
-     log_level: all
-     full_policy: preventSystemAccess
-     threshold: 60
-     force: yes
+    ssid: "1"
+    api_url: "https://192.168.1.100:8443/devmgr/v2"
+    api_username: "admin"
+    api_password: "adminpass"
+    validate_certs: true
+    validate_certs: no
+    max_records: 50000
+    log_level: all
+    full_policy: preventSystemAccess
+    threshold: 60
 """
 
 RETURN = """
@@ -101,8 +81,6 @@ msg:
 """
 
 import json
-import logging
-from pprint import pformat
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import request, eseries_host_argument_spec
@@ -127,8 +105,7 @@ class AuditLog(object):
             log_level=dict(type="str", default="writeOnly", choices=["all", "writeOnly"]),
             full_policy=dict(type="str", default="overWrite", choices=["overWrite", "preventSystemAccess"]),
             threshold=dict(type="int", default=90),
-            force=dict(type="bool", default=False),
-            log_path=dict(type='str', required=False)))
+            force=dict(type="bool", default=False)))
 
         self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
         args = self.module.params
@@ -151,17 +128,7 @@ class AuditLog(object):
                           validate_certs=args['validate_certs'],
                           url_username=args['api_username'], )
 
-        # logging setup
-        log_path = args['log_path']
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        if log_path:
-            logging.basicConfig(
-                level=logging.DEBUG, filename=log_path, filemode='w',
-                format='%(relativeCreated)dms %(levelname)s %(module)s.%(funcName)s:%(lineno)d\n %(message)s')
-
         self.proxy_used = self.is_proxy()
-        self._logger.info(self.proxy_used)
         self.check_mode = self.module.check_mode
 
     def is_proxy(self):
@@ -215,14 +182,10 @@ class AuditLog(object):
                     auditLogWarningThresholdPct=self.threshold)
 
         update = current != body
-
-        self._logger.info(pformat(update))
-        self._logger.info(pformat(body))
         return update, body
 
     def delete_log_messages(self):
         """Delete all audit-log messages."""
-        self._logger.info("Deleting audit-log messages...")
         try:
             if self.proxy_used:
                 rc, result = request(self.url + "audit-log?clearAll=True", timeout=300,
@@ -268,14 +231,7 @@ class AuditLog(object):
         update = self.update_configuration()
         self.module.exit_json(msg="Audit-log update complete", changed=update)
 
-    def __call__(self):
-        self.update()
-
-
-def main():
-    auditlog = AuditLog()
-    auditlog()
-
 
 if __name__ == "__main__":
-    main()
+    auditlog = AuditLog()
+    auditlog.update()

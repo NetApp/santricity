@@ -32,6 +32,7 @@
     state: latest
     name:
       - beegfs-meta
+      - device-mapper-multipath
   when: '"metadata" in beegfs_node_roles'
 
 - name: Ensure BeeGFS storage package is installed
@@ -39,6 +40,7 @@
     state: latest
     name:
       - beegfs-storage
+      - device-mapper-multipath
   when: '"storage" in beegfs_node_roles'
 
 - name: Ensure BeeGFS infiniband package is installed

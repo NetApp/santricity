@@ -60,10 +60,6 @@ options:
             - Only applicable if I(state=enabled).
         default: no
         type: bool
-    log_path:
-        description:
-            - Path to a file on the Ansible control node to be used for debug logging
-        required: no
 notes:
     - Check mode is supported.
     - Alertable messages are a subset of messages shown by the Major Event Log (MEL), of the storage-system. Examples
@@ -103,8 +99,6 @@ msg:
 """
 
 import json
-import logging
-from pprint import pformat
 import re
 
 from ansible.module_utils.basic import AnsibleModule
@@ -127,8 +121,7 @@ class Alerts(object):
             sender=dict(type='str', required=False, ),
             contact=dict(type='str', required=False, ),
             recipients=dict(type='list', required=False, ),
-            test=dict(type='bool', required=False, default=False, ),
-            log_path=dict(type='str', required=False),
+            test=dict(type='bool', required=False, default=False, )
         ))
 
         required_if = [
@@ -152,16 +145,6 @@ class Alerts(object):
 
         self.check_mode = self.module.check_mode
 
-        log_path = args['log_path']
-
-        # logging setup
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        if log_path:
-            logging.basicConfig(
-                level=logging.DEBUG, filename=log_path, filemode='w',
-                format='%(relativeCreated)dms %(levelname)s %(module)s.%(funcName)s:%(lineno)d\n %(message)s')
-
         if not self.url.endswith('/'):
             self.url += '/'
 
@@ -183,7 +166,6 @@ class Alerts(object):
         try:
             (rc, result) = request(self.url + 'storage-systems/%s/device-alerts' % self.ssid, headers=HEADERS,
                                    **self.creds)
-            self._logger.info("Current config: %s", pformat(result))
             return result
 
         except Exception as err:
@@ -225,12 +207,10 @@ class Alerts(object):
             body = dict(alertingEnabled=False)
             update = True
 
-        self._logger.debug(pformat(body))
-
         if update and not self.check_mode:
             try:
-                (rc, result) = request(self.url + 'storage-systems/%s/device-alerts' % self.ssid, method='POST',
-                                       data=json.dumps(body), headers=HEADERS, **self.creds)
+                rc, result = request(self.url + 'storage-systems/%s/device-alerts' % self.ssid, method='POST',
+                                     data=json.dumps(body), headers=HEADERS, **self.creds)
             # This is going to catch cases like a connection failure
             except Exception as err:
                 self.module.fail_json(msg="We failed to set the storage-system name! Array Id [%s]. Error [%s]."
@@ -257,7 +237,6 @@ class Alerts(object):
         update = self.update_configuration()
 
         if self.test and update:
-            self._logger.info("An update was detected and test=True, running a test.")
             self.send_test_email()
 
         if self.alerts:

@@ -22,6 +22,7 @@
     state: latest
     name:
       - beegfs-meta
+      - multipath-tools
   become: yes
   when: '"metadata" in beegfs_node_roles'
 
@@ -30,6 +31,7 @@
     state: latest
     name:
       - beegfs-storage
+      - multipath-tools
   become: yes
   when: '"storage" in beegfs_node_roles'
 

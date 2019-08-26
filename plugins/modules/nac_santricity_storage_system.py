@@ -71,12 +71,12 @@ EXAMPLES = '''
 ---
     - name:  Presence of storage system
       nac_santricity_storage_system:
-        ssid: "{{ item.key }}"
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         state: present
-        api_url: "{{ netapp_api_url }}"
-        api_username: "{{ netapp_api_username }}"
-        api_password: "{{ netapp_api_password }}"
-        validate_certs: "{{ netapp_api_validate_certs }}"
         controller_addresses:
           - "{{ item.value.address1 }}"
           - "{{ item.value.address2 }}"

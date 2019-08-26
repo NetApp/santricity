@@ -49,36 +49,27 @@ options:
       - LUN value will be determine by the storage-system when not specified.
     version_added: 2.7
     required: no
-  target_type:
-    description:
-      - This option specifies the whether the target should be a host or a group of hosts
-      - Only necessary when the target name is used for both a host and a group of hosts
-    choices:
-      - host
-      - group
-    version_added: 2.7
-    required: no
 '''
 
 EXAMPLES = '''
 ---
     - name: Map volume1 to the host target host1
       nac_santricity_lun_mapping:
-        ssid: 1
-        api_url: "{{ netapp_api_url }}"
-        api_username: "{{ netapp_api_username }}"
-        api_password: "{{ netapp_api_password }}"
-        validate_certs: no
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         state: present
         target: host1
         volume: volume1
     - name: Delete the lun mapping between volume1 and host1
       nac_santricity_lun_mapping:
-        ssid: 1
-        api_url: "{{ netapp_api_url }}"
-        api_username: "{{ netapp_api_username }}"
-        api_password: "{{ netapp_api_password }}"
-        validate_certs: yes
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         state: absent
         target: host1
         volume: volume1
@@ -106,10 +97,9 @@ class LunMapping(object):
         argument_spec = eseries_host_argument_spec()
         argument_spec.update(dict(
             state=dict(required=True, choices=["present", "absent"]),
-            target=dict(required=False, default=None),
+            target=dict(required=True, default=None),
             volume_name=dict(required=True, aliases=["volume"]),
-            lun=dict(type="int", required=False),
-            target_type=dict(required=False, choices=["host", "group"])))
+            lun=dict(type="int", required=False)))
         self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
         args = self.module.params
 
@@ -117,7 +107,6 @@ class LunMapping(object):
         self.target = args["target"] if args["target"] else "DEFAULT_HOSTGROUP"
         self.volume = args["volume_name"] if args["volume_name"] != "ACCESS_VOLUME" else "Access"
         self.lun = args["lun"]
-        self.target_type = args["target_type"]
         self.ssid = args["ssid"]
         self.url = args["api_url"]
         self.check_mode = self.module.check_mode
@@ -133,36 +122,30 @@ class LunMapping(object):
         """Collect the current state of the storage array."""
         response = None
         try:
-            rc, response = request(self.url + "storage-systems/%s/graph" % self.ssid,
-                                   method="GET", headers=HEADERS, **self.creds)
+            rc, response = request(self.url + "storage-systems/%s/graph" % self.ssid, method="GET", headers=HEADERS, **self.creds)
 
         except Exception as error:
-            self.module.fail_json(
-                msg="Failed to retrieve storage array graph. Id [%s]. Error [%s]" % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to retrieve storage array graph. Id [%s]. Error [%s]" % (self.ssid, to_native(error)))
 
         # Create dictionary containing host/cluster references mapped to their names
         target_reference = {}
         target_name = {}
         target_type = {}
 
-        if self.target_type is None or self.target_type == "host":
-            for host in response["storagePoolBundle"]["host"]:
-                target_reference.update({host["hostRef"]: host["name"]})
-                target_name.update({host["name"]: host["hostRef"]})
-                target_type.update({host["name"]: "host"})
+        for host in response["storagePoolBundle"]["host"]:
+            target_reference.update({host["hostRef"]: host["name"]})
+            target_name.update({host["name"]: host["hostRef"]})
+            target_type.update({host["name"]: "host"})
 
-        if self.target_type is None or self.target_type == "group":
-            for cluster in response["storagePoolBundle"]["cluster"]:
+        for cluster in response["storagePoolBundle"]["cluster"]:
 
-                # Verify there is no ambiguity between target's type (ie host and group has the same name)
-                if self.target and self.target_type is None and cluster["name"] == self.target and \
-                        self.target in target_name.keys():
-                    self.module.fail_json(msg="Ambiguous target type: target name is used for both host and group"
-                                              " targets! Id [%s]" % self.ssid)
+            # Verify there is no ambiguity between target's type (ie host and group has the same name)
+            if cluster["name"] == self.target and self.target in target_name.keys():
+                self.module.fail_json(msg="Ambiguous target type: target name is used for both host and group targets! Id [%s]" % self.ssid)
 
-                target_reference.update({cluster["clusterRef"]: cluster["name"]})
-                target_name.update({cluster["name"]: cluster["clusterRef"]})
-                target_type.update({cluster["name"]: "group"})
+            target_reference.update({cluster["clusterRef"]: cluster["name"]})
+            target_name.update({cluster["name"]: cluster["clusterRef"]})
+            target_type.update({cluster["name"]: "group"})
 
         target_reference.update({"0000000000000000000000000000000000000000": "DEFAULT_HOSTGROUP"})
         target_name.update({"DEFAULT_HOSTGROUP": "0000000000000000000000000000000000000000"})
@@ -217,12 +200,6 @@ class LunMapping(object):
                              ) for lun_mapping in self.mapping_info["lun_mapping"]):
             self.module.fail_json(msg="Option lun value is already in use for target! Array Id [%s]." % self.ssid)
 
-        # Verify that when target_type is specified then it matches the target's actually type
-        if self.target and self.target_type and self.target in self.mapping_info["target_type_by_name"].keys() and \
-                self.mapping_info["target_type_by_name"][self.target] != self.target_type:
-            self.module.fail_json(
-                msg="Option target does not match the specified target_type! Id [%s]." % self.ssid)
-
         # Verify volume and target exist if needed for expected state.
         if self.state:
             if self.volume not in self.mapping_info["volume_by_name"].keys():
@@ -271,21 +248,14 @@ class LunMapping(object):
                                                method="POST", data=json.dumps(body), headers=HEADERS, **self.creds)
 
                 else:   # Remove existing lun mapping for volume and target
-                    rc, response = request(self.url + "storage-systems/%s/volume-mappings/%s"
-                                           % (self.ssid, lun_reference),
+                    rc, response = request(self.url + "storage-systems/%s/volume-mappings/%s" % (self.ssid, lun_reference),
                                            method="DELETE", headers=HEADERS, **self.creds)
             except Exception as error:
-                self.module.fail_json(
-                    msg="Failed to update storage array lun mapping. Id [%s]. Error [%s]"
-                        % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to update storage array lun mapping. Id [%s]. Error [%s]" % (self.ssid, to_native(error)))
 
         self.module.exit_json(msg="Lun mapping is complete.", changed=update)
 
 
-def main():
+if __name__ == '__main__':
     lun_mapping = LunMapping()
     lun_mapping.update()
-
-
-if __name__ == '__main__':
-    main()

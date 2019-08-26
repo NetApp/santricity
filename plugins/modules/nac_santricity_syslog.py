@@ -59,10 +59,6 @@ options:
             - Only attempts transmission when I(state=present).
         type: bool
         default: no
-    log_path:
-        description:
-            - This argument specifies a local path for logging purposes.
-        required: no
 notes:
     - Check mode is supported.
     - This API is currently only supported with the Embedded Web Services API v2.12 (bundled with
@@ -72,14 +68,16 @@ notes:
 EXAMPLES = """
     - name: Add two syslog server configurations to NetApp E-Series storage array.
       nac_santricity_syslog:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         state: present
         address: "{{ item }}"
         port: 514
         protocol: tcp
         component: "auditLog"
-        api_url: "10.1.1.1:8443"
-        api_username: "admin"
-        api_password: "myPass"
       loop:
         - "192.168.1.1"
         - "192.168.1.100"
@@ -100,10 +98,9 @@ syslog:
 """
 
 import json
-import logging
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import request, eseries_host_argument_spec
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 
 HEADERS = {
@@ -112,29 +109,23 @@ HEADERS = {
 }
 
 
-class Syslog(object):
+class NetAppESeriesSyslog(NetAppESeriesModule):
     def __init__(self):
-        argument_spec = eseries_host_argument_spec()
-        argument_spec.update(dict(
+        ansible_options = dict(
             state=dict(choices=["present", "absent"], required=False, default="present"),
             address=dict(type="str", required=False),
             port=dict(type="int", default=514, required=False),
             protocol=dict(choices=["tcp", "tls", "udp"], default="udp", required=False),
             components=dict(type="list", required=False, default=["auditLog"]),
-            test=dict(type="bool", default=False, require=False),
-            log_path=dict(type="str", required=False),
-        ))
+            test=dict(type="bool", default=False, require=False))
 
-        required_if = [
-            ["state", "present", ["address", "port", "protocol", "components"]],
-        ]
-
-        mutually_exclusive = [
-            ["test", "absent"],
-        ]
-
-        self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True, required_if=required_if,
-                                    mutually_exclusive=mutually_exclusive)
+        required_if = [["state", "present", ["address", "port", "protocol", "components"]]]
+        mutually_exclusive = [["test", "absent"]]
+        super(NetAppESeriesSyslog, self).__init__(ansible_options=ansible_options,
+                                                  web_services_version="02.00.0000.0000",
+                                                  mutually_exclusive=mutually_exclusive,
+                                                  required_if=required_if,
+                                                  supports_check_mode=True)
         args = self.module.params
 
         self.syslog = args["state"] in ["present"]
@@ -150,29 +141,20 @@ class Syslog(object):
                           url_username=args["api_username"], )
 
         self.components.sort()
-
         self.check_mode = self.module.check_mode
 
-        # logging setup
-        log_path = args["log_path"]
-        self._logger = logging.getLogger(self.__class__.__name__)
-        if log_path:
-            logging.basicConfig(
-                level=logging.DEBUG, filename=log_path, filemode='w',
-                format='%(relativeCreated)dms %(levelname)s %(module)s.%(funcName)s:%(lineno)d\n %(message)s')
-
-        if not self.url.endswith('/'):
-            self.url += '/'
+        # Check whether request needs to be forwarded on to the controller web services rest api.
+        self.url_path_prefix = ""
+        if not self.is_embedded() and self.ssid != 0:
+            self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid
 
     def get_configuration(self):
         """Retrieve existing syslog configuration."""
         try:
-            (rc, result) = request(self.url + "storage-systems/{0}/syslog".format(self.ssid),
-                                   headers=HEADERS, **self.creds)
+            (rc, result) = self.request(self.url_path_prefix + "storage-systems/%s/syslog" % self.ssid)
             return result
         except Exception as err:
-            self.module.fail_json(msg="Failed to retrieve syslog configuration! Array Id [%s]. Error [%s]."
-                                      % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to retrieve syslog configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def test_configuration(self, body):
         """Send test syslog message to the storage array.
@@ -181,11 +163,9 @@ class Syslog(object):
         new syslog server record.
         """
         try:
-            (rc, result) = request(self.url + "storage-systems/{0}/syslog/{1}/test".format(self.ssid, body["id"]),
-                                   method='POST', headers=HEADERS, **self.creds)
+            rc, result = self.request(self.url_path_prefix + "storage-systems/%s/syslog/%s/test" % (self.ssid, body["id"]), method='POST')
         except Exception as err:
-            self.module.fail_json(
-                msg="We failed to send test message! Array Id [{0}]. Error [{1}].".format(self.ssid, to_native(err)))
+            self.module.fail_json(msg="We failed to send test message! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def update_configuration(self):
         """Post the syslog request to array."""
@@ -215,14 +195,14 @@ class Syslog(object):
                 components = [dict(type=component_type) for component_type in self.components]
                 body.update(dict(serverAddress=self.address, port=self.port,
                                  protocol=self.protocol, components=components))
-                self._logger.info(body)
+                self.module.log(body)
                 self.make_configuration_request(body)
 
         # remove specific syslog server configuration
         elif self.address:
             update = True
             body.update(dict(id=config_match["id"]))
-            self._logger.info(body)
+            self.module.log(body)
             self.make_configuration_request(body)
 
         # if no address is specified, remove all syslog server configurations
@@ -230,7 +210,7 @@ class Syslog(object):
             update = True
             for config in configs:
                 body.update(dict(id=config["id"]))
-                self._logger.info(body)
+                self.module.log(body)
                 self.make_configuration_request(body)
 
         return update
@@ -241,12 +221,10 @@ class Syslog(object):
             try:
                 if self.syslog:
                     if "id" in body:
-                        (rc, result) = request(
-                            self.url + "storage-systems/{0}/syslog/{1}".format(self.ssid, body["id"]),
-                            method='POST', data=json.dumps(body), headers=HEADERS, **self.creds)
+                        rc, result = self.request(self.url_path_prefix + "storage-systems/%s/syslog/%s" % (self.ssid, body["id"]),
+                                                  method='POST', data=body)
                     else:
-                        (rc, result) = request(self.url + "storage-systems/{0}/syslog".format(self.ssid),
-                                               method='POST', data=json.dumps(body), headers=HEADERS, **self.creds)
+                        rc, result = self.request(self.url_path_prefix + "storage-systems/%s/syslog" % self.ssid, method='POST', data=body)
                         body.update(result)
 
                     # send syslog test message
@@ -254,27 +232,18 @@ class Syslog(object):
                         self.test_configuration(body)
 
                 elif "id" in body:
-                    (rc, result) = request(self.url + "storage-systems/{0}/syslog/{1}".format(self.ssid, body["id"]),
-                                           method='DELETE', headers=HEADERS, **self.creds)
+                    rc, result = self.request(self.url_path_prefix + "storage-systems/%s/syslog/%s" % (self.ssid, body["id"]), method='DELETE')
 
             # This is going to catch cases like a connection failure
             except Exception as err:
-                self.module.fail_json(msg="We failed to modify syslog configuration! Array Id [%s]. Error [%s]."
-                                          % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="We failed to modify syslog configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def update(self):
         """Update configuration and respond to ansible."""
         update = self.update_configuration()
         self.module.exit_json(msg="The syslog settings have been updated.", changed=update)
 
-    def __call__(self, *args, **kwargs):
-        self.update()
-
-
-def main():
-    settings = Syslog()
-    settings()
-
 
 if __name__ == "__main__":
-    main()
+    settings = NetAppESeriesSyslog()
+    settings.update()

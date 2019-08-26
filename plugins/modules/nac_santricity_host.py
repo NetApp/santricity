@@ -87,9 +87,10 @@ EXAMPLES = """
     - name: Define or update an existing host named 'Host1'
       nac_santricity_host:
         ssid: "1"
-        api_url: "10.113.1.101:8443"
-        api_username: admin
-        api_password: myPassword
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         name: "Host1"
         state: present
         host_type_index: Linux DM-MP
@@ -107,9 +108,10 @@ EXAMPLES = """
     - name: Ensure a host named 'Host2' doesn't exist
       nac_santricity_host:
         ssid: "1"
-        api_url: "10.113.1.101:8443"
-        api_username: admin
-        api_password: myPassword
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         name: "Host2"
         state: absent
 """

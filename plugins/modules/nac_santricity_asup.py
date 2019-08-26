@@ -157,16 +157,6 @@ options:
         type: bool
         default: false
         required: false
-    verbose:
-        description:
-            - Provide the full ASUP configuration in the return.
-        default: no
-        required: no
-        type: bool
-    log_path:
-        description:
-            - A local path to a file to be used for debug logging
-        required: no
 notes:
     - Check mode is supported.
     - Enabling ASUP will allow our support teams to monitor the logs of the storage-system in order to proactively
@@ -178,19 +168,23 @@ notes:
 EXAMPLES = """
     - name: Enable ASUP and allow pro-active retrieval of bundles
       nac_santricity_asup:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         state: enabled
         active: yes
-        api_url: "10.1.1.1:8443"
-        api_username: "admin"
-        api_password: "myPass"
 
     - name: Set the ASUP schedule to only send bundles from 12 AM CST to 3 AM CST.
       nac_santricity_asup:
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         start: 17
         end: 20
-        api_url: "10.1.1.1:8443"
-        api_username: "admin"
-        api_password: "myPass"
 """
 
 RETURN = """
@@ -214,7 +208,7 @@ active:
 cfg:
     description:
         - Provide the full ASUP configuration.
-    returned: on success when I(verbose=true).
+    returned: on success
     type: complex
     contains:
         asupEnabled:
@@ -401,7 +395,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
 
         if update and not self.check_mode:
 
-            if self.validate:
+            if body["asupEnabled"] and self.validate:
                 validate_body = dict(delivery=body["delivery"])
                 if self.email:
                     validate_body["mailReplyAddress"] = self.email["test_recipient"]

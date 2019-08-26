@@ -37,10 +37,11 @@ options:
 EXAMPLES = """
 - name: Enable feature pack
   na_santricity_reboot:
-    ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
-    api_username: "{{ eseries_api_username }}"
-    api_password: "{{ eseries_api_password }}"
+    ssid: "1"
+    api_url: "https://192.168.1.100:8443/devmgr/v2"
+    api_username: "admin"
+    api_password: "adminpass"
+    validate_certs: true
     controller: a
     wait_for_reboot: True
 """
@@ -53,8 +54,6 @@ msg:
       - {"changed": True}
 
 """
-import re
-
 from time import sleep
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata, request
 from ansible.module_utils._text import to_native

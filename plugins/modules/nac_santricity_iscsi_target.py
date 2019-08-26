@@ -51,10 +51,6 @@ options:
             - This option may be disabled to increase security if desired.
         type: bool
         default: yes
-    log_path:
-        description:
-            - A local path (on the Ansible controller), to a file to be used for debug logging.
-        required: no
 notes:
     - Check mode is supported.
     - Some of the settings are dependent on the settings applied to the iSCSI interfaces. These can be configured using
@@ -65,21 +61,22 @@ notes:
 EXAMPLES = """
     - name: Enable ping responses and unnamed discovery sessions for all iSCSI ports
       nac_santricity_iscsi_target:
-        api_url: "https://localhost:8443/devmgr/v2"
-        api_username: admin
-        api_password: myPassword
         ssid: "1"
-        validate_certs: no
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         name: myTarget
         ping: yes
         unnamed_discovery: yes
 
     - name: Set the target alias and the CHAP secret
       nac_santricity_iscsi_target:
-        ssid: "{{ ssid }}"
-        api_url: "{{ netapp_api_url }}"
-        api_username: "{{ netapp_api_username }}"
-        api_password: "{{ netapp_api_password }}"
+        ssid: "1"
+        api_url: "https://192.168.1.100:8443/devmgr/v2"
+        api_username: "admin"
+        api_password: "adminpass"
+        validate_certs: true
         name: myTarget
         chap: password1234
 """
@@ -104,8 +101,6 @@ iqn:
     type: str
 """
 import json
-import logging
-from pprint import pformat
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import request, eseries_host_argument_spec
@@ -124,8 +119,7 @@ class IscsiTarget(object):
             name=dict(type='str', required=False, aliases=['alias']),
             ping=dict(type='bool', required=False, default=True),
             chap_secret=dict(type='str', required=False, aliases=['chap', 'password'], no_log=True),
-            unnamed_discovery=dict(type='bool', required=False, default=True),
-            log_path=dict(type='str', required=False),
+            unnamed_discovery=dict(type='bool', required=False, default=True)
         ))
 
         self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True, )
@@ -145,16 +139,6 @@ class IscsiTarget(object):
         self.check_mode = self.module.check_mode
         self.post_body = dict()
         self.controllers = list()
-
-        log_path = args['log_path']
-
-        # logging setup
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        if log_path:
-            logging.basicConfig(
-                level=logging.DEBUG, filename=log_path, filemode='w',
-                format='%(relativeCreated)dms %(levelname)s %(module)s.%(funcName)s:%(lineno)d\n %(message)s')
 
         if not self.url.endswith('/'):
             self.url += '/'
@@ -185,33 +169,22 @@ class IscsiTarget(object):
         """
         target = dict()
         try:
-            (rc, data) = request(self.url + 'storage-systems/%s/graph/xpath-filter?query=/storagePoolBundle/target'
-                                 % self.ssid, headers=HEADERS, **self.creds)
+            rc, data = request(self.url + 'storage-systems/%s/graph/xpath-filter?query=/storagePoolBundle/target' % self.ssid, headers=HEADERS, **self.creds)
             # This likely isn't an iSCSI-enabled system
             if not data:
-                self.module.fail_json(
-                    msg="This storage-system doesn't appear to have iSCSI interfaces. Array Id [%s]." % (self.ssid))
+                self.module.fail_json(msg="This storage-system doesn't appear to have iSCSI interfaces. Array Id [%s]." % self.ssid)
 
             data = data[0]
+            chap = any([auth for auth in data['configuredAuthMethods']['authMethodData'] if auth['authMethod'] == 'chap'])
+            target.update(dict(alias=data['alias']['iscsiAlias'], iqn=data['nodeName']['iscsiNodeName'], chap=chap))
 
-            chap = any(
-                [auth for auth in data['configuredAuthMethods']['authMethodData'] if auth['authMethod'] == 'chap'])
-
-            target.update(dict(alias=data['alias']['iscsiAlias'],
-                               iqn=data['nodeName']['iscsiNodeName'],
-                               chap=chap))
-
-            (rc, data) = request(self.url + 'storage-systems/%s/graph/xpath-filter?query=/sa/iscsiEntityData'
-                                 % self.ssid, headers=HEADERS, **self.creds)
+            (rc, data) = request(self.url + 'storage-systems/%s/graph/xpath-filter?query=/sa/iscsiEntityData' % self.ssid, headers=HEADERS, **self.creds)
 
             data = data[0]
-            target.update(dict(ping=data['icmpPingResponseEnabled'],
-                               unnamed_discovery=data['unnamedDiscoverySessionsEnabled']))
+            target.update(dict(ping=data['icmpPingResponseEnabled'], unnamed_discovery=data['unnamedDiscoverySessionsEnabled']))
 
         except Exception as err:
-            self.module.fail_json(
-                msg="Failed to retrieve the iSCSI target information. Array Id [%s]. Error [%s]."
-                    % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to retrieve the iSCSI target information. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         return target
 
@@ -238,12 +211,9 @@ class IscsiTarget(object):
 
         if update and not self.check_mode:
             try:
-                request(self.url + 'storage-systems/%s/iscsi/target-settings' % self.ssid, method='POST',
-                        data=json.dumps(body), headers=HEADERS, **self.creds)
+                request(self.url + 'storage-systems/%s/iscsi/target-settings' % self.ssid, method='POST', data=json.dumps(body), headers=HEADERS, **self.creds)
             except Exception as err:
-                self.module.fail_json(
-                    msg="Failed to update the iSCSI target settings. Array Id [%s]. Error [%s]."
-                        % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="Failed to update the iSCSI target settings. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         return update
 
@@ -261,15 +231,12 @@ class IscsiTarget(object):
             update = True
             body['unnamedDiscoverySessionsEnabled'] = self.unnamed_discovery
 
-        self._logger.info(pformat(body))
         if update and not self.check_mode:
             try:
                 request(self.url + 'storage-systems/%s/iscsi/entity' % self.ssid, method='POST',
                         data=json.dumps(body), timeout=60, headers=HEADERS, **self.creds)
             except Exception as err:
-                self.module.fail_json(
-                    msg="Failed to update the iSCSI target settings. Array Id [%s]. Error [%s]."
-                        % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="Failed to update the iSCSI target settings. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
         return update
 
     def update(self):
