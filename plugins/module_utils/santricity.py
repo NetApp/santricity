@@ -210,8 +210,12 @@ class NetAppESeriesModule(object):
         if self.log_requests:
             self.module.log(pformat(dict(url=request_url, data=data, method=method)))
 
-        return request(url=request_url, data=data, method=method, headers=headers, use_proxy=True, force=False, last_mod_time=None,
-                       timeout=self.DEFAULT_TIMEOUT, http_agent=self.HTTP_AGENT, force_basic_auth=True, ignore_errors=ignore_errors, **self.creds)
+        response = request(url=request_url, data=data, method=method, headers=headers, use_proxy=True, force=False, last_mod_time=None,
+                           timeout=self.DEFAULT_TIMEOUT, http_agent=self.HTTP_AGENT, force_basic_auth=True, ignore_errors=ignore_errors, **self.creds)
+
+        if self.log_requests:
+            self.module.log(pformat(response))
+        return response
 
 
 def create_multipart_formdata(files, fields=None, send_8kb=False):
