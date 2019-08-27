@@ -151,7 +151,7 @@ class NetAppESeriesSyslog(NetAppESeriesModule):
     def get_configuration(self):
         """Retrieve existing syslog configuration."""
         try:
-            (rc, result) = self.request(self.url_path_prefix + "storage-systems/%s/syslog" % self.ssid)
+            rc, result = self.request(self.url_path_prefix + "storage-systems/%s/syslog" % self.ssid)
             return result
         except Exception as err:
             self.module.fail_json(msg="Failed to retrieve syslog configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
@@ -195,23 +195,22 @@ class NetAppESeriesSyslog(NetAppESeriesModule):
                 components = [dict(type=component_type) for component_type in self.components]
                 body.update(dict(serverAddress=self.address, port=self.port,
                                  protocol=self.protocol, components=components))
-                self.module.log(body)
                 self.make_configuration_request(body)
 
-        # remove specific syslog server configuration
-        elif self.address:
-            update = True
-            body.update(dict(id=config_match["id"]))
-            self.module.log(body)
-            self.make_configuration_request(body)
+        elif config_match:
 
-        # if no address is specified, remove all syslog server configurations
-        elif configs:
-            update = True
-            for config in configs:
-                body.update(dict(id=config["id"]))
-                self.module.log(body)
+            # remove specific syslog server configuration
+            if self.address:
+                update = True
+                body.update(dict(id=config_match["id"]))
                 self.make_configuration_request(body)
+
+            # if no address is specified, remove all syslog server configurations
+            elif configs:
+                update = True
+                for config in configs:
+                    body.update(dict(id=config["id"]))
+                    self.make_configuration_request(body)
 
         return update
 
