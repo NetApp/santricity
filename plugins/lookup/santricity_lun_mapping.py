@@ -6,7 +6,6 @@ from ansible.errors import AnsibleError
 
 
 class LookupModule(LookupBase):
-
     def run(self, array_facts, volumes, **kwargs):
         if isinstance(array_facts, list):
             array_facts = array_facts[0]
@@ -31,11 +30,11 @@ class LookupModule(LookupBase):
 
                     used_luns = [lun for name, lun in self.luns_by_target[volume["host"]]]
                     for host_group in self.array_facts["netapp_host_groups"]:
-                        if volume["host"] == host_group["name"]:
+                        if volume["host"] == host_group["name"]:    # target is an existing host group
                             for host in host_group["hosts"]:
                                 used_luns.extend([lun for name, lun in self.luns_by_target[host]])
                             break
-                        elif volume["host"] in host_group["hosts"]:
+                        elif volume["host"] in host_group["hosts"]:     # target is an existing host in the host group.
                             used_luns.extend([lun for name, lun in self.luns_by_target[host_group["name"]]])
                             break
 
@@ -61,14 +60,23 @@ class LookupModule(LookupBase):
                         # Check whether lun option has been used
                         if "lun" in volume:
                             if volume["lun"] in used_luns:
-                                raise AnsibleError("Volume [%s] cannot be mapped to host or host group [%s] using lun number %s!"
-                                                   % (volume["name"], volume["host"], volume["lun"]))
+                                for target in self.array_facts["netapp_luns_by_target"].keys():
+                                    for mapped_volume, mapped_lun in [entry for entry in self.array_facts["netapp_luns_by_target"][target] if entry]:
+                                        if volume["lun"] == mapped_lun:
+                                            if volume["name"] != mapped_volume:
+                                                raise AnsibleError("Volume [%s] cannot be mapped to host or host group [%s] using lun number %s!"
+                                                                   % (volume["name"], volume["host"], volume["lun"]))
+                                            else:   # volume is being remapped with the same lun number
+                                                self.remove_volume_mapping(mapped_volume, target)
                             lun = volume["lun"]
                         else:
                             lun = self.next_available_lun(used_luns)
 
                         mapping_info.append({"volume": volume["name"], "target": volume["host"], "lun": lun})
                         self.add_volume_mapping(volume["name"], volume["host"], lun)
+
+                else:
+                    raise AnsibleError("The host or host group [%s] is not defined!" % volume["host"])
 
         return mapping_info
 
