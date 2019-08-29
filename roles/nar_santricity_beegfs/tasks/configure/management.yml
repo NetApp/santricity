@@ -3,15 +3,12 @@
   register: beegfs_setup_mgmtd
   failed_when: "beegfs_setup_mgmtd.rc != 0 and 'ERROR: Storage directory is not empty.' not in beegfs_setup_mgmtd.stdout"
   changed_when: "'ERROR: Storage directory is not empty.' not in beegfs_setup_mgmtd.stdout"
-  notify:
-    - Restart BeeGFS management service
 
 - name: Ensure beegfs-mgmtd.conf is properly configured
   template:
     src: management/beegfs_management_conf.j2
     dest: "{{ beegfs_configuration_directory }}beegfs-mgmtd.conf"
-  notify:
-    - Restart BeeGFS management service
+  register: beegfs_mgmtd_service_conf
 
 - name: Ensure beegfs-mgmtd-connInterfaces.conf is properly configured
   template:
@@ -20,16 +17,16 @@
     owner: root
     group: root
     mode: 0644
-  notify:
-    - Restart BeeGFS management service
+  register: beegfs_mgmtd_interfaces_conf
 
 - name: Start BeeGFS Management Service.
   systemd:
     name: beegfs-mgmtd.service
-    state: started
+    state: |-
+      {%- if beegfs_setup_mgmtd.changed or beegfs_mgmtd_service_conf.changed or beegfs_mgmtd_interfaces_conf.changed %}
+      restarted
+      {%- else %}
+      started
+      {%- endif %}
     daemon-reload: yes
     enabled: yes
-  register: beegfs_management_service_start
-
-- name: Flush out BeeGFS management configuration handlers
-  meta: flush_handlers

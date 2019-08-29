@@ -1,48 +1,70 @@
+- name: Verify all expected volumes are present
+  stat:
+    path: "/dev/mapper/3{{ item['wwn'] | lower }}"
+  loop: "{{ lookup('list', storage_volumes + metadata_volumes) }}"
+  register: volume_stats
+
+- name: Determine whether BeeGFS node SCSI rescan is required
+  set_fact:
+    beegfs_node_scsi_rescan_required: |-
+      {%- set missing=[] %}
+      {%- for item in volume_stats["results"] %}
+        {%- if item["stat"]["exists"] == False %}
+          {%- if missing.append(item) %}{%- endif %}
+        {%- endif %}
+      {%- endfor %}
+      {{ missing | length > 0 }}
+
+- name: If expected volumes are missing, rescan scsi bus and reload multipath
+  block:
+    - name: Rescan scsi bus and devices
+      shell: "{{ item }}"
+      loop:
+        - "for x in $(ls /sys/class/scsi_host); do echo '- - -' > /sys/class/scsi_host/$x/scan; done &> /dev/null"
+        - "for x in $(ls /sys/block); do echo 1 > /sys/block/$x/device/rescan; done &> /dev/null"
+    - name: Reload multipath
+      systemd:
+        name: multipathd.service
+        state: restarted
+        daemon_reload: true
+    - name: Verify all expected volumes are present
+      stat:
+        path: "/dev/mapper/3{{ item['wwn'] | lower }}"
+      loop: "{{ lookup('list', storage_volumes + metadata_volumes) }}"
+      register: volume_stats
+    - name: Determine whether BeeGFS node reboot is required
+      set_fact:
+        beegfs_node_reboot_required: |-
+          {%- set missing=[] %}
+          {%- for item in volume_stats["results"] %}
+            {%- if item["stat"]["exists"] == False %}
+              {%- if missing.append(item) %}{%- endif %}
+            {%- endif %}
+          {%- endfor %}
+          {{ missing | length > 0 }}
+    - name: Reboot BeeGFS nodes where volumes are missing
+      reboot:
+      when: beegfs_node_reboot_required
+  when: beegfs_node_scsi_rescan_required
+
 - name: Format BeeGFS Storage volumes using xfs.
   filesystem:
     fstype: xfs
-    dev: "/dev/mapper/3{{ item.wwn | lower }}"
+    dev: "/dev/mapper/3{{ item['wwn'] | lower }}"
     opts: "-d su={{ beegfs_segment_size }},sw={{ beegfs_stripe_count }} -l version=2,su={{ beegfs_segment_size }}"
   loop: "{{ lookup('list', storage_volumes) }}"
-  ignore_errors: yes
-  register: format_storage_result
 
 - name: Format BeeGFS Metadata volumes using ext4.
   filesystem:
     fstype: ext4
-    dev: "/dev/mapper/3{{ item.wwn | lower }}"
+    dev: "/dev/mapper/3{{ item['wwn'] | lower }}"
     opts: "-i 2048 -I 512 -J size=400 -Odir_index,filetype"
   loop: "{{ lookup('list', metadata_volumes) }}"
-  ignore_errors: yes
-  register: format_meta_result
-
-- name: If format failed - Try restarting affected nodes to ensure E-Series volumes are identified.
-  reboot:
-    test_command: "systemctl status remote-fs.target"   # Ensure the subsequent format/mount tasks don't conflict with systemd mount operations, especially if
-                                                        #   the filesystem is being reinitialized using identical mount points, and the original mounts weren't
-                                                        #   cleaned up properly.
-  when: "('failed' in format_storage_result and format_storage_result.failed == True) or ('failed' in format_meta_result and format_meta_result.failed == True)"
-
-- name: Retry - Format BeeGFS Storage volume using xfs.
-  filesystem:
-    fstype: xfs
-    dev: "/dev/mapper/3{{ item.wwn | lower }}"
-    opts: "-d su={{ beegfs_segment_size }},sw={{ beegfs_stripe_count }} -l version=2,su={{ beegfs_segment_size }}"
-  loop: "{{ lookup('list', storage_volumes) }}"
-  when: "'failed' in format_storage_result and format_storage_result.failed == True"
-
-- name: Retry - Format BeeGFS Metadata volume using ext4.
-  filesystem:
-    fstype: ext4
-    dev: "/dev/mapper/3{{ item.wwn | lower }}"
-    opts: "-i 2048 -I 512 -J size=400 -Odir_index,filetype"
-  loop: "{{ lookup('list', metadata_volumes) }}"
-  when: "'failed' in format_meta_result and format_meta_result.failed == True"
 
 - name: Mount BeeGFS Storage volume (quotas disabled).
   mount:
-    path: "/data/beegfs/{{ item.name }}"
-    src: "/dev/mapper/3{{ item.wwn | lower }}"
+    path: "/data/beegfs/{{ item['name'] }}"
+    src: "/dev/mapper/3{{ item['wwn'] | lower }}"
     fstype: xfs
     state: mounted
     opts: "noatime,nodiratime,logbufs=8,logbsize=256k,largeio,inode64,swalloc,allocsize=131072k,nobarrier,_netdev"
@@ -51,8 +73,8 @@
 
 - name: Mount BeeGFS Storage volume (quotas enabled).
   mount:
-    path: "/data/beegfs/{{ item.name }}"
-    src: "/dev/mapper/3{{ item.wwn | lower }}"
+    path: "/data/beegfs/{{ item['name'] }}"
+    src: "/dev/mapper/3{{ item['wwn'] | lower }}"
     fstype: xfs
     state: mounted
     opts: "uqnoenforce,gqnoenforce,noatime,nodiratime,logbufs=8,logbsize=256k,largeio,inode64,swalloc,allocsize=131072k,nobarrier,_netdev"
@@ -61,8 +83,8 @@
 
 - name: Mount BeeGFS Metadata volume.
   mount:
-    path: "/data/beegfs/{{ item.name }}"
-    src: "/dev/mapper/3{{ item.wwn | lower }}"
+    path: "/data/beegfs/{{ item['name'] }}"
+    src: "/dev/mapper/3{{ item['wwn'] | lower }}"
     fstype: ext4
     state: mounted
     opts: "noatime,nodiratime,nobarrier,_netdev"

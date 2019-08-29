@@ -2,8 +2,7 @@
   template:
     src: common/beegfs_ntp_conf.j2
     dest: "{{ beegfs_ntp_configuration_file }}"
-  notify:
-    - Restart BeeGFS ntpd service
+  register: beegfs_ntp_conf
   when: ansible_facts['os_family'] | lower == 'redhat'
 
 - name: Start ntpd service (RHEL/CentOS).
@@ -12,25 +11,24 @@
     state: started
     daemon-reload: yes
     enabled: yes
-  register: beegfs_ntpd_service_start
   when: ansible_facts['os_family'] | lower == 'redhat'
 
 - name: Ensure NTP is properly configured (Debian).
   template:
     src: common/beegfs_ntp_conf.j2
     dest: "{{ beegfs_ntp_configuration_file }}"
-  notify:
-    - Restart BeeGFS ntp service
+  register: beegfs_ntp_conf
   when: ansible_facts['os_family'] | lower == 'debian'
 
 - name: Start ntp service (Debian).
   systemd:
     name: ntp.service
-    state: started
+    state: |-
+      {%- if beegfs_ntp_conf.changed %}
+      restarted
+      {%- else %}
+      started
+      {%- endif %}
     daemon-reload: yes
     enabled: yes
-  register: beegfs_ntp_service_start
   when: ansible_facts['os_family'] | lower == 'debian'
-
-- name: Flush out common configuration handlers
-  meta: flush_handlers

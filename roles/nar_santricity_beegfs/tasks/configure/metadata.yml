@@ -1,11 +1,16 @@
+- name: Ensure multipathd is running
+  systemd:
+    name: multipathd.service
+    state: started
+    daemon-reload: yes
+    enabled: yes
+
 - name: Configure BeeGFS Metadata Service.
   shell: "/opt/beegfs/sbin/beegfs-setup-meta -p /data/beegfs/{{ item.name }} -m {{ beegfs_mgmt_node_ip }}"
   register: beegfs_setup_meta_result
   failed_when: "beegfs_setup_meta_result.rc != 0 and 'ERROR: Storage directory is not empty.' not in beegfs_setup_meta_result.stdout"
   changed_when: "'ERROR: Storage directory is not empty.' not in beegfs_setup_meta_result.stdout"
   loop: "{{ metadata_volumes }}"
-  notify:
-    - Restart BeeGFS metadata service
 
 - name: Ensure beegfs-meta-connInterfaces.conf is properly configured
   template:
@@ -14,44 +19,40 @@
     owner: root
     group: root
     mode: 0644
-  notify:
-    - Restart BeeGFS metadata service
+  register: beegfs_meta_interfaces_conf
 
 - name: Ensure beegfs-meta.conf is properly configure
   template:
     src: metadata/beegfs_meta_conf.j2
     dest: "{{ beegfs_configuration_directory }}beegfs-meta.conf"
-  notify:
-    - Restart BeeGFS metadata service
+  register: beegfs_meta_conf
 
 - name: Ensure beegfs metadata service waits for the E-Series storage volumes to be available
   block:
-    - set_fact:
-        beegfs_service_path: "{%include ([beegfs_role_template_path, 'common/beegfs_service_path.j2']|join('')) %}"
     - name: Update beegfs-meta.service to require remote-fs.target.
       lineinfile:
         path: '{{ beegfs_service_path }}beegfs-meta.service'
         regexp: '^(Requires=(?!.*\bremote-fs.target\b).*)$'
         line: '\1 remote-fs.target'
         backrefs: yes
-      notify:
-        - Restart BeeGFS metadata service
+      register: beegfs_meta_service_line1
     - name: Update beegfs-meta.service to start after remote-fs.target.
       lineinfile:
         path: '{{ beegfs_service_path }}beegfs-meta.service'
         regexp: '^(After=(?!.*\bremote-fs.target\b).*)$'
         line: '\1 remote-fs.target'
         backrefs: yes
-      notify:
-        - Restart BeeGFS metadata service
+      register: beegfs_meta_service_line2
 
 - name: Start BeeGFS Metadata Service.
   systemd:
     name: beegfs-meta.service
-    state: started
+    state: |-
+      {%- if beegfs_setup_meta_result.changed or beegfs_meta_interfaces_conf.changed or beegfs_meta_conf.changed or
+             beegfs_meta_service_line1.changed or beegfs_meta_service_line2.changed %}
+      restarted
+      {%- else %}
+      started
+      {%- endif %}
     daemon-reload: yes
     enabled: yes
-  register: beegfs_meta_service_start
-
-- name: Flush out metadata configurations handlers
-  meta: flush_handlers

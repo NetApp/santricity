@@ -1,9 +1,0 @@
-{#- This Jinja2 template will determine the host operating system and return the appropriate service path #}
-
-{%- set service_path = beegfs_debian_service_path %}
-{%- if (ansible_facts['os_family'] | lower) == 'redhat' %}
-  {%- set service_path = beegfs_redhat_service_path %}
-{%- elif (ansible_facts['os_family'] | lower) == 'debian' %}
-  {%- set service_path = beegfs_debian_service_path %}
-{%- endif %}
-{{ service_path }}

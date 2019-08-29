@@ -18,16 +18,12 @@
   set_fact:
     eseries_volumes: |
       {%- set volumes = [] %}
-
       {%- for result in storage_array_facts["results"] %}
         {%- if "storage_array_facts" in (result.keys() | list) and
                "netapp_volumes_by_initiators" in (result["storage_array_facts"].keys() | list) %}
-
-          {#- Collect all volumes associated with the current inventory hostname #}
           {%- if inventory_hostname in (result["storage_array_facts"]["netapp_volumes_by_initiators"].keys() | list) %}
             {%- if volumes.extend(result["storage_array_facts"]["netapp_volumes_by_initiators"][inventory_hostname]) %}{%- endif %}
           {%- endif %}
-
         {%- endif %}
       {%- endfor %}
       {{ volumes }}
@@ -53,3 +49,14 @@
         {%- endif %}
       {%- endfor %}
       {{ volumes }}
+
+- name: Determine beegfs service path
+  set_fact:
+    beegfs_service_path: |-
+      {%- set service_path = beegfs_debian_service_path %}
+      {%- if (ansible_facts['os_family'] | lower) == 'redhat' %}
+        {%- set service_path = beegfs_redhat_service_path %}
+      {%- elif (ansible_facts['os_family'] | lower) == 'debian' %}
+        {%- set service_path = beegfs_debian_service_path %}
+      {%- endif %}
+      {{ service_path }}

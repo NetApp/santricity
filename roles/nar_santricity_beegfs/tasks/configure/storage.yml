@@ -1,11 +1,16 @@
+- name: Ensure multipathd is running
+  systemd:
+    name: multipathd.service
+    state: started
+    daemon-reload: yes
+    enabled: yes
+
 - name: Configure BeeGFS Storage Service.
   shell: "/opt/beegfs/sbin/beegfs-setup-storage -p /data/beegfs/{{ item.name }} -m {{ beegfs_mgmt_node_ip }}"
   register: beegfs_setup_storage_result
   failed_when: "beegfs_setup_storage_result.rc != 0 and 'ERROR: Storage target directory is not empty.' not in beegfs_setup_storage_result.stdout"
   changed_when: "'ERROR: Storage target directory is not empty.' not in beegfs_setup_storage_result.stdout"
   loop: "{{ storage_volumes }}"
-  notify:
-    - Restart BeeGFS storage service
 
 - name: Ensure beegfs-storage-connInterfaces.conf is properly configured
   template:
@@ -14,44 +19,40 @@
     owner: root
     group: root
     mode: 0644
-  notify:
-    - Restart BeeGFS storage service
+  register: beegfs_storage_interface_conf
 
 - name: Ensure beegfs-storage.conf is properly configured
   template:
     src: storage/beegfs_storage_conf.j2
     dest: "{{ beegfs_configuration_directory }}beegfs-storage.conf"
-  notify:
-    - Restart BeeGFS storage service
+  register: beegfs_storage_conf
 
 - name: Ensure beegfs storage service waits for the E-Series storage volumes to be available
   block:
-    - set_fact:
-        beegfs_service_path: "{%include ([beegfs_role_template_path, 'common/beegfs_service_path.j2']|join('')) %}"
     - name: Update beegfs-storage.service to require remote-fs.target.
       lineinfile:
         path: '{{ beegfs_service_path }}beegfs-storage.service'
         regexp: '^(Requires=(?!.*\bremote-fs.target\b).*)$'
         line: '\1 remote-fs.target'
         backrefs: yes
-      notify:
-        - Restart BeeGFS storage service
+      register: beegfs_storage_service_line1
     - name: Update beegfs-storage.service to start after remote-fs.target.
       lineinfile:
         path: '{{ beegfs_service_path }}beegfs-storage.service'
         regexp: '^(After=(?!.*\bremote-fs.target\b).*)$'
         line: '\1 remote-fs.target'
         backrefs: yes
-      notify:
-        - Restart BeeGFS storage service
+      register: beegfs_storage_service_line2
 
 - name: Start BeeGFS Storage Service.
   systemd:
     name: beegfs-storage.service
-    state: started
+    state: |-
+      {%- if beegfs_setup_storage_result.changed or beegfs_storage_interface_conf.changed or beegfs_storage_conf.changed or
+             beegfs_storage_service_line1.changed or beegfs_storage_service_line2.changed %}
+      restarted
+      {%- else %}
+      started
+      {%- endif %}
     daemon-reload: yes
     enabled: yes
-  register: beegfs_storage_service_start
-
-- name: Flush out storage configuration handlers
-  meta: flush_handlers
