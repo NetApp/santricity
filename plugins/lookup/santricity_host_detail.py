@@ -64,7 +64,7 @@ class LookupModule(LookupBase):
                 if info["item"] == host:
 
                     # Determine host type
-                    if hosts["expected_hosts"][host]["host_type"] == "0":
+                    if "host_type" not in hosts["expected_hosts"][host].keys():
                         if info["ansible_facts"]["ansible_os_family"].lower() == "windows":
                             hosts["expected_hosts"][host]["host_type"] = "windows"
                         elif info["ansible_facts"]["ansible_os_family"].lower() in ["redhat", "debian", "suse"]:

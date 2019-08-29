@@ -61,16 +61,24 @@ class LookupModule(LookupBase):
 
                                     # Add all expected group hosts
                                     for expected_host in inventory["groups"][volume["host"]]:
-                                        info["expected_hosts"].update({expected_host: {"state": "present",
-                                                                                       "host_type": volume["host_type"] if "host_type" in volume else "0",
-                                                                                       "group": volume["host"]}})
+                                        if "host_type" in volume:
+                                            info["expected_hosts"].update({expected_host: {"state": "present",
+                                                                                           "host_type": volume["host_type"],
+                                                                                           "group": volume["host"]}})
+                                        else:
+                                            info["expected_hosts"].update({expected_host: {"state": "present",
+                                                                                           "group": volume["host"]}})
 
                                     info["host_groups"].update({volume["host"]: inventory["groups"][volume["host"]]})
 
                             elif volume["host"] in hosts:
-                                info["expected_hosts"].update({volume["host"]: {"state": "present",
-                                                                                "host_type": volume["host_type"] if "host_type" in volume else "0",
-                                                                                "group": None}})
+                                if "host_type" in volume:
+                                    info["expected_hosts"].update({volume["host"]: {"state": "present",
+                                                                                    "host_type": volume["host_type"],
+                                                                                    "group": None}})
+                                else:
+                                    info["expected_hosts"].update({volume["host"]: {"state": "present",
+                                                                                    "group": None}})
 
                             elif volume["host"] not in non_inventory_hosts and volume["host"] not in non_inventory_groups:
                                 raise AnsibleError("Expected host or host group does not exist in your Ansible inventory and is not specified in"
