@@ -21,7 +21,12 @@ eseries_ssid: 1                                          # Storage array identif
 
 # Storage system defaults
 # -----------------------------
-#eseries_system_name:                     # Name of the storage system.
+#eseries_system_name:                      # Name of the storage system.
+#eseries_system_cache_block_size:          # Cache block size
+#eseries_system_cache_flush_threshold:     # Unwritten data will be flushed when exceeds this threshold
+#eseries_system_autoload_balance:          # Whether automatic load balancing should be enabled. Choices: enabled, disabled
+#eseries_system_default_host_type:         # System default host type. Either one of the following names can be specified, Linux DM-MP, VMWare, Windows,
+                                           #     Windows Clustered, or host type index which can be found in M(nac_santricity_facts)
 
 # Storage system SSL certificates
 # -------------------------------
