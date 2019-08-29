@@ -42,10 +42,11 @@ options:
     host_type:
         description:
             - This is the type of host to be mapped
-            - Required when C(state=present)
+            - If not specified, the default host type will be utilized. Default host type can be set using the nac_santricity_global module.
             - Either one of the following names can be specified, Linux DM-MP, VMWare, Windows, Windows Clustered, or a
               host type index which can be found in M(nac_santricity_facts)
         type: str
+        required: False
         aliases:
             - host_type_index
     ports:
@@ -171,7 +172,7 @@ class Host(object):
             ports=dict(type='list', required=False),
             force_port=dict(type='bool', default=False),
             name=dict(type='str', required=True, aliases=['label']),
-            host_type_index=dict(type='str', aliases=['host_type'])
+            host_type_index=dict(type='str', required=False, aliases=['host_type'])
         ))
 
         self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
@@ -203,15 +204,12 @@ class Host(object):
             elif host_type.isdigit():
                 self.host_type_index = int(args['host_type_index'])
             else:
-                self.module.fail_json(msg="host_type must be either a host type name or host type index found integer"
-                                          " the documentation.")
+                self.module.fail_json(msg="host_type must be either a host type name or host type index found integer the documentation.")
+        else:
+            self.host_type_index = None
 
         if not self.url.endswith('/'):
             self.url += '/'
-
-        # Ensure when state==present then host_type_index is defined
-        if self.state == "present" and self.host_type_index is None:
-            self.module.fail_json(msg="Host_type_index is required when state=='present'. Array Id: [%s]" % self.ssid)
 
         # Fix port representation if they are provided with colons
         if self.ports is not None:
@@ -223,6 +221,16 @@ class Host(object):
                 # Determine whether address is 16-byte WWPN and, if so, remove
                 if re.match(r'^(0x)?[0-9a-f]{16}$', port['port'].replace(':', '')):
                     port['port'] = port['port'].replace(':', '').replace('0x', '')
+
+    @property
+    def default_host_type(self):
+        """Return the default host type index."""
+        try:
+            rc, default_index = request(self.url + "storage-systems/%s/graph/xpath-filter?query=/sa/defaultHostTypeIndex" % self.ssid, url_password=self.pwd,
+                                        url_username=self.user, validate_certs=self.certs, headers=HEADERS)
+            return default_index[0]
+        except Exception as error:
+            self.module.fail_json(msg="Failed to retrieve default host type index")
 
     @property
     def valid_host_type(self):
@@ -475,6 +483,9 @@ class Host(object):
 
     def apply(self):
         if self.state == 'present':
+            if self.host_type_index is None:
+                self.host_type_index = self.default_host_type
+
             if self.host_exists:
                 if self.needs_update and self.valid_host_type:
                     self.update_host()
