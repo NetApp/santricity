@@ -59,7 +59,7 @@
       name: "{{ hosts['expected_hosts'][item]['sanitized_hostname'] }}"
       ports: "{{ hosts['expected_hosts'][item]['ports'] }}"
       force_port: "{{ eseries_host_force_port | default(omit) }}"
-      host_type: "{{ hosts['expected_hosts'][item]['host_type'] }}"
+      host_type: "{{ hosts['expected_hosts'][item]['host_type'] | default(omit) }}"
     loop: "{{ lookup('list', (hosts['expected_hosts'].keys()|list)) }}"
 
   - name: Create all required host groups on the storage array

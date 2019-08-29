@@ -59,7 +59,7 @@
     ports: "{{ item.ports | default(omit) }}"
     force_port: "{{ item.force_port | default(eseries_host_force_port | default(omit)) }}"
     group: "{{ item.group | default(eseries_host_group | default(omit)) }}"
-    host_type: "{{ item.host_type_index | default(item.host_type | default(eseries_host_type_index)) }}"
+    host_type: "{{ item.host_type_index | default(item.host_type | default(eseries_host_type_index | default(omit))) }}"
   loop: "{{ lookup('list', eseries_host_object) }}"
   when: eseries_host_object is defined
 
