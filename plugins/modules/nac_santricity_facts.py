@@ -609,12 +609,30 @@ class Facts(NetAppESeriesModule):
                                                             for entry in workload_tag['attributes']
                                                             if entry['key'] != 'profileId')
 
+                            # Determine drive count
+                            stripe_count = 0
+                            vg_drive_count = sum(1 for d in array_facts['drive'] if d['currentVolumeGroupRef'] == volume['volumeGroupRef'] and not d['hotSpare'])
+
+                            if volume['raidLevel'] == "raidDiskPool":
+                                stripe_count = 8
+                            if volume['raidLevel'] == "raid0":
+                                stripe_count = vg_drive_count
+                            if volume['raidLevel'] == "raid1":
+                                stripe_count = int(vg_drive_count / 2)
+                            if volume['raidLevel'] in ["raid3", "raid5"]:
+                                stripe_count = vg_drive_count - 1
+                            if volume['raidLevel'] == "raid6":
+                                stripe_count = vg_drive_count - 2
+
                             facts['netapp_volumes_by_initiators'][host['name']].append(
                                 dict(name=volume['name'],
                                      id=volume['id'],
                                      wwn=volume['wwn'],
                                      workload_name=workload_name,
-                                     meta_data=metadata))
+                                     meta_data=metadata,
+                                     raid_level=volume['raidLevel'],
+                                     segment_size_kb=int(volume['segmentSize'] / 1024),
+                                     stripe_count=stripe_count))
 
         features = [feature for feature in array_facts['sa']['capabilities']]
         features.extend([feature['capability'] for feature in array_facts['sa']['premiumFeatures']
