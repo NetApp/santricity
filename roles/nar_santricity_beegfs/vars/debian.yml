@@ -1,0 +1,5 @@
+beegfs_repository_base_url: https://www.beegfs.io/release/latest-stable/
+beegfs_repository_gpgkey: https://www.beegfs.io/release/latest-stable/gpg/DEB-GPG-KEY-beegfs
+
+beegfs_ntp_service: ntp.service
+beegfs_service_path: /lib/systemd/system/

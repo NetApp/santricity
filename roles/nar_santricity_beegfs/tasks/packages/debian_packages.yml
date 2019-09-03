@@ -1,19 +1,23 @@
+- name: Ensure software properties common package is installed
+  apt:
+    state: latest
+    name: software-properties-common
+
 - name: Add BeeGFS apt respository
   apt_key:
-    url: "{{ beegfs_repository_deb_gpgkey }}"
+    url: "{{ beegfs_repository_gpgkey }}"
     state: present
   become: yes
 - apt_repository:
     state: present
-    repo: "deb [arch=amd64] {{ beegfs_repository_deb_base_url }} stretch non-free"
+    repo: "deb [arch=amd64] {{ beegfs_repository_base_url }} stretch non-free"
     update_cache: yes
   become: yes
 
 - name: Ensure BeeGFS management package is installed
   apt:
     state: latest
-    name:
-      - beegfs-mgmtd
+    name: beegfs-mgmtd
   become: yes
   when: '"management" in beegfs_node_roles'
 
@@ -38,8 +42,7 @@
 - name: Ensure BeeGFS infiniband package is installed
   apt:
     state: latest
-    name:
-      - libbeegfs-ib
+    name: libbeegfs-ib
   when: '("storage" in beegfs_node_roles or "metadata" in beegfs_node_roles) and beegfs_enable_rdma'
 
 - name: Ensure BeeGFS client package is installed

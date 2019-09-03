@@ -1,34 +1,12 @@
-- name: Ensure NTP is properly configured (RHEL/CentOS).
-  template:
-    src: common/beegfs_ntp_conf.j2
-    dest: "{{ beegfs_ntp_configuration_file }}"
-  register: beegfs_ntp_conf
-  when: ansible_facts['os_family'] | lower == 'redhat'
-
-- name: Start ntpd service (RHEL/CentOS).
-  systemd:
-    name: ntpd.service
-    state: started
-    daemon-reload: yes
-    enabled: yes
-  when: ansible_facts['os_family'] | lower == 'redhat'
-
 - name: Ensure NTP is properly configured (Debian).
   template:
     src: common/beegfs_ntp_conf.j2
     dest: "{{ beegfs_ntp_configuration_file }}"
   register: beegfs_ntp_conf
-  when: ansible_facts['os_family'] | lower == 'debian'
 
-- name: Start ntp service (Debian).
+- name: Start ntp service.
   systemd:
-    name: ntp.service
-    state: |-
-      {%- if beegfs_ntp_conf.changed %}
-      restarted
-      {%- else %}
-      started
-      {%- endif %}
+    name: "{{ beegfs_ntp_service }}"
+    state: "{%- if beegfs_ntp_conf.changed %}restarted{%- else %}started{%- endif %}"
     daemon-reload: yes
     enabled: yes
-  when: ansible_facts['os_family'] | lower == 'debian'

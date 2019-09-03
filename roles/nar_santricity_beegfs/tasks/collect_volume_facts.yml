@@ -28,7 +28,7 @@
       {%- endfor %}
       {{ volumes }}
 
-- name: Determine all volumes tagged for beegfs storage volumes
+- name: Determine all volumes tagged for BeeGFS storage volumes
   set_fact:
     storage_volumes: |
       {%- set volumes = [] %}
@@ -39,7 +39,7 @@
       {%- endfor %}
       {{ volumes }}
 
-- name: Determine all volumes tagged for beegfs metadata volumes
+- name: Determine all volumes tagged for BeeGFS metadata volumes
   set_fact:
     metadata_volumes: |
       {%- set volumes = [] %}
@@ -49,14 +49,3 @@
         {%- endif %}
       {%- endfor %}
       {{ volumes }}
-
-- name: Determine beegfs service path
-  set_fact:
-    beegfs_service_path: |-
-      {%- set service_path = beegfs_debian_service_path %}
-      {%- if (ansible_facts['os_family'] | lower) == 'redhat' %}
-        {%- set service_path = beegfs_redhat_service_path %}
-      {%- elif (ansible_facts['os_family'] | lower) == 'debian' %}
-        {%- set service_path = beegfs_debian_service_path %}
-      {%- endif %}
-      {{ service_path }}

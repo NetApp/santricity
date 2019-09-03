@@ -44,6 +44,7 @@
           {{ missing | length > 0 }}
     - name: Reboot BeeGFS nodes where volumes are missing
       reboot:
+        test_command: "systemctl is-active --quiet remote-fs.target"
       when: beegfs_node_reboot_required
   when: beegfs_node_scsi_rescan_required
 
@@ -51,14 +52,14 @@
   filesystem:
     fstype: xfs
     dev: "/dev/mapper/3{{ item['wwn'] | lower }}"
-    opts: "-d su={{ beegfs_segment_size }},sw={{ beegfs_stripe_count }} -l version=2,su={{ beegfs_segment_size }}"
+    opts: "-d su={{ item['segment_size_kb'] }}k,sw={{ item['stripe_count'] }} -l version=2,su={{ item['segment_size_kb'] }}k"
   loop: "{{ lookup('list', storage_volumes) }}"
 
 - name: Format BeeGFS Metadata volumes using ext4.
   filesystem:
     fstype: ext4
     dev: "/dev/mapper/3{{ item['wwn'] | lower }}"
-    opts: "-i 2048 -I 512 -J size=400 -Odir_index,filetype"
+    opts: "{{ beegfs_metadata_format_options }}"
   loop: "{{ lookup('list', metadata_volumes) }}"
 
 - name: Mount BeeGFS Storage volume (quotas disabled).
@@ -67,7 +68,7 @@
     src: "/dev/mapper/3{{ item['wwn'] | lower }}"
     fstype: xfs
     state: mounted
-    opts: "noatime,nodiratime,logbufs=8,logbsize=256k,largeio,inode64,swalloc,allocsize=131072k,nobarrier,_netdev"
+    opts: "{{ beegfs_storage_mounting_options }}"
   loop: "{{ lookup('list', storage_volumes) }}"
   when: "beegfs_enable_quota != True"
 
@@ -77,7 +78,7 @@
     src: "/dev/mapper/3{{ item['wwn'] | lower }}"
     fstype: xfs
     state: mounted
-    opts: "uqnoenforce,gqnoenforce,noatime,nodiratime,logbufs=8,logbsize=256k,largeio,inode64,swalloc,allocsize=131072k,nobarrier,_netdev"
+    opts: "{{ beegfs_storage_mounting_options_quotas }}"
   loop: "{{ lookup('list', storage_volumes) }}"
   when: "beegfs_enable_quota == True"
 
@@ -87,5 +88,5 @@
     src: "/dev/mapper/3{{ item['wwn'] | lower }}"
     fstype: ext4
     state: mounted
-    opts: "noatime,nodiratime,nobarrier,_netdev"
+    opts: "{{ beegfs_metadata_mounting_options }}"
   loop: "{{ lookup('list', metadata_volumes) }}"
