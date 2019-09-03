@@ -38,13 +38,28 @@ options:
             - absent
             - present
         default: present
-        version_added: 2.7
     host_type:
         description:
-            - This is the type of host to be mapped
-            - If not specified, the default host type will be utilized. Default host type can be set using the nac_santricity_global module.
-            - Either one of the following names can be specified, Linux DM-MP, VMWare, Windows, Windows Clustered, or a
-              host type index which can be found in M(nac_santricity_facts)
+            - Host type includes operating system and multipath considerations.
+            - If not specified, the default host type will be utilized. Default host type can be set using M(nac_santricity_global).
+            - For storage array specific options see M(nac_santricity_facts).
+            - All values are case-insensitive.
+            - Host type definitions:
+                AIX MPIO: The Advanced Interactive Executive (AIX) OS and the native MPIO driver
+                AVT 4M: Silicon Graphics, Inc. (SGI) proprietary multipath driver; refer to the SGI installation documentation for more information
+                HP-UX: The HP-UX OS with native multipath driver
+                Linux ATTO: The Linux OS and the ATTO Technology, Inc. driver (must use ATTO FC HBAs)
+                Linux DM-MP: The Linux OS and the native DM-MP driver
+                Linux Pathmanager: The Linux OS and the SGI proprietary multipath driver; refer to the SGI installation documentation for more information
+                Mac: The Mac OS and the ATTO Technology, Inc. driver
+                ONTAP: FlexArray
+                Solaris 11 or later: The Solaris 11 or later OS and the native MPxIO driver
+                Solaris 10 or earlier: The Solaris 10 or earlier OS and the native MPxIO driver
+                SVC: IBM SAN Volume Controller
+                VMware: ESXi OS
+                Windows: Windows Server OS and Windows MPIO with a DSM driver
+                Windows Clustered: Clustered Windows Server OS and Windows MPIO with a DSM driver
+                Windows ATTO: Windows OS and the ATTO Technology, Inc. driver
         type: str
         required: False
         aliases:
@@ -81,7 +96,6 @@ options:
             - Allow ports that are already assigned to be re-assigned to your current host
         required: false
         type: bool
-        version_added: 2.7
 """
 
 EXAMPLES = """
@@ -163,7 +177,22 @@ HEADERS = {
 
 
 class Host(object):
-    HOST_TYPE_INDEXES = {"linux dm-mp": 28, "vmware": 10, "windows": 1, "windows clustered": 8}
+    HOST_TYPE_INDEXES = {
+        "aix mpio": 9,
+        "avt 4m": 5,
+        "hp-ux": 15,
+        "linux atto": 24,
+        "linux dm-mp": 28,
+        "linux pathmanager": 25,
+        "solaris 10 or earlier": 2,
+        "solaris 11 or later": 17,
+        "svc": 18,
+        "ontap": 26,
+        "mac": 22,
+        "vmware": 10,
+        "windows": 1,
+        "windows atto": 23,
+        "windows clustered": 8}
 
     def __init__(self):
         argument_spec = eseries_host_argument_spec()

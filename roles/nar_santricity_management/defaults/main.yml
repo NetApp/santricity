@@ -25,8 +25,23 @@ eseries_ssid: 1                                          # Storage array identif
 #eseries_system_cache_block_size:          # Cache block size
 #eseries_system_cache_flush_threshold:     # Unwritten data will be flushed when exceeds this threshold
 #eseries_system_autoload_balance:          # Whether automatic load balancing should be enabled. Choices: enabled, disabled
-#eseries_system_default_host_type:         # System default host type. Either one of the following names can be specified, Linux DM-MP, VMWare, Windows,
-                                           #     Windows Clustered, or host type index which can be found in M(nac_santricity_facts)
+#eseries_system_default_host_type:         # Only required when using something other than Linux kernel 3.10 or later with DM-MP (Linux DM-MP),
+                                           #     non-clustered Windows (Windows), or the storage system default host type is incorrect. Common definitions below:
+                                           #     - AIX MPIO: The Advanced Interactive Executive (AIX) OS and the native MPIO driver
+                                           #     - AVT 4M: Silicon Graphics, Inc. (SGI) proprietary multipath driver; refer to the SGI installation documentation for more information
+                                           #     - HP-UX: The HP-UX OS with native multipath driver
+                                           #     - Linux ATTO: The Linux OS and the ATTO Technology, Inc. driver (must use ATTO FC HBAs)
+                                           #     - Linux DM-MP: The Linux OS and the native DM-MP driver
+                                           #     - Linux Pathmanager: The Linux OS and the SGI proprietary multipath driver; refer to the SGI installation documentation for more information
+                                           #     - Mac: The Mac OS and the ATTO Technology, Inc. driver
+                                           #     - ONTAP: FlexArray
+                                           #     - Solaris 11 or later: The Solaris 11 or later OS and the native MPxIO driver
+                                           #     - Solaris 10 or earlier: The Solaris 10 or earlier OS and the native MPxIO driver
+                                           #     - SVC: IBM SAN Volume Controller
+                                           #     - VMware: ESXi OS
+                                           #     - Windows: Windows Server OS and Windows MPIO with a DSM driver
+                                           #     - Windows Clustered: Clustered Windows Server OS and Windows MPIO with a DSM driver
+                                           #     - Windows ATTO: Windows OS and the ATTO Technology, Inc. driver
 
 # Storage system SSL certificates
 # -------------------------------
