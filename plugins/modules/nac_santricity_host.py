@@ -44,22 +44,21 @@ options:
             - If not specified, the default host type will be utilized. Default host type can be set using M(nac_santricity_global).
             - For storage array specific options see M(nac_santricity_facts).
             - All values are case-insensitive.
-            - Host type definitions:
-                AIX MPIO: The Advanced Interactive Executive (AIX) OS and the native MPIO driver
-                AVT 4M: Silicon Graphics, Inc. (SGI) proprietary multipath driver; refer to the SGI installation documentation for more information
-                HP-UX: The HP-UX OS with native multipath driver
-                Linux ATTO: The Linux OS and the ATTO Technology, Inc. driver (must use ATTO FC HBAs)
-                Linux DM-MP: The Linux OS and the native DM-MP driver
-                Linux Pathmanager: The Linux OS and the SGI proprietary multipath driver; refer to the SGI installation documentation for more information
-                Mac: The Mac OS and the ATTO Technology, Inc. driver
-                ONTAP: FlexArray
-                Solaris 11 or later: The Solaris 11 or later OS and the native MPxIO driver
-                Solaris 10 or earlier: The Solaris 10 or earlier OS and the native MPxIO driver
-                SVC: IBM SAN Volume Controller
-                VMware: ESXi OS
-                Windows: Windows Server OS and Windows MPIO with a DSM driver
-                Windows Clustered: Clustered Windows Server OS and Windows MPIO with a DSM driver
-                Windows ATTO: Windows OS and the ATTO Technology, Inc. driver
+            - AIX MPIO - The Advanced Interactive Executive (AIX) OS and the native MPIO driver
+            - AVT 4M - Silicon Graphics, Inc. (SGI) proprietary multipath driver
+            - HP-UX - The HP-UX OS with native multipath driver
+            - Linux ATTO - The Linux OS and the ATTO Technology, Inc. driver (must use ATTO FC HBAs)
+            - Linux DM-MP - The Linux OS and the native DM-MP driver
+            - Linux Pathmanager - The Linux OS and the SGI proprietary multipath driver
+            - Mac - The Mac OS and the ATTO Technology, Inc. driver
+            - ONTAP - FlexArray
+            - Solaris 11 or later - The Solaris 11 or later OS and the native MPxIO driver
+            - Solaris 10 or earlier - The Solaris 10 or earlier OS and the native MPxIO driver
+            - SVC - IBM SAN Volume Controller
+            - VMware - ESXi OS
+            - Windows - Windows Server OS and Windows MPIO with a DSM driver
+            - Windows Clustered - Clustered Windows Server OS and Windows MPIO with a DSM driver
+            - Windows ATTO - Windows OS and the ATTO Technology, Inc. driver
         type: str
         required: False
         aliases:
