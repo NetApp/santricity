@@ -161,13 +161,11 @@ api_url:
     sample: https://webservices.example.com:8443
     version_added: "2.6"
 """
-import json
 import re
 from pprint import pformat
 
-from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils._text import to_native
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import request, eseries_host_argument_spec
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 
 HEADERS = {
     "Content-Type": "application/json",
@@ -175,7 +173,7 @@ HEADERS = {
 }
 
 
-class Host(object):
+class NetAppESeriesHost(NetAppESeriesModule):
     HOST_TYPE_INDEXES = {
         "aix mpio": 9,
         "avt 4m": 5,
@@ -194,27 +192,22 @@ class Host(object):
         "windows clustered": 8}
 
     def __init__(self):
-        argument_spec = eseries_host_argument_spec()
-        argument_spec.update(dict(
-            state=dict(type='str', default='present', choices=['absent', 'present']),
-            ports=dict(type='list', required=False),
-            force_port=dict(type='bool', default=False),
-            name=dict(type='str', required=True, aliases=['label']),
-            host_type_index=dict(type='str', required=False, aliases=['host_type'])
-        ))
+        ansible_options = dict(state=dict(type='str', default='present', choices=['absent', 'present']),
+                               ports=dict(type='list', required=False),
+                               force_port=dict(type='bool', default=False),
+                               name=dict(type='str', required=True, aliases=['label']),
+                               host_type_index=dict(type='str', required=False, aliases=['host_type']))
 
-        self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
+        super(NetAppESeriesHost, self).__init__(ansible_options=ansible_options,
+                                                web_services_version="02.00.0000.0000",
+                                                supports_check_mode=True)
+
         self.check_mode = self.module.check_mode
         args = self.module.params
         self.ports = args['ports']
         self.force_port = args['force_port']
         self.name = args['name']
         self.state = args['state']
-        self.ssid = args['ssid']
-        self.url = args['api_url']
-        self.user = args['api_username']
-        self.pwd = args['api_password']
-        self.certs = args['validate_certs']
 
         self.post_body = dict()
         self.all_hosts = list()
@@ -254,8 +247,7 @@ class Host(object):
     def default_host_type(self):
         """Return the default host type index."""
         try:
-            rc, default_index = request(self.url + "storage-systems/%s/graph/xpath-filter?query=/sa/defaultHostTypeIndex" % self.ssid, url_password=self.pwd,
-                                        url_username=self.user, validate_certs=self.certs, headers=HEADERS)
+            rc, default_index = self.request("storage-systems/%s/graph/xpath-filter?query=/sa/defaultHostTypeIndex" % self.ssid)
             return default_index[0]
         except Exception as error:
             self.module.fail_json(msg="Failed to retrieve default host type index")
@@ -264,11 +256,9 @@ class Host(object):
     def valid_host_type(self):
         host_types = None
         try:
-            (rc, host_types) = request(self.url + 'storage-systems/%s/host-types' % self.ssid, url_password=self.pwd,
-                                       url_username=self.user, validate_certs=self.certs, headers=HEADERS)
+            rc, host_types = self.request("storage-systems/%s/host-types" % self.ssid)
         except Exception as err:
-            self.module.fail_json(
-                msg="Failed to get host types. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to get host types. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         try:
             match = list(filter(lambda host_type: host_type['index'] == self.host_type_index, host_types))[0]
@@ -324,14 +314,11 @@ class Host(object):
         if apply_unassigning:
             for host_ref in used_host_ports.keys():
                 try:
-                    rc, resp = request(self.url + 'storage-systems/%s/hosts/%s' % (self.ssid, host_ref),
-                                       url_username=self.user, url_password=self.pwd, headers=HEADERS,
-                                       validate_certs=self.certs, method='POST',
-                                       data=json.dumps({"portsToRemove": used_host_ports[host_ref]}))
+                    rc, resp = self.request("storage-systems/%s/hosts/%s" % (self.ssid, host_ref), method='POST',
+                                            data={"portsToRemove": used_host_ports[host_ref]})
                 except Exception as err:
-                    self.module.fail_json(msg="Failed to unassign host port. Host Id [%s]. Array Id [%s]. Ports [%s]."
-                                              " Error [%s]." % (self.host_obj['id'], self.ssid,
-                                                                used_host_ports[host_ref], to_native(err)))
+                    self.module.fail_json(msg="Failed to unassign host port. Host Id [%s]. Array Id [%s]. Ports [%s]. Error [%s]."
+                                              % (self.host_obj['id'], self.ssid, used_host_ports[host_ref], to_native(err)))
 
         return used_host_ports
 
@@ -344,11 +331,9 @@ class Host(object):
         all_hosts = list()
 
         try:
-            (rc, all_hosts) = request(self.url + 'storage-systems/%s/hosts' % self.ssid, url_password=self.pwd,
-                                      url_username=self.user, validate_certs=self.certs, headers=HEADERS)
+            rc, all_hosts = self.request("storage-systems/%s/hosts" % self.ssid)
         except Exception as err:
-            self.module.fail_json(
-                msg="Failed to determine host existence. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to determine host existence. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         # Augment the host objects
         for host in all_hosts:
@@ -424,8 +409,6 @@ class Host(object):
         return False
 
     def update_host(self):
-        self.module.log("Beginning the update for host=%s." % self.name)
-
         if self.ports:
 
             # Remove ports that need reassigning from their current host.
@@ -438,66 +421,43 @@ class Host(object):
             self.module.log("No host ports were defined.")
 
         self.post_body['hostType'] = dict(index=self.host_type_index)
-
-        api = self.url + 'storage-systems/%s/hosts/%s' % (self.ssid, self.host_obj['id'])
-        self.module.log("POST => url=%s, body=%s." % (api, pformat(self.post_body)))
-
         if not self.check_mode:
             try:
-                (rc, self.host_obj) = request(api, url_username=self.user, url_password=self.pwd, headers=HEADERS,
-                                              validate_certs=self.certs, method='POST', data=json.dumps(self.post_body))
+                rc, self.host_obj = self.request("storage-systems/%s/hosts/%s" % (self.ssid, self.host_obj['id']), method='POST', data=self.post_body)
             except Exception as err:
-                self.module.fail_json(
-                    msg="Failed to update host. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="Failed to update host. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         payload = self.build_success_payload(self.host_obj)
         self.module.exit_json(changed=True, **payload)
 
     def create_host(self):
-        self.module.log("Creating host definition.")
-
         # Remove ports that need reassigning from their current host.
         self.assigned_host_ports(apply_unassigning=True)
 
         # needs_reassignment = False
-        post_body = dict(
-            name=self.name,
-            hostType=dict(index=self.host_type_index)
-        )
+        post_body = dict(name=self.name,
+                         hostType=dict(index=self.host_type_index))
 
         if self.ports:
             post_body.update(ports=self.ports)
 
-        api = self.url + "storage-systems/%s/hosts" % self.ssid
-        self.module.log('POST => url=%s, body=%s' % (api, pformat(post_body)))
-
         if not (self.host_exists and self.check_mode):
             try:
-                (rc, self.host_obj) = request(api, method='POST',
-                                              url_username=self.user, url_password=self.pwd, validate_certs=self.certs,
-                                              data=json.dumps(post_body), headers=HEADERS)
+                rc, self.host_obj = self.request("storage-systems/%s/hosts" % self.ssid, method='POST', data=post_body)
             except Exception as err:
-                self.module.fail_json(
-                    msg="Failed to create host. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="Failed to create host. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
         else:
             payload = self.build_success_payload(self.host_obj)
-            self.module.exit_json(changed=False,
-                                  msg="Host already exists. Id [%s]. Host [%s]." % (self.ssid, self.name), **payload)
+            self.module.exit_json(changed=False, msg="Host already exists. Id [%s]. Host [%s]." % (self.ssid, self.name), **payload)
 
         payload = self.build_success_payload(self.host_obj)
-
         self.module.exit_json(changed=True, msg='Host created.', **payload)
 
     def remove_host(self):
         try:
-            (rc, resp) = request(self.url + "storage-systems/%s/hosts/%s" % (self.ssid, self.host_obj['id']),
-                                 method='DELETE',
-                                 url_username=self.user, url_password=self.pwd, validate_certs=self.certs)
+            rc, resp = self.request("storage-systems/%s/hosts/%s" % (self.ssid, self.host_obj['id']), method='DELETE')
         except Exception as err:
-            self.module.fail_json(
-                msg="Failed to remove host.  Host[%s]. Array Id [%s]. Error [%s]." % (self.host_obj['id'],
-                                                                                      self.ssid,
-                                                                                      to_native(err)))
+            self.module.fail_json(msg="Failed to remove host.  Host[%s]. Array Id [%s]. Error [%s]." % (self.host_obj['id'], self.ssid, to_native(err)))
 
     def build_success_payload(self, host=None):
         keys = ['id']
@@ -531,10 +491,6 @@ class Host(object):
                 self.module.exit_json(changed=False, msg="Host already absent.", **payload)
 
 
-def main():
-    host = Host()
-    host.apply()
-
-
 if __name__ == '__main__':
-    main()
+    host = NetAppESeriesHost()
+    host.apply()
