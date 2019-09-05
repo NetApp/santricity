@@ -224,9 +224,6 @@ cfg:
                 - The days of the week that ASUP bundles will be sent.
             type: list
 """
-
-import json
-
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 
@@ -235,7 +232,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
     DAYS_OPTIONS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
 
     def __init__(self):
-        ansible_options = (dict(
+        ansible_options = dict(
             state=dict(type="str", required=False, default="enabled", aliases=["asup", "auto_support", "autosupport"], choices=["enabled", "disabled"]),
             active=dict(type="bool", required=False, default=True, ),
             days=dict(type="list", required=False, aliases=["schedule_days", "days_of_week"], choices=self.DAYS_OPTIONS),
@@ -249,8 +246,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
             email=dict(type="dict", required=False, options=dict(server=dict(type="str", required=False),
                                                                  sender=dict(type="str", required=False),
                                                                  test_recipient=dict(type="str", required=False))),
-            validate=dict(type="bool", require=False, default=False)
-        ))
+            validate=dict(type="bool", require=False, default=False))
 
         mutually_exclusive = [["host", "script"],
                               ["port", "script"]]
@@ -278,19 +274,10 @@ class NetAppESeriesAsup(NetAppESeriesModule):
         self.email = args["email"]
         self.validate = args["validate"]
 
-        self.ssid = args["ssid"]
-        self.url = args["api_url"]
-        self.creds = dict(url_password=args["api_password"],
-                          validate_certs=args["validate_certs"],
-                          url_username=args["api_username"], )
-
         if self.validate and self.email and "test_recipient" not in self.email.keys():
             self.module.fail_json(msg="test_recipient must be provided for validating email delivery method. Array [%s]" % self.ssid)
 
         self.check_mode = self.module.check_mode
-
-        if not self.url.endswith("/"):
-            self.url += "/"
 
         if self.start >= self.end:
             self.module.fail_json(msg="The value provided for the start time is invalid."
@@ -418,7 +405,10 @@ class NetAppESeriesAsup(NetAppESeriesModule):
         update = self.update_configuration()
         cfg = self.get_configuration()
 
-        self.module.exit_json(msg="The ASUP settings have been updated.", changed=update, asup=cfg["asupEnabled"], active=cfg["onDemandEnabled"], cfg=cfg)
+        if update:
+            self.module.exit_json(msg="The ASUP settings have been updated.", changed=update, asup=cfg["asupEnabled"], active=cfg["onDemandEnabled"], cfg=cfg)
+        else:
+            self.module.exit_json(msg="No ASUP changes required.", changed=update, asup=cfg["asupEnabled"], active=cfg["onDemandEnabled"], cfg=cfg)
 
 
 if __name__ == "__main__":
