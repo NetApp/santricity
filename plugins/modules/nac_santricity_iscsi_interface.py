@@ -153,38 +153,29 @@ enabled:
     sample: True
     type: bool
 """
-import json
 import re
 
-from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import request, eseries_host_argument_spec
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 
-HEADERS = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-}
 
-
-class IscsiInterface(object):
+class NetAppESeriesIscsiInterface(NetAppESeriesModule):
     def __init__(self):
-        argument_spec = eseries_host_argument_spec()
-        argument_spec.update(dict(
-            controller=dict(type='str', required=True, choices=['A', 'B']),
-            name=dict(type='int', aliases=['channel']),
-            state=dict(type='str', required=False, default='enabled', choices=['enabled', 'disabled']),
-            address=dict(type='str', required=False),
-            subnet_mask=dict(type='str', required=False),
-            gateway=dict(type='str', required=False),
-            config_method=dict(type='str', required=False, default='dhcp', choices=['dhcp', 'static']),
-            mtu=dict(type='int', default=1500, required=False, aliases=['max_frame_size'])
-        ))
+        ansible_options = dict(controller=dict(type='str', required=True, choices=['A', 'B']),
+                               name=dict(type='int', aliases=['channel']),
+                               state=dict(type='str', required=False, default='enabled', choices=['enabled', 'disabled']),
+                               address=dict(type='str', required=False),
+                               subnet_mask=dict(type='str', required=False),
+                               gateway=dict(type='str', required=False),
+                               config_method=dict(type='str', required=False, default='dhcp', choices=['dhcp', 'static']),
+                               mtu=dict(type='int', default=1500, required=False, aliases=['max_frame_size']))
 
-        required_if = [
-            ["config_method", "static", ["address", "subnet_mask"]],
-        ]
+        required_if = [["config_method", "static", ["address", "subnet_mask"]]]
+        super(NetAppESeriesIscsiInterface, self).__init__(ansible_options=ansible_options,
+                                                          web_services_version="02.00.0000.0000",
+                                                          required_if=required_if,
+                                                          supports_check_mode=True)
 
-        self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True, required_if=required_if, )
         args = self.module.params
         self.controller = args['controller']
         self.name = args['name']
@@ -195,18 +186,9 @@ class IscsiInterface(object):
         self.gateway = args['gateway']
         self.config_method = args['config_method']
 
-        self.ssid = args['ssid']
-        self.url = args['api_url']
-        self.creds = dict(url_password=args['api_password'],
-                          validate_certs=args['validate_certs'],
-                          url_username=args['api_username'], )
-
         self.check_mode = self.module.check_mode
         self.post_body = dict()
         self.controllers = list()
-
-        if not self.url.endswith('/'):
-            self.url += '/'
 
         if self.mtu < 1500 or self.mtu > 9000:
             self.module.fail_json(msg="The provided mtu is invalid, it must be > 1500 and < 9000 bytes.")
@@ -231,12 +213,9 @@ class IscsiInterface(object):
     def interfaces(self):
         ifaces = list()
         try:
-            (rc, ifaces) = request(self.url + 'storage-systems/%s/graph/xpath-filter?query=/controller/hostInterfaces'
-                                   % self.ssid, headers=HEADERS, **self.creds)
+            rc, ifaces = self.request("storage-systems/%s/graph/xpath-filter?query=/controller/hostInterfaces" % self.ssid)
         except Exception as err:
-            self.module.fail_json(
-                msg="Failed to retrieve defined host interfaces. Array Id [%s]. Error [%s]."
-                    % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to retrieve defined host interfaces. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         # Filter out non-iSCSI interfaces
         ifaces = [iface['iscsi'] for iface in ifaces if iface['interfaceType'] == 'iscsi']
@@ -253,12 +232,9 @@ class IscsiInterface(object):
         """
         controllers = list()
         try:
-            (rc, controllers) = request(self.url + 'storage-systems/%s/graph/xpath-filter?query=/controller/id'
-                                        % self.ssid, headers=HEADERS, **self.creds)
+            rc, controllers = self.request("storage-systems/%s/graph/xpath-filter?query=/controller/id" % self.ssid)
         except Exception as err:
-            self.module.fail_json(
-                msg="Failed to retrieve controller list! Array Id [%s]. Error [%s]."
-                    % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to retrieve controller list! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         controllers.sort()
 
@@ -281,8 +257,7 @@ class IscsiInterface(object):
         channels = sorted(set((str(iface['channel'])) for iface in interfaces
                               if self.controllers[self.controller] == iface['controllerId']))
 
-        self.module.fail_json(msg="The requested channel of %s is not valid. Valid channels include: %s."
-                                  % (self.name, ", ".join(channels)))
+        self.module.fail_json(msg="The requested channel of %s is not valid. Valid channels include: %s." % (self.name, ", ".join(channels)))
 
     def make_update_body(self, target_iface):
         body = dict(iscsiInterface=target_iface['id'])
@@ -313,7 +288,7 @@ class IscsiInterface(object):
                     update_required = True
                     settings['ipv4AddressConfigMethod'] = ['configStatic']
 
-            elif (target_iface['ipv4Data']['ipv4AddressConfigMethod'] != 'configDhcp'):
+            elif target_iface['ipv4Data']['ipv4AddressConfigMethod'] != 'configDhcp':
                 update_required = True
                 settings.update(dict(ipv4Enabled=[True],
                                      ipv4AddressConfigMethod=['configDhcp']))
@@ -329,30 +304,24 @@ class IscsiInterface(object):
     def update(self):
         self.controllers = self.get_controllers()
         if self.controller not in self.controllers:
-            self.module.fail_json(msg="The provided controller name is invalid. Valid controllers: %s."
-                                      % ", ".join(self.controllers.keys()))
+            self.module.fail_json(msg="The provided controller name is invalid. Valid controllers: %s." % ", ".join(self.controllers.keys()))
 
         iface_before = self.fetch_target_interface()
         update_required, body = self.make_update_body(iface_before)
         if update_required and not self.check_mode:
             try:
-                url = (self.url +
-                       'storage-systems/%s/symbol/setIscsiInterfaceProperties' % self.ssid)
-                (rc, result) = request(url, method='POST', data=json.dumps(body), headers=HEADERS, timeout=300,
-                                       ignore_errors=True, **self.creds)
+                rc, result = self.request("storage-systems/%s/symbol/setIscsiInterfaceProperties" % self.ssid, method='POST', data=body, ignore_errors=True)
                 # We could potentially retry this a few times, but it's probably a rare enough case (unless a playbook
                 #  is cancelled mid-flight), that it isn't worth the complexity.
                 if rc == 422 and result['retcode'] in ['busy', '3']:
-                    self.module.fail_json(
-                        msg="The interface is currently busy (probably processing a previously requested modification"
-                            " request). This operation cannot currently be completed. Array Id [%s]. Error [%s]." % (self.ssid, result))
+                    self.module.fail_json(msg="The interface is currently busy (probably processing a previously requested modification request)."
+                                              " This operation cannot currently be completed. Array Id [%s]. Error [%s]." % (self.ssid, result))
                 # Handle authentication issues, etc.
                 elif rc != 200:
                     self.module.fail_json(msg="Failed to modify the interface! Array Id [%s]. Error [%s]." % (self.ssid, to_native(result)))
             # This is going to catch cases like a connection failure
             except Exception as err:
-                self.module.fail_json(
-                    msg="Connection failure: we failed to modify the interface! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="Connection failure: we failed to modify the interface! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         iface_after = self.fetch_target_interface()
 
@@ -360,5 +329,5 @@ class IscsiInterface(object):
 
 
 if __name__ == '__main__':
-    iface = IscsiInterface()
+    iface = NetAppESeriesIscsiInterface()
     iface.update()
