@@ -1,3 +1,12 @@
+- name: Collect storage system facts
+  uri:
+    url: "{{ eseries_api_url | regex_replace('v2', 'utils/about') }}"
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+    validate_certs: False
+  register: about
+
 - name: Add storage systems to SANtricity WebServices Proxy
   nac_santricity_storage_system:
     api_url: "{{ eseries_api_url }}"
@@ -8,6 +17,6 @@
     ssid: "{{ item['ssid'] }}"
     array_password:  "{{ item['password'] }}"
     controller_addresses: "{{ item['addresses'] }}"
-  when: eseries_proxy_systems is defined
+  when: about["json"]["runningAsProxy"] and eseries_proxy_systems is defined
   loop: "{{ lookup('list', eseries_proxy_systems) }}"
   run_once: true
