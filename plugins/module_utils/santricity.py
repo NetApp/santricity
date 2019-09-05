@@ -185,7 +185,7 @@ class NetAppESeriesModule(object):
 
         return self.is_embedded_mode
 
-    def request(self, path, data=None, method='GET', headers=None, ignore_errors=False):
+    def request(self, path, data=None, method='GET', headers=None, ignore_errors=False, use_proxy=True, force=False):
         """Issue an HTTP request to a url, retrieving an optional JSON response.
 
         :param str path: web services rest api endpoint path (Example: storage-systems/1/graph). Note that when the
@@ -194,6 +194,8 @@ class NetAppESeriesModule(object):
         :param str method: request method such as GET, POST, DELETE.
         :param dict headers: dictionary containing request headers.
         :param bool ignore_errors: forces the request to ignore any raised exceptions.
+        :param bool use_proxy:
+        :param bool force:
         """
         self._check_web_services_version()
 
@@ -210,7 +212,7 @@ class NetAppESeriesModule(object):
         if self.log_requests:
             self.module.log(pformat(dict(url=request_url, data=data, method=method)))
 
-        response = request(url=request_url, data=data, method=method, headers=headers, use_proxy=True, force=False, last_mod_time=None,
+        response = request(url=request_url, data=data, method=method, headers=headers, use_proxy=use_proxy, force=force, last_mod_time=None,
                            timeout=self.DEFAULT_TIMEOUT, http_agent=self.HTTP_AGENT, force_basic_auth=True, ignore_errors=ignore_errors, **self.creds)
 
         if self.log_requests:
