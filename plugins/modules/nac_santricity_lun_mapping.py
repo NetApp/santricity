@@ -81,38 +81,27 @@ msg:
     type: str
     sample: Lun mapping is complete
 '''
-import json
-from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import request, eseries_host_argument_spec
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 
-HEADERS = {
-    "Content-Type": "application/json",
-    "Accept": "application/json"
-}
 
-
-class LunMapping(object):
+class NetAppESeriesLunMapping(NetAppESeriesModule):
     def __init__(self):
-        argument_spec = eseries_host_argument_spec()
-        argument_spec.update(dict(
-            state=dict(required=True, choices=["present", "absent"]),
-            target=dict(required=True, default=None),
-            volume_name=dict(required=True, aliases=["volume"]),
-            lun=dict(type="int", required=False)))
-        self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
-        args = self.module.params
+        ansible_options = dict(state=dict(required=True, choices=["present", "absent"]),
+                               target=dict(required=True, default=None),
+                               volume_name=dict(required=True, aliases=["volume"]),
+                               lun=dict(type="int", required=False))
 
+        super(NetAppESeriesLunMapping, self).__init__(ansible_options=ansible_options,
+                                                      web_services_version="02.00.0000.0000",
+                                                      supports_check_mode=True)
+
+        args = self.module.params
         self.state = args["state"] in ["present"]
         self.target = args["target"] if args["target"] else "DEFAULT_HOSTGROUP"
         self.volume = args["volume_name"] if args["volume_name"] != "ACCESS_VOLUME" else "Access"
         self.lun = args["lun"]
-        self.ssid = args["ssid"]
-        self.url = args["api_url"]
         self.check_mode = self.module.check_mode
-        self.creds = dict(url_username=args["api_username"],
-                          url_password=args["api_password"],
-                          validate_certs=args["validate_certs"])
         self.mapping_info = None
 
         if not self.url.endswith('/'):
@@ -122,8 +111,7 @@ class LunMapping(object):
         """Collect the current state of the storage array."""
         response = None
         try:
-            rc, response = request(self.url + "storage-systems/%s/graph" % self.ssid, method="GET", headers=HEADERS, **self.creds)
-
+            rc, response = self.request("storage-systems/%s/graph" % self.ssid)
         except Exception as error:
             self.module.fail_json(msg="Failed to retrieve storage array graph. Id [%s]. Error [%s]" % (self.ssid, to_native(error)))
 
@@ -239,17 +227,13 @@ class LunMapping(object):
 
                     if lun_reference:
 
-                        rc, response = request(self.url + "storage-systems/%s/volume-mappings/%s/move"
-                                               % (self.ssid, lun_reference), method="POST", data=json.dumps(body),
-                                               headers=HEADERS, **self.creds)
+                        rc, response = self.request("storage-systems/%s/volume-mappings/%s/move" % (self.ssid, lun_reference), method="POST", data=body)
                     else:
                         body.update(dict(mappableObjectId=self.mapping_info["volume_by_name"][self.volume]))
-                        rc, response = request(self.url + "storage-systems/%s/volume-mappings" % self.ssid,
-                                               method="POST", data=json.dumps(body), headers=HEADERS, **self.creds)
+                        rc, response = self.request("storage-systems/%s/volume-mappings" % self.ssid, method="POST", data=body)
 
                 else:   # Remove existing lun mapping for volume and target
-                    rc, response = request(self.url + "storage-systems/%s/volume-mappings/%s" % (self.ssid, lun_reference),
-                                           method="DELETE", headers=HEADERS, **self.creds)
+                    rc, response = self.request("storage-systems/%s/volume-mappings/%s" % (self.ssid, lun_reference), method="DELETE")
             except Exception as error:
                 self.module.fail_json(msg="Failed to update storage array lun mapping. Id [%s]. Error [%s]" % (self.ssid, to_native(error)))
 
@@ -257,5 +241,5 @@ class LunMapping(object):
 
 
 if __name__ == '__main__':
-    lun_mapping = LunMapping()
-    lun_mapping.update()
+    mapping = NetAppESeriesLunMapping()
+    mapping.update()
