@@ -97,38 +97,27 @@ msg:
     type: str
     sample: The settings have been updated.
 """
-
-import json
 import re
 
-from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import request, eseries_host_argument_spec
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 
-HEADERS = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-}
 
-
-class Alerts(object):
+class NetAppESeriesAlerts(NetAppESeriesModule):
     def __init__(self):
-        argument_spec = eseries_host_argument_spec()
-        argument_spec.update(dict(
-            state=dict(type='str', required=False, default='enabled',
-                       choices=['enabled', 'disabled']),
-            server=dict(type='str', required=False, ),
-            sender=dict(type='str', required=False, ),
-            contact=dict(type='str', required=False, ),
-            recipients=dict(type='list', required=False, ),
-            test=dict(type='bool', required=False, default=False, )
-        ))
+        ansible_options = dict(state=dict(type='str', required=False, default='enabled', choices=['enabled', 'disabled']),
+                               server=dict(type='str', required=False),
+                               sender=dict(type='str', required=False),
+                               contact=dict(type='str', required=False),
+                               recipients=dict(type='list', required=False),
+                               test=dict(type='bool', required=False, default=False))
 
-        required_if = [
-            ['state', 'enabled', ['server', 'sender', 'recipients']]
-        ]
+        required_if = [['state', 'enabled', ['server', 'sender', 'recipients']]]
+        super(NetAppESeriesAlerts, self).__init__(ansible_options=ansible_options,
+                                                  web_services_version="02.00.0000.0000",
+                                                  required_if=required_if,
+                                                  supports_check_mode=True)
 
-        self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True, required_if=required_if)
         args = self.module.params
         self.alerts = args['state'] == 'enabled'
         self.server = args['server']
@@ -136,17 +125,7 @@ class Alerts(object):
         self.contact = args['contact']
         self.recipients = args['recipients']
         self.test = args['test']
-
-        self.ssid = args['ssid']
-        self.url = args['api_url']
-        self.creds = dict(url_password=args['api_password'],
-                          validate_certs=args['validate_certs'],
-                          url_username=args['api_username'], )
-
         self.check_mode = self.module.check_mode
-
-        if not self.url.endswith('/'):
-            self.url += '/'
 
         # Very basic validation on email addresses: xx@yy.zz
         email = re.compile(r"[^@]+@[^@]+\.[^@]+")
@@ -164,13 +143,11 @@ class Alerts(object):
 
     def get_configuration(self):
         try:
-            (rc, result) = request(self.url + 'storage-systems/%s/device-alerts' % self.ssid, headers=HEADERS,
-                                   **self.creds)
+            rc, result = self.request("storage-systems/%s/device-alerts" % self.ssid)
             return result
 
         except Exception as err:
-            self.module.fail_json(msg="Failed to retrieve the alerts configuration! Array Id [%s]. Error [%s]."
-                                      % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to retrieve the alerts configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def update_configuration(self):
         config = self.get_configuration()
@@ -209,29 +186,23 @@ class Alerts(object):
 
         if update and not self.check_mode:
             try:
-                rc, result = request(self.url + 'storage-systems/%s/device-alerts' % self.ssid, method='POST',
-                                     data=json.dumps(body), headers=HEADERS, **self.creds)
-            # This is going to catch cases like a connection failure
+                rc, result = self.request("'storage-systems/%s/device-alerts" % self.ssid, method='POST', data=body)
             except Exception as err:
-                self.module.fail_json(msg="We failed to set the storage-system name! Array Id [%s]. Error [%s]."
-                                          % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="We failed to set the storage-system name! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+
         return update
 
     def send_test_email(self):
         """Send a test email to verify that the provided configuration is valid and functional."""
         if not self.check_mode:
             try:
-                (rc, result) = request(self.url + 'storage-systems/%s/device-alerts/alert-email-test' % self.ssid,
-                                       timeout=300, method='POST', headers=HEADERS, **self.creds)
+                rc, result = self.request("storage-systems/%s/device-alerts/alert-email-test" % self.ssid, method="POST")
 
                 if result['response'] != 'emailSentOK':
-                    self.module.fail_json(msg="The test email failed with status=[%s]! Array Id [%s]."
-                                              % (result['response'], self.ssid))
+                    self.module.fail_json(msg="The test email failed with status=[%s]! Array Id [%s]." % (result['response'], self.ssid))
 
-            # This is going to catch cases like a connection failure
             except Exception as err:
-                self.module.fail_json(msg="We failed to send the test email! Array Id [%s]. Error [%s]."
-                                          % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="We failed to send the test email! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def update(self):
         update = self.update_configuration()
@@ -244,16 +215,9 @@ class Alerts(object):
         else:
             msg = 'Alerting has been disabled.'
 
-        self.module.exit_json(msg=msg, changed=update, )
-
-    def __call__(self, *args, **kwargs):
-        self.update()
-
-
-def main():
-    alerts = Alerts()
-    alerts()
+        self.module.exit_json(msg=msg, changed=update)
 
 
 if __name__ == '__main__':
-    main()
+    alerts = NetAppESeriesAlerts()
+    alerts.update()
