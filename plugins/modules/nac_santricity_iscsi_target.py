@@ -100,10 +100,7 @@ iqn:
     sample: iqn.1992-08.com.netapp:2800.000a132000b006d2000000005a0e8f45
     type: str
 """
-import json
-
-from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import request, eseries_host_argument_spec
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 
 HEADERS = {
@@ -112,17 +109,17 @@ HEADERS = {
 }
 
 
-class IscsiTarget(object):
+class NetAppESeriesIscsiTarget(NetAppESeriesModule):
     def __init__(self):
-        argument_spec = eseries_host_argument_spec()
-        argument_spec.update(dict(
-            name=dict(type='str', required=False, aliases=['alias']),
-            ping=dict(type='bool', required=False, default=True),
-            chap_secret=dict(type='str', required=False, aliases=['chap', 'password'], no_log=True),
-            unnamed_discovery=dict(type='bool', required=False, default=True)
-        ))
+        ansible_options = dict(name=dict(type='str', required=False, aliases=['alias']),
+                               ping=dict(type='bool', required=False, default=True),
+                               chap_secret=dict(type='str', required=False, aliases=['chap', 'password'], no_log=True),
+                               unnamed_discovery=dict(type='bool', required=False, default=True))
 
-        self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True, )
+        super(NetAppESeriesIscsiTarget, self).__init__(ansible_options=ansible_options,
+                                                       web_services_version="02.00.0000.0000",
+                                                       supports_check_mode=True)
+
         args = self.module.params
 
         self.name = args['name']
@@ -130,18 +127,9 @@ class IscsiTarget(object):
         self.chap_secret = args['chap_secret']
         self.unnamed_discovery = args['unnamed_discovery']
 
-        self.ssid = args['ssid']
-        self.url = args['api_url']
-        self.creds = dict(url_password=args['api_password'],
-                          validate_certs=args['validate_certs'],
-                          url_username=args['api_username'], )
-
         self.check_mode = self.module.check_mode
         self.post_body = dict()
         self.controllers = list()
-
-        if not self.url.endswith('/'):
-            self.url += '/'
 
         if self.chap_secret:
             if len(self.chap_secret) < 12 or len(self.chap_secret) > 57:
@@ -169,7 +157,7 @@ class IscsiTarget(object):
         """
         target = dict()
         try:
-            rc, data = request(self.url + 'storage-systems/%s/graph/xpath-filter?query=/storagePoolBundle/target' % self.ssid, headers=HEADERS, **self.creds)
+            rc, data = self.request("storage-systems/%s/graph/xpath-filter?query=/storagePoolBundle/target" % self.ssid)
             # This likely isn't an iSCSI-enabled system
             if not data:
                 self.module.fail_json(msg="This storage-system doesn't appear to have iSCSI interfaces. Array Id [%s]." % self.ssid)
@@ -178,7 +166,7 @@ class IscsiTarget(object):
             chap = any([auth for auth in data['configuredAuthMethods']['authMethodData'] if auth['authMethod'] == 'chap'])
             target.update(dict(alias=data['alias']['iscsiAlias'], iqn=data['nodeName']['iscsiNodeName'], chap=chap))
 
-            (rc, data) = request(self.url + 'storage-systems/%s/graph/xpath-filter?query=/sa/iscsiEntityData' % self.ssid, headers=HEADERS, **self.creds)
+            rc, data = self.request("storage-systems/%s/graph/xpath-filter?query=/sa/iscsiEntityData" % self.ssid)
 
             data = data[0]
             target.update(dict(ping=data['icmpPingResponseEnabled'], unnamed_discovery=data['unnamedDiscoverySessionsEnabled']))
@@ -211,7 +199,7 @@ class IscsiTarget(object):
 
         if update and not self.check_mode:
             try:
-                request(self.url + 'storage-systems/%s/iscsi/target-settings' % self.ssid, method='POST', data=json.dumps(body), headers=HEADERS, **self.creds)
+                self.request("storage-systems/%s/iscsi/target-settings" % self.ssid, method='POST', data=body)
             except Exception as err:
                 self.module.fail_json(msg="Failed to update the iSCSI target settings. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
@@ -233,8 +221,7 @@ class IscsiTarget(object):
 
         if update and not self.check_mode:
             try:
-                request(self.url + 'storage-systems/%s/iscsi/entity' % self.ssid, method='POST',
-                        data=json.dumps(body), timeout=60, headers=HEADERS, **self.creds)
+                self.request("storage-systems/%s/iscsi/entity" % self.ssid, method='POST', data=body)
             except Exception as err:
                 self.module.fail_json(msg="Failed to update the iSCSI target settings. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
         return update
@@ -248,14 +235,7 @@ class IscsiTarget(object):
 
         self.module.exit_json(msg="The interface settings have been updated.", changed=update, **data)
 
-    def __call__(self, *args, **kwargs):
-        self.update()
-
-
-def main():
-    iface = IscsiTarget()
-    iface()
-
 
 if __name__ == '__main__':
-    main()
+    iface = NetAppESeriesIscsiTarget()
+    iface.update()
