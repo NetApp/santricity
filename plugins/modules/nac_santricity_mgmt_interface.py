@@ -225,64 +225,49 @@ enabled:
     sample: True
     type: bool
 """
-import json
 import socket
 import time
 
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
+from ansible.module_utils._text import to_native
 try:
     import urlparse
 except ImportError:
     import urllib.parse as urlparse
 
-from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import request, eseries_host_argument_spec
-from ansible.module_utils._text import to_native
 
-HEADERS = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-}
-
-
-class MgmtInterface(object):
+class NetAppESeriesMgmtInterface(NetAppESeriesModule):
     MAX_RETRIES = 15
 
     def __init__(self):
-        argument_spec = eseries_host_argument_spec()
-        argument_spec.update(dict(
-            state=dict(type="str", choices=["enable", "disable"],
-                       aliases=["enable_interface"], required=False),
-            controller=dict(type="str", required=True, choices=["A", "B"]),
-            name=dict(type="str", aliases=["port", "iface"]),
-            channel=dict(type="int"),
-            address=dict(type="str", required=False),
-            subnet_mask=dict(type="str", required=False),
-            gateway=dict(type="str", required=False),
-            config_method=dict(type="str", required=False, choices=["dhcp", "static"]),
-            dns_config_method=dict(type="str", required=False, choices=["dhcp", "static"]),
-            dns_address=dict(type="str", required=False),
-            dns_address_backup=dict(type="str", required=False),
-            ntp_config_method=dict(type="str", required=False, choices=["disable", "dhcp", "static"]),
-            ntp_address=dict(type="str", required=False),
-            ntp_address_backup=dict(type="str", required=False),
-            ssh=dict(type="bool", required=False)
-        ))
+        ansible_options = dict(state=dict(type="str", choices=["enable", "disable"], aliases=["enable_interface"], required=False),
+                               controller=dict(type="str", required=True, choices=["A", "B"]),
+                               name=dict(type="str", aliases=["port", "iface"]),
+                               channel=dict(type="int"),
+                               address=dict(type="str", required=False),
+                               subnet_mask=dict(type="str", required=False),
+                               gateway=dict(type="str", required=False),
+                               config_method=dict(type="str", required=False, choices=["dhcp", "static"]),
+                               dns_config_method=dict(type="str", required=False, choices=["dhcp", "static"]),
+                               dns_address=dict(type="str", required=False),
+                               dns_address_backup=dict(type="str", required=False),
+                               ntp_config_method=dict(type="str", required=False, choices=["disable", "dhcp", "static"]),
+                               ntp_address=dict(type="str", required=False),
+                               ntp_address_backup=dict(type="str", required=False),
+                               ssh=dict(type="bool", required=False))
 
-        required_if = [
-            ["state", "enable", ["config_method"]],
-            ["config_method", "static", ["address", "subnet_mask"]],
-            ["dns_config_method", "static", ["dns_address"]],
-            ["ntp_config_method", "static", ["ntp_address"]],
-        ]
+        mutually_exclusive = [["name", "channel"]]
+        required_if = [["state", "enable", ["config_method"]],
+                       ["config_method", "static", ["address", "subnet_mask"]],
+                       ["dns_config_method", "static", ["dns_address"]],
+                       ["ntp_config_method", "static", ["ntp_address"]]]
 
-        mutually_exclusive = [
-            ["name", "channel"],
-        ]
+        super(NetAppESeriesMgmtInterface, self).__init__(ansible_options=ansible_options,
+                                                         web_services_version="02.00.0000.0000",
+                                                         required_if=required_if,
+                                                         mutually_exclusive=mutually_exclusive,
+                                                         supports_check_mode=True)
 
-        self.module = AnsibleModule(argument_spec=argument_spec,
-                                    supports_check_mode=True,
-                                    required_if=required_if,
-                                    mutually_exclusive=mutually_exclusive)
         args = self.module.params
 
         self.controller = args["controller"]
@@ -304,20 +289,10 @@ class MgmtInterface(object):
         self.ntp_address_backup = args["ntp_address_backup"]
 
         self.ssh = args["ssh"]
-
-        self.ssid = args["ssid"]
-        self.url = args["api_url"]
-        self.creds = dict(url_password=args["api_password"],
-                          validate_certs=args["validate_certs"],
-                          url_username=args["api_username"], )
-
         self.retries = 0
 
         self.check_mode = self.module.check_mode
         self.post_body = dict()
-
-        if not self.url.endswith('/'):
-            self.url += '/'
 
     @property
     def controllers(self):
@@ -329,13 +304,10 @@ class MgmtInterface(object):
         :return: the controllers defined on the system
         """
         try:
-            (rc, controllers) = request(self.url + 'storage-systems/%s/controllers'
-                                        % self.ssid, headers=HEADERS, **self.creds)
+            rc, controllers = self.request("storage-systems/%s/controllers" % self.ssid)
         except Exception as err:
             controllers = list()
-            self.module.fail_json(
-                msg="Failed to retrieve the controller settings. Array Id [%s]. Error [%s]."
-                    % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to retrieve the controller settings. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         controllers.sort(key=lambda c: c['physicalLocation']['slot'])
 
@@ -355,12 +327,9 @@ class MgmtInterface(object):
     def interface(self):
         net_interfaces = list()
         try:
-            (rc, net_interfaces) = request(self.url + 'storage-systems/%s/configuration/ethernet-interfaces'
-                                           % self.ssid, headers=HEADERS, **self.creds)
+            rc, net_interfaces = self.request("storage-systems/%s/configuration/ethernet-interfaces" % self.ssid)
         except Exception as err:
-            self.module.fail_json(
-                msg="Failed to retrieve defined management interfaces. Array Id [%s]. Error [%s]."
-                    % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to retrieve defined management interfaces. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         controllers = self.controllers
         controller = controllers[self.controller]
@@ -562,29 +531,21 @@ class MgmtInterface(object):
         if update and not self.check_mode:
             if not update_used_matching_address:
                 try:
-                    (rc, data) = request(self.url + 'storage-systems/%s/configuration/ethernet-interfaces'
-                                         % self.ssid, method='POST', data=json.dumps(body), headers=HEADERS,
-                                         timeout=300, ignore_errors=True, **self.creds)
+                    rc, data = self.request("storage-systems/%s/configuration/ethernet-interfaces" % self.ssid, method='POST', data=body, ignore_errors=True)
                     if rc == 422:
                         if data['retcode'] == "4" or data['retcode'] == "illegalParam":
                             if not (body['ipv4Enabled'] or iface['ipv6Enabled']):
-                                self.module.fail_json(msg="This storage-system already has IPv6 connectivity disabled. "
-                                                          "DHCP configuration for IPv4 is required at a minimum."
-                                                          " Array Id [%s] Message [%s]."
-                                                          % (self.ssid, data['errorMessage']))
+                                self.module.fail_json(msg="This storage-system already has IPv6 connectivity disabled. DHCP configuration for IPv4 is required"
+                                                          " at a minimum. Array Id [%s] Message [%s]." % (self.ssid, data['errorMessage']))
                             else:
-                                self.module.fail_json(msg="We failed to configure the management interface. Array Id "
-                                                          "[%s] Message [%s]." % (self.ssid, data))
+                                self.module.fail_json(msg="Failed to configure the management interface. Array Id " "[%s] Message [%s]." % (self.ssid, data))
                     elif rc >= 300:
-                        self.module.fail_json(
-                            msg="We failed to configure the management interface. Array Id [%s] Message [%s]." %
-                                (self.ssid, data))
+                        self.module.fail_json(msg="Failed to configure the management interface. Array Id [%s] Message [%s]." % (self.ssid, data))
 
                 # This is going to catch cases like a connection failure
                 except Exception as err:
-                    self.module.fail_json(
-                        msg="Connection failure: we failed to modify the network settings! Array Id [%s]. Error [%s]."
-                            % (self.ssid, to_native(err)))
+                    self.module.fail_json(msg="Connection failure: failed to modify the network settings! Array Id [%s]. Error [%s]."
+                                              % (self.ssid, to_native(err)))
             else:
                 self.update_api_address_interface_match(body)
 
@@ -594,21 +555,18 @@ class MgmtInterface(object):
         """Change network interface address which matches the api_address"""
         try:
             try:
-                (rc, data) = request(self.url + 'storage-systems/%s/configuration/ethernet-interfaces' % self.ssid,
-                                     use_proxy=False, force=True, ignore_errors=True, method='POST',
-                                     data=json.dumps(body), headers=HEADERS, timeout=10, **self.creds)
+                rc, data = self.request("storage-systems/%s/configuration/ethernet-interfaces" % self.ssid, ignore_errors=True, method='POST', data=body)
             except Exception:
                 url_parts = list(urlparse.urlparse(self.url))
                 domain = url_parts[1].split(":")
                 domain[0] = self.address
                 url_parts[1] = ":".join(domain)
-                expected_url = urlparse.urlunparse(url_parts)
+                self.url = urlparse.urlunparse(url_parts)
 
-                (rc, data) = request(expected_url + 'storage-systems/%s/configuration/ethernet-interfaces' % self.ssid,
-                                     headers=HEADERS, timeout=300, **self.creds)
+                rc, data = self.request("storage-systems/%s/configuration/ethernet-interfaces" % self.ssid)
                 return
         except Exception as err:
-            self.module.fail_json(msg="Connection failure: we failed to modify the network settings! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Connection failure: failed to modify the network settings! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def validate_changes(self, expected_iface, retry=6):
         """Validate interface changes were applied to the controller interface port. 30 second timeout"""
@@ -617,7 +575,7 @@ class MgmtInterface(object):
             if retry:
                 return self.validate_changes(expected_iface, retry - 1)
 
-            self.module.fail_json(msg="Update failure: we failed to verify the necessary state change.")
+            self.module.fail_json(msg="Update failure: failed to verify the necessary state change.")
 
         return True
 
@@ -627,9 +585,7 @@ class MgmtInterface(object):
          continue.
         """
         try:
-            (rc, data) = request(self.url + 'storage-systems/%s/controllers'
-                                 % self.ssid, headers=HEADERS,
-                                 ignore_errors=True, **self.creds)
+            rc, data = self.request("storage-systems/%s/controllers" % self.ssid, ignore_errors=True)
 
             # We've probably recently changed the interface settings and it's still coming back up: retry.
             if rc == 424:
@@ -638,13 +594,9 @@ class MgmtInterface(object):
                     time.sleep(5)
                     self.check_health()
                 else:
-                    self.module.fail_json(
-                        msg="We failed to pull storage-system information. Array Id [%s] Message [%s]." %
-                            (self.ssid, data))
+                    self.module.fail_json(msg="Failed to pull storage-system information. Array Id [%s] Message [%s]." % (self.ssid, data))
             elif rc >= 300:
-                self.module.fail_json(
-                    msg="We failed to pull storage-system information. Array Id [%s] Message [%s]." %
-                        (self.ssid, data))
+                self.module.fail_json(msg="Failed to pull storage-system information. Array Id [%s] Message [%s]." % (self.ssid, data))
         # This is going to catch cases like a connection failure
         except Exception as err:
             if self.retries < self.MAX_RETRIES:
@@ -652,9 +604,7 @@ class MgmtInterface(object):
                 time.sleep(5)
                 self.check_health()
             else:
-                self.module.fail_json(
-                    msg="Connection failure: we failed to modify the network settings! Array Id [%s]. Error [%s]."
-                        % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="Connection failure: failed to modify the network settings! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def update(self):
         """Update storage system with necessary changes."""
@@ -670,5 +620,5 @@ class MgmtInterface(object):
 
 
 if __name__ == '__main__':
-    iface = MgmtInterface()
+    iface = NetAppESeriesMgmtInterface()
     iface.update()
