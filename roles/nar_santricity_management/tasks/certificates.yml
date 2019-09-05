@@ -6,5 +6,6 @@
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
     certificates: "{{ eseries_client_certificate_certificates }}"
+  when: eseries_client_certificate_certificates is defined
   tags:
     - certificates

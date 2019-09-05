@@ -1,13 +1,12 @@
+- name: Configure SANtricity WebServices Proxy
+  import_tasks: proxy.yml
+  delegate_to: localhost
+
 - name: Collect storage system facts
   import_tasks: facts.yml
   delegate_to: localhost
   tags:
     - always
-
-- name: Configure SANtricity WebServices Proxy
-  import_tasks: proxy.yml
-  delegate_to: localhost
-  when: eseries_api_is_proxy
 
 - name: Ensure logging has been configured
   import_tasks: logging.yml

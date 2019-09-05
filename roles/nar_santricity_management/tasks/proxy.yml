@@ -4,7 +4,7 @@
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-    state: "{{ item['state'] | default(omit) }}"
+    state: "{{ item['state'] | default('present') }}"
     ssid: "{{ item['ssid'] }}"
     array_password:  "{{ item['password'] }}"
     controller_addresses: "{{ item['addresses'] }}"

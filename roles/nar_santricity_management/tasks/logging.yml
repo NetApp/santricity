@@ -32,6 +32,7 @@
     log_level: "{{ eseries_auditlog_log_level | default(omit) }}"
     max_records: "{{ eseries_auditlog_max_records | default(omit) }}"
     threshold: "{{ eseries_auditlog_threshold | default(omit) }}"
+  when: eseries_auditlog_enforce_policy
   tags:
     - logging
     - auditlog
