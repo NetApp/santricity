@@ -144,10 +144,6 @@ class NetAppESeriesFeaturePack(NetAppESeriesModule):
         self.module.exit_json(changed=self.is_change_required, expected_submodel_id=self.expected_submodel_id, current_submodel_id=self.current_submodel_id)
 
 
-def main():
+if __name__ == '__main__':
     feature = NetAppESeriesFeaturePack()
     feature.apply()
-
-
-if __name__ == '__main__':
-    main()
