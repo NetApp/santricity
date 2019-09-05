@@ -388,10 +388,9 @@ class NetAppESeriesAsup(NetAppESeriesModule):
                     validate_body["mailReplyAddress"] = self.email["test_recipient"]
 
                 try:
-                    rc, response = self.request(self.url_path_prefix + "device-asup/verify-config", method="POST", data=validate_body)
+                    rc, response = self.request(self.url_path_prefix + "device-asup/verify-config", timeout=600, method="POST", data=validate_body)
                 except Exception as err:
-                    self.module.fail_json(msg="We failed to verify ASUP configuration! Array Id [%s]. Error [%s]."
-                                              % (self.ssid, to_native(err)))
+                    self.module.fail_json(msg="We failed to verify ASUP configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
             try:
                 rc, response = self.request(self.url_path_prefix + "device-asup", method="POST", data=body)
