@@ -52,7 +52,16 @@ options:
         required: False
     automatic_load_balancing:
         description:
-            - Enables automatic load balancing.
+            - Enable automatic load balancing to allow incoming traffic from the hosts to be dynamically managed and balanced across both controllers.
+            - Automatic load balancing requires host connectivity reporting to be enabled.
+        choices:
+            - enabled
+            - disabled
+        required: False
+    host_connectivity_reporting:
+        description:
+            - Enable host connectivity reporting to allow host connections to be monitored for connection and multipath driver problems.
+            - When M(automatic_load_balancing==enabled) then M(host_connectivity_reporting) must be enabled
         choices:
             - enabled
             - disabled
@@ -105,6 +114,11 @@ automatic_load_balancing:
     returned: on success
     type: str
     sample: enabled
+host_connectivity_reporting:
+    description: Whether host connectivity reporting feature has been enabled
+    returned: on success
+    type: str
+    sample: enabled
 cache_settings:
     description: Current cache block size and flushing threshold values
     returned: on success
@@ -121,28 +135,36 @@ from ansible.module_utils._text import to_native
 
 
 class NetAppESeriesGlobalSettings(NetAppESeriesModule):
-    HOST_TYPE_INDEXES = {"linux dm-mp": 28, "vmware": 10, "windows": 1, "windows clustered": 8}
-
     def __init__(self):
         version = "02.00.0000.0000"
         ansible_options = dict(cache_block_size=dict(type="int", require=False),
                                cache_flush_threshold=dict(type="int", required=False),
                                default_host_type=dict(type="str", require=False),
                                automatic_load_balancing=dict(type="str", choices=["enabled", "disabled"], required=False),
+                               host_connectivity_reporting=dict(type="str", choices=["enabled", "disabled"], required=False),
                                name=dict(type='str', required=False, aliases=['label']))
 
         super(NetAppESeriesGlobalSettings, self).__init__(ansible_options=ansible_options,
                                                           web_services_version=version,
                                                           supports_check_mode=True)
         args = self.module.params
+        self.name = args["name"]
         self.cache_block_size = args["cache_block_size"]
         self.cache_flush_threshold = args["cache_flush_threshold"]
         self.host_type_index = args["default_host_type"]
-        self.autoload_enabled = args["automatic_load_balancing"] == "enabled"
-        self.name = args["name"]
 
-        if not self.url.endswith('/'):
-            self.url += '/'
+        self.autoload_enabled = None
+        if args["automatic_load_balancing"]:
+            self.autoload_enabled = args["automatic_load_balancing"] == "enabled"
+
+        self.host_connectivity_reporting_enabled = None
+        if args["host_connectivity_reporting"]:
+            self.host_connectivity_reporting_enabled = args["host_connectivity_reporting"] == "enabled"
+        elif self.autoload_enabled:
+            self.host_connectivity_reporting_enabled = True
+
+        if self.autoload_enabled and not self.host_connectivity_reporting_enabled:
+            self.modulefail_json(msg="Option automatic_load_balancing requires host_connectivity_reporting to be enabled. Array [%s]." % self.ssid)
 
         self.current_configuration_cache = None
 
@@ -243,6 +265,13 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
 
         return change_required
 
+    def change_host_connectivity_reporting_enabled_required(self):
+        """Determine whether host connectivity reporting state change is required."""
+        if self.host_connectivity_reporting_enabled is None:
+            return False
+
+        return self.host_connectivity_reporting_enabled != self.get_current_configuration()["host_connectivity_reporting_enabled"]
+
     def change_name_required(self):
         """Determine whether storage array name change is required."""
         if self.name is None:
@@ -271,7 +300,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         except Exception as error:
             self.module.fail_json(msg="Failed to set default host type. Array [%s]. Error [%s]" % (self.ssid, to_native(error)))
 
-    def update_autoload_enabled(self):
+    def update_autoload(self):
         """Update automatic load balancing state."""
         if self.autoload_enabled and not self.get_current_configuration()["host_connectivity_reporting_enabled"]:
             try:
@@ -287,6 +316,14 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         except Exception as error:
             self.module.fail_json(msg="Failed to set automatic load balancing state. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
+    def update_host_connectivity_reporting_enabled(self):
+        """Update automatic load balancing state."""
+        try:
+            rc, host_connectivity_reporting = self.request("storage-systems/%s/symbol/setHostConnectivityReporting?verboseErrorResponse=true" % self.ssid,
+                                                           method="POST", data={"enableHostConnectivityReporting": self.host_connectivity_reporting_enabled})
+        except Exception as error:
+            self.module.fail_json(msg="Failed to enable host connectivity reporting. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
     def update_name(self):
         """Update storage array's name."""
         try:
@@ -300,25 +337,27 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         self.get_current_configuration()
 
         if (self.change_autoload_enabled_required() or self.change_cache_block_size_required() or self.change_cache_flush_threshold_required() or
-                self.change_host_type_required() or self.change_name_required()):
+                self.change_host_type_required() or self.change_name_required() or self.change_host_connectivity_reporting_enabled_required()):
             change_required = True
 
         if change_required and not self.module.check_mode:
             if self.change_autoload_enabled_required():
-                self.update_autoload_enabled()
+                self.update_autoload()
+            if self.change_host_connectivity_reporting_enabled_required():
+                self.update_host_connectivity_reporting_enabled()
             if self.change_cache_block_size_required() or self.change_cache_flush_threshold_required():
                 self.update_cache_settings()
             if self.change_host_type_required():
                 self.update_host_type()
             if self.change_name_required():
                 self.update_name()
-            # self.module.fail_json(msg=change_required)
 
         self.get_current_configuration(update=True)
         self.module.exit_json(changed=change_required,
                               cache_settings=self.get_current_configuration()["cache_settings"],
                               default_host_type_index=self.get_current_configuration()["default_host_type_index"],
                               automatic_load_balancing="enabled" if self.get_current_configuration()["autoload_enabled"] else "disabled",
+                              host_connectivity_reporting="enabled" if self.get_current_configuration()["host_connectivity_reporting_enabled"] else "disabled",
                               array_name=self.get_current_configuration()["name"])
 
 
