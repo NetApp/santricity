@@ -66,4 +66,3 @@
     state: absent
     name: chrony
   when: beegfs_ntp_enabled == True
-

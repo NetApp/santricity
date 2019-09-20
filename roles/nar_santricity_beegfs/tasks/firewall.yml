@@ -38,4 +38,3 @@
     state: enabled
     immediate: yes
   when: '"client" in beegfs_node_roles'
-
