@@ -7,270 +7,131 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {"metadata_version": "1.1",
+                    "status": ["preview"],
+                    "supported_by": "community"}
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: nac_santricity_auth
 short_description: NetApp E-Series set or update the password for a storage array.
 description:
-    - Sets or updates the password for a storage array.  When the password is updated on the storage array, it must be updated on the SANtricity Web
-      Services proxy. Note, all storage arrays do not have a Monitor or RO role.
-version_added: "2.2"
-author: Kevin Hulquest (@hulquest)
+    - Sets or updates the password for a storage array.
+author:
+    - Nathan Swartz (@ndswartz)
 options:
-    validate_certs:
-        required: false
-        default: true
-        description:
-        - Should https certificates be validated?
-        type: bool
-    name:
-      description:
-        - The name of the storage array. Note that if more than one storage array with this name is detected, the task will fail and you'll have to use
-          the ID instead.
-      required: False
-    ssid:
-      description:
-        - the identifier of the storage array in the Web Services Proxy.
-      required: False
-    set_admin:
-      description:
-        - Boolean value on whether to update the admin password. If set to false then the RO account is updated.
-      type: bool
-      default: False
     current_password:
-      description:
-        - The current admin password. This is not required if the password hasn't been set before.
-      required: False
-    new_password:
-      description:
-        - The password you would like to set. Cannot be more than 30 characters.
-      required: True
-    api_url:
-      description:
-        - The full API url.
-        - "Example: http://ENDPOINT:8080/devmgr/v2"
-        - This can optionally be set via an environment variable, API_URL
-      required: False
-    api_username:
-      description:
-        - The username used to authenticate against the API
-        - This can optionally be set via an environment variable, API_USERNAME
-      required: False
-    api_password:
-      description:
-        - The password used to authenticate against the API
-        - This can optionally be set via an environment variable, API_PASSWORD
-      required: False
-'''
+        description:
+            - The current admin password. Only required when the password has been set.
+        type: str
+        required: false
+    password:
+        description:
+            - The password you would like to set.
+            - Cannot be more than 30 characters.
+        type: str
+        required: true
+    set_admin:
+        description:
+            - Whether to update the admin password.
+            - If I(set_admin==False) then the read-only account is updated.
+        type: bool
+        default: true
+        required: false
+"""
 
-EXAMPLES = '''
-- name: Test module
+EXAMPLES = """
+- name: Set the initial password
   nac_santricity_auth:
-    name: trex
-    current_password: OldPasswd
-    new_password: NewPasswd
-    set_admin: yes
-    api_url: '{{ netapp_api_url }}'
-    api_username: '{{ netapp_api_username }}'
-    api_password: '{{ netapp_api_password }}'
-'''
+    ssid: 1
+    api_url: https://192.168.1.100:8443/devmgr/v2
+    api_username: admin
+    api_password: adminpass
+    validate_certs: true
+    password: arraypass
+"""
 
-RETURN = '''
+RETURN = """
 msg:
     description: Success message
     returned: success
     type: str
     sample: "Password Updated Successfully"
-'''
-import json
-import traceback
-
-from ansible.module_utils.api import basic_auth_argument_spec
-from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.six.moves.urllib.error import HTTPError
+"""
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
-from ansible.module_utils.urls import open_url
-
-HEADERS = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-    "x-netapp-password-validate-method": "none"
-
-}
 
 
-def request(url, data=None, headers=None, method='GET', use_proxy=True,
-            force=False, last_mod_time=None, timeout=10, validate_certs=True,
-            url_username=None, url_password=None, http_agent=None, force_basic_auth=True, ignore_errors=False):
-    try:
-        r = open_url(url=url, data=data, headers=headers, method=method, use_proxy=use_proxy,
-                     force=force, last_mod_time=last_mod_time, timeout=timeout, validate_certs=validate_certs,
-                     url_username=url_username, url_password=url_password, http_agent=http_agent,
-                     force_basic_auth=force_basic_auth)
-    except HTTPError as e:
-        r = e.fp
+class NetAppESeriesAuth(NetAppESeriesModule):
+    DEFAULT_CREDENTIALS = [("admin", "admin")]
+    DEFAULT_CONNECTION_TIMEOUT_SEC = 10
+    DEFAULT_DISCOVERY_TIMEOUT_SEC = 30
 
-    try:
-        raw_data = r.read()
-        if raw_data:
-            data = json.loads(raw_data)
-        else:
-            raw_data = None
-    except Exception:
-        if ignore_errors:
-            pass
-        else:
-            raise Exception(raw_data)
+    def __init__(self):
+        version = "02.00.0000.0000"
+        ansible_options = dict(current_password=dict(type="str", required=False, no_log=True),
+                               password=dict(type="str", required=True, no_log=True),
+                               set_admin=dict(type="bool", required=False, default=True))
 
-    resp_code = r.getcode()
+        super(NetAppESeriesAuth, self).__init__(ansible_options=ansible_options, web_services_version=version, supports_check_mode=True)
+        args = self.module.params
+        self.current_password = args["current_password"] if args["current_password"] else ""
+        self.password = args["password"]
+        self.set_admin = args["set_admin"]
 
-    if resp_code >= 400 and not ignore_errors:
-        raise Exception(resp_code, data)
-    else:
-        return resp_code, data
+        self.is_password_set_cache = None
 
+        # Check whether request needs to be forwarded on to the controller web services rest api.
+        self.url_path_prefix = ""
+        if not self.is_embedded() and self.ssid != 0:
+            self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid
 
-def get_ssid(module, name, api_url, user, pwd):
-    count = 0
-    all_systems = 'storage-systems'
-    systems_url = api_url + all_systems
-    rc, data = request(systems_url, headers=HEADERS, url_username=user, url_password=pwd,
-                       validate_certs=module.validate_certs)
-    for system in data:
-        if system['name'] == name:
-            count += 1
-            if count > 1:
-                module.fail_json(
-                    msg="You supplied a name for the Storage Array but more than 1 array was found with that name. " +
-                        "Use the id instead")
+    def is_password_set(self):
+        """Determine whether password has been set."""
+        if self.is_password_set_cache is None:
+            try:
+                rc, password = self.request("storage-systems/%s/passwords" % self.ssid)
+                self.is_password_set_cache = password["adminPasswordSet"] if self.set_admin else password["readOnlyPasswordSet"]
+            except Exception as error:
+                self.module.fail_json(msg="Failed to retrieve current password status. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+        return self.is_password_set_cache
+
+    def password_change_required(self):
+        """Verify whether the current password is expected array password. Works only against embedded systems."""
+        change_required = (self.is_password_set() and not self.password) or (not self.is_password_set() and self.password)
+        if self.is_password_set() and self.password:
+            rc, response = self.request(self.url_path_prefix + "storage-systems/%s/passwords" % self.ssid, method="POST", ignore_errors=True,
+                                        data={"currentAdminPassword": self.password, "adminPassword": self.set_admin, "newPassword": self.password})
+
+            if rc == 204:
+                change_required = False
+            elif rc == 422:
+                change_required = True
             else:
-                ssid = system['id']
-        else:
-            continue
+                self.module.fail_json(msg="Failed to validate password status. Array [%s]. Error [%s]." % (self.ssid, (rc, response)))
 
-    if count == 0:
-        module.fail_json(msg="No storage array with the name %s was found" % name)
+        return change_required
 
-    else:
-        return ssid
-
-
-def get_pwd_status(module, ssid, api_url, user, pwd):
-    pwd_status = "storage-systems/%s/passwords" % ssid
-    url = api_url + pwd_status
-    try:
-        rc, data = request(url, headers=HEADERS, url_username=user, url_password=pwd,
-                           validate_certs=module.validate_certs)
-        return data['readOnlyPasswordSet'], data['adminPasswordSet']
-    except HTTPError as e:
-        module.fail_json(msg="There was an issue with connecting, please check that your "
-                             "endpoint is properly defined and your credentials are correct: %s" % to_native(e))
-
-
-def update_storage_system_pwd(module, ssid, pwd, api_url, api_usr, api_pwd):
-    """Update the stored storage-system password"""
-    update_pwd = 'storage-systems/%s' % ssid
-    url = api_url + update_pwd
-    post_body = json.dumps(dict(storedPassword=pwd))
-    try:
-        rc, data = request(url, data=post_body, method='POST', headers=HEADERS, url_username=api_usr,
-                           url_password=api_pwd, validate_certs=module.validate_certs)
-        return rc, data
-    except Exception as e:
-        module.fail_json(msg="Failed to update system password. Id [%s].  Error [%s]" % (ssid, to_native(e)))
-
-
-def set_password(module, ssid, api_url, user, pwd, current_password=None, new_password=None, set_admin=False):
-    """Set the storage-system password"""
-    set_pass = "storage-systems/%s/passwords" % ssid
-    url = api_url + set_pass
-
-    if not current_password:
-        current_password = ""
-
-    post_body = json.dumps(
-        dict(currentAdminPassword=current_password, adminPassword=set_admin, newPassword=new_password))
-
-    try:
-        rc, data = request(url, method='POST', data=post_body, headers=HEADERS, url_username=user, url_password=pwd,
-                           ignore_errors=True, validate_certs=module.validate_certs)
-    except Exception as e:
-        module.fail_json(msg="Failed to set system password. Id [%s].  Error [%s]" % (ssid, to_native(e)),
-                         exception=traceback.format_exc())
-
-    if rc == 422:
-        post_body = json.dumps(dict(currentAdminPassword='', adminPassword=set_admin, newPassword=new_password))
+    def set_array_password(self):
+        """Set the array password."""
         try:
-            rc, data = request(url, method='POST', data=post_body, headers=HEADERS, url_username=user, url_password=pwd,
-                               validate_certs=module.validate_certs)
-        except Exception:
-            # TODO(lorenp): Resolve ignored rc, data
-            module.fail_json(msg="Wrong or no admin password supplied. Please update your playbook and try again")
+            headers = self.DEFAULT_HEADERS.update({"x-netapp-password-validate-method": "none"})
+            rc, storage_system = self.request("storage-systems/%s/passwords" % self.ssid, method="POST", headers=headers,
+                                              data={"currentAdminPassword": self.current_password if self.is_password_set() else "",
+                                                    "adminPassword": True, "newPassword": self.password})
+        except Exception as error:
+            self.module.fail_json(msg="Failed to set storage system password. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
-    if int(rc) >= 300:
-        module.fail_json(msg="Failed to set system password. Id [%s] Code [%s].  Error [%s]" % (ssid, rc, data))
+    def apply(self):
+        """Apply any required changes."""
+        change_required = self.password_change_required()
+        if change_required and not self.module.check_mode:
+            self.set_array_password()
 
-    rc, update_data = update_storage_system_pwd(module, ssid, new_password, api_url, user, pwd)
-
-    if int(rc) < 300:
-        return update_data
-    else:
-        module.fail_json(msg="%s:%s" % (rc, update_data))
-
-
-def main():
-    argument_spec = basic_auth_argument_spec()
-    argument_spec.update(dict(
-        name=dict(required=False, type='str'),
-        ssid=dict(required=False, type='str'),
-        current_password=dict(required=False, no_log=True),
-        new_password=dict(required=True, no_log=True),
-        set_admin=dict(required=True, type='bool'),
-        api_url=dict(required=True),
-        api_username=dict(required=False),
-        api_password=dict(required=False, no_log=True)
-    )
-    )
-    module = AnsibleModule(argument_spec=argument_spec, mutually_exclusive=[['name', 'ssid']],
-                           required_one_of=[['name', 'ssid']])
-
-    name = module.params['name']
-    ssid = module.params['ssid']
-    current_password = module.params['current_password']
-    new_password = module.params['new_password']
-    set_admin = module.params['set_admin']
-    user = module.params['api_username']
-    pwd = module.params['api_password']
-    api_url = module.params['api_url']
-    module.validate_certs = module.params['validate_certs']
-
-    if not api_url.endswith('/'):
-        api_url += '/'
-
-    if name:
-        ssid = get_ssid(module, name, api_url, user, pwd)
-
-    ro_pwd, admin_pwd = get_pwd_status(module, ssid, api_url, user, pwd)
-
-    if admin_pwd and not current_password:
-        module.fail_json(
-            msg="Admin account has a password set. " +
-                "You must supply current_password in order to update the RO or Admin passwords")
-
-    if len(new_password) > 30:
-        module.fail_json(msg="Passwords must not be greater than 30 characters in length")
-
-    result = set_password(module, ssid, api_url, user, pwd, current_password=current_password,
-                          new_password=new_password, set_admin=set_admin)
-
-    module.exit_json(changed=True, msg="Password Updated Successfully",
-                     password_set=result['passwordSet'],
-                     password_status=result['passwordStatus'])
+        self.module.exit_json(msg="Password has been changed. Array [%s]." % self.ssid, changed=change_required)
 
 
 if __name__ == '__main__':
-    main()
+    auth = NetAppESeriesAuth()
+    auth.apply()
