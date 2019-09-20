@@ -7,69 +7,90 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {"metadata_version": "1.1",
+                    "status": ["preview"],
+                    "supported_by": "community"}
 
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 module: nac_santricity_storage_system
 version_added: "2.2"
 short_description: NetApp E-Series manage SANtricity web services proxy storage arrays
 description:
-- Manage the arrays accessible via a NetApp Web Services Proxy for NetApp E-series storage arrays.
+    - Manage the arrays accessible via a NetApp Web Services Proxy for NetApp E-series storage arrays.
+author:
+    - Kevin Hulquest (@hulquest)
+    - Nathan  Swartz (@ndswartz)
 options:
-  api_username:
-    description:
-    - The username to authenticate with the SANtricity WebServices Proxy or embedded REST API.
-    required: true
-  api_password:
-    description:
-    - The password to authenticate with the SANtricity WebServices Proxy or embedded REST API.
-    required: true
-  api_url:
-    description:
-    - The url to the SANtricity WebServices Proxy or embedded REST API.
-    required: true
-  validate_certs:
-    description:
-    - Should https certificates be validated?
-    type: bool
-    default: 'yes'
-  ssid:
-    description:
-    - The ID of the array to manage. This value must be unique for each array.
-    required: true
-  state:
-    description:
-    - Whether the specified array should be configured on the Web Services Proxy or not.
-    required: true
-    choices: ['present', 'absent']
-  controller_addresses:
-    description:
-    - The list addresses for the out-of-band management adapter or the agent host. Mutually exclusive of array_wwn parameter.
-    required: true
-  array_wwn:
-    description:
-    - The WWN of the array to manage. Only necessary if in-band managing multiple arrays on the same agent host.  Mutually exclusive of
-      controller_addresses parameter.
-  array_password:
-    description:
-    - The management password of the array to manage, if set.
-  enable_trace:
-    description:
-    - Enable trace logging for SYMbol calls to the storage system.
-    type: bool
-    default: 'no'
-  meta_tags:
-    description:
-    - Optional meta tags to associate to this storage system
-author: Kevin Hulquest (@hulquest)
-'''
+    state:
+        description:
+            - Whether the specified array should be configured on the Web Services Proxy or not.
+        required: true
+        choices: ["present", "absent"]
+    controller_addresses:
+        description:
+            - The list addresses for the out-of-band management adapter or the agent host.
+            - Mutually exclusive with I(array_wwn).
+        type: str
+        required: false
+    array_subnet_mask:
+        description:
+            - IPv4 subnet mask specified in CIDR form. Example 192.168.1.1/24
+            - This is used to discover E-Series storage arrays.
+    array_serial:
+        description:
+            - This is the enclosure's serial number
+            - Enclosure serial number is printed on a silver label affixed to the top of the system enclosure
+            - Mutually exclusive with I(controller_addresses) and I(array_wwn).
+        type: str
+        required: False
+    array_wwn:
+        description:
+            - The WWN of the array to manage.
+            - Only necessary if in-band managing multiple arrays on the same agent host.
+            - Mutually exclusive with I(controller_addresses)
+        type: str
+        required: false
+    array_password:
+        description:
+            - The management password of the array to manage.
+        type: str
+        required: true
+    meta_tags:
+        description:
+            - Optional meta tags to associate to this storage system
+        type: dict
+        required: false
+    accept_array_certificate:
+        description:
+            - Accept the storage array's certificate even when it is self-signed.
+        required: false
+        default: false
+    force_password_update:
+        description:
+            - Force password change regardless of whether it can be validated
+            - This option will disregard all password checks when I(force_password_update==True).
+        type: bool
+        required: false
+        default: false
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 ---
-    - name:  Presence of storage system
+    - name: Ensure presence of storage system
+      nac_santricity_storage_system:
+        ssid: "1"
+        api_url: https://192.168.1.100:8443/devmgr/v2
+        api_username: admin
+        api_password: adminpass
+        validate_certs: true
+        state: present
+        array_password: arraypass
+        clear_array_password: true
+        controller_addresses:
+          - 192.168.1.100
+          - 192.168.1.102
+    - name: Ensure presence of storage system
       nac_santricity_storage_system:
         ssid: "1"
         api_url: "https://192.168.1.100:8443/devmgr/v2"
@@ -77,220 +98,374 @@ EXAMPLES = '''
         api_password: "adminpass"
         validate_certs: true
         state: present
-        controller_addresses:
-          - "{{ item.value.address1 }}"
-          - "{{ item.value.address2 }}"
-      with_dict: "{{ storage_systems }}"
-      when: check_storage_system
-'''
+        array_serial: 012345678901
+        array_subnet_mask: 192.168.1.0/27
+        meta_tags:
+            use: corporate
+            location: sunnyvale
+"""
 
-RETURN = '''
+RETURN = """
 msg:
     description: State of request
     type: str
     returned: always
-    sample: 'Storage system removed.'
-'''
-import json
-from datetime import datetime as dt, timedelta
+    sample: "Storage system removed."
+"""
+import ipaddress
+
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
+from ansible.module_utils._text import to_native
 from time import sleep
 
-from ansible.module_utils.api import basic_auth_argument_spec
-from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils._text import to_native
-from ansible.module_utils.urls import open_url
-from ansible.module_utils.six.moves.urllib.error import HTTPError
 
+class NetAppESeriesStorageSystem(NetAppESeriesModule):
+    DEFAULT_CREDENTIALS = [("admin", "admin")]
+    DEFAULT_CONNECTION_TIMEOUT_SEC = 10
+    DEFAULT_DISCOVERY_TIMEOUT_SEC = 120
 
-def request(url, data=None, headers=None, method='GET', use_proxy=True,
-            force=False, last_mod_time=None, timeout=10, validate_certs=True,
-            url_username=None, url_password=None, http_agent=None, force_basic_auth=True, ignore_errors=False):
-    try:
-        r = open_url(url=url, data=data, headers=headers, method=method, use_proxy=use_proxy,
-                     force=force, last_mod_time=last_mod_time, timeout=timeout, validate_certs=validate_certs,
-                     url_username=url_username, url_password=url_password, http_agent=http_agent,
-                     force_basic_auth=force_basic_auth)
-    except HTTPError as err:
-        r = err.fp
+    def __init__(self):
+        version = "02.00.0000.0000"
+        ansible_options = dict(state=dict(required=True, choices=["present", "absent"]),
+                               controller_addresses=dict(type="list", required=False),
+                               array_subnet_mask=dict(type="str", required=False),
+                               array_serial=dict(type="str", required=False),
+                               array_wwn=dict(type="str", required=False),
+                               array_password=dict(type="str", required=False, no_log=True),
+                               meta_tags=dict(type="dict", required=False),
+                               accept_array_certificate=dict(type="bool", required=False, default=False),
+                               force_password_update=dict(type="bool", required=False, default=False))
 
-    try:
-        raw_data = r.read()
-        if raw_data:
-            data = json.loads(raw_data)
-        else:
-            raw_data = None
-    except Exception:
-        if ignore_errors:
-            pass
-        else:
-            raise Exception(raw_data)
+        mutually_exclusive = [["controller_addresses", "array_wwn"],
+                              ["controller_addresses", "array_serial"],
+                              ["array_wwn", "array_serial"]]
 
-    resp_code = r.getcode()
+        required_one_of = [["controller_addresses", "array_wwn", "array_serial"]]
+        required_together = [["array_serial", "array_subnet_mask"],
+                             ["array_subnet_mask", "array_serial"]]
 
-    if resp_code >= 400 and not ignore_errors:
-        raise Exception(resp_code, data)
-    else:
-        return resp_code, data
+        super(NetAppESeriesStorageSystem, self).__init__(ansible_options=ansible_options,
+                                                         web_services_version=version,
+                                                         mutually_exclusive=mutually_exclusive,
+                                                         required_together=required_together,
+                                                         required_one_of=required_one_of,
+                                                         supports_check_mode=True)
+        args = self.module.params
+        self.state = args["state"]
+        self.controller_addresses = args["controller_addresses"]
+        self.array_wwn = args["array_wwn"]
+        self.array_subnet_mask = args["array_subnet_mask"]
+        self.array_serial = args["array_serial"]
+        self.array_password = args["array_password"]
+        self.accept_array_certificate = args["accept_array_certificate"]
+        self.force_password_update = args["force_password_update"]
 
+        self.meta_tags = dict()
+        if args["meta_tags"]:
+            for key in args["meta_tags"].keys():
+                if not isinstance(args["meta_tags"][key], list):
+                    self.meta_tags.update({key: [args["meta_tags"][key]]})
 
-def do_post(ssid, api_url, post_headers, api_usr, api_pwd, validate_certs, request_body, timeout):
-    (rc, resp) = request(api_url + "/storage-systems", data=request_body, headers=post_headers,
-                         method='POST', url_username=api_usr, url_password=api_pwd,
-                         validate_certs=validate_certs)
-    status = None
-    return_resp = resp
-    if 'status' in resp:
-        status = resp['status']
+        if self.array_wwn:
+            self.array_wwn = self.array_wwn.upper()
 
-    if rc == 201:
-        status = 'neverContacted'
-        fail_after_time = dt.utcnow() + timedelta(seconds=timeout)
+        self.system_info_cache = None
+        self.system_changes_cache = None
+        self.are_changes_required_cache = None
+        self.is_supplied_array_password_valid_cache = None
+        self.is_current_stored_password_valid_cache = None
 
-        while status == 'neverContacted':
-            if dt.utcnow() > fail_after_time:
-                raise Exception("web proxy timed out waiting for array status")
+    def get_discovered_array_address_list(self, addresses):
+        """Temporarily add array to retrieve complete address."""
+        system_exists = False
+        system_id = ""
+        system_addresses = None
+        try:
+            rc, storage_system = self.request("storage-systems", method="POST", data={"controllerAddresses": addresses, "password": self.array_password})
+            system_exists = storage_system["alreadyExists"]
+            system_id = storage_system["id"]
 
-            sleep(1)
-            (rc, system_resp) = request(api_url + "/storage-systems/%s" % ssid,
-                                        headers=dict(Accept="application/json"), url_username=api_usr,
-                                        url_password=api_pwd, validate_certs=validate_certs,
-                                        ignore_errors=True)
-            status = system_resp['status']
-            return_resp = system_resp
-
-    return status, return_resp
-
-
-def main():
-    argument_spec = basic_auth_argument_spec()
-    argument_spec.update(dict(
-        state=dict(required=True, choices=['present', 'absent']),
-        ssid=dict(required=True, type='str'),
-        controller_addresses=dict(type='list'),
-        array_wwn=dict(required=False, type='str'),
-        array_password=dict(required=False, type='str', no_log=True),
-        array_status_timeout_sec=dict(default=60, type='int'),
-        enable_trace=dict(default=False, type='bool'),
-        meta_tags=dict(type='list')
-    ))
-    module = AnsibleModule(
-        argument_spec=argument_spec,
-        supports_check_mode=True,
-        mutually_exclusive=[['controller_addresses', 'array_wwn']],
-        required_if=[('state', 'present', ['controller_addresses'])]
-    )
-
-    p = module.params
-
-    state = p['state']
-    ssid = p['ssid']
-    controller_addresses = p['controller_addresses']
-    array_wwn = p['array_wwn']
-    array_password = p['array_password']
-    array_status_timeout_sec = p['array_status_timeout_sec']
-    validate_certs = p['validate_certs']
-    meta_tags = p['meta_tags']
-    enable_trace = p['enable_trace']
-
-    api_usr = p['api_username']
-    api_pwd = p['api_password']
-    api_url = p['api_url']
-
-    changed = False
-    array_exists = False
-
-    try:
-        (rc, resp) = request(api_url + "/storage-systems/%s" % ssid, headers=dict(Accept="application/json"),
-                             url_username=api_usr, url_password=api_pwd, validate_certs=validate_certs,
-                             ignore_errors=True)
-    except Exception as err:
-        module.fail_json(msg="Error accessing storage-system with id [%s]. Error [%s]" % (ssid, to_native(err)))
-
-    array_exists = True
-    array_detail = resp
-
-    if rc == 200:
-        if state == 'absent':
-            changed = True
-            array_exists = False
-        elif state == 'present':
-            current_addresses = frozenset(i for i in (array_detail['ip1'], array_detail['ip2']) if i)
-            if set(controller_addresses) != current_addresses:
-                changed = True
-            if array_detail['wwn'] != array_wwn and array_wwn is not None:
-                module.fail_json(
-                    msg='It seems you may have specified a bad WWN. The storage system ID you specified, %s, currently has the WWN of %s' %
-                        (ssid, array_detail['wwn'])
-                )
-    elif rc == 404:
-        if state == 'present':
-            changed = True
-            array_exists = False
-        else:
-            changed = False
-            module.exit_json(changed=changed, msg="Storage system was not present.")
-
-    if changed and not module.check_mode:
-        if state == 'present':
-            if not array_exists:
-                # add the array
-                array_add_req = dict(
-                    id=ssid,
-                    controllerAddresses=controller_addresses,
-                    metaTags=meta_tags,
-                    enableTrace=enable_trace
-                )
-
-                if array_wwn:
-                    array_add_req['wwn'] = array_wwn
-
-                if array_password:
-                    array_add_req['password'] = array_password
-
-                post_headers = dict(Accept="application/json")
-                post_headers['Content-Type'] = 'application/json'
-                request_data = json.dumps(array_add_req)
-
+            for attempt in range(self.DEFAULT_DISCOVERY_TIMEOUT_SEC):
                 try:
-                    (rc, resp) = do_post(ssid, api_url, post_headers, api_usr, api_pwd, validate_certs, request_data,
-                                         array_status_timeout_sec)
-                except Exception as err:
-                    module.fail_json(msg="Failed to add storage system. Id[%s]. Request body [%s]. Error[%s]." %
-                                         (ssid, request_data, to_native(err)))
+                    rc, resp = self.request("storage-systems/%s/graph/xpath-filter?query=//controller/netInterfaces/ethernet/ipv4Address" % system_id)
+                    system_addresses = [address for address in resp if address != "0.0.0.0"]
+                    break
+                except Exception as error:
+                    sleep(1)
+                    pass
+            else:
+                self.module.fail_json(msg="Discovery failed to retrieve array list. Array [%s]." % self.ssid)
 
-            else:  # array exists, modify...
-                post_headers = dict(Accept="application/json")
-                post_headers['Content-Type'] = 'application/json'
-                post_body = dict(
-                    controllerAddresses=controller_addresses,
-                    removeAllTags=True,
-                    enableTrace=enable_trace,
-                    metaTags=meta_tags
-                )
-
+        except Exception as error:
+            self.module.fail_json(msg="Discovery failed to temporarily add storage system. Array [%s]. Error [%s]" % (self.ssid, to_native(error)))
+        finally:
+            # Ensure that temporarily added system is removed if created
+            if not system_exists:
                 try:
-                    (rc, resp) = do_post(ssid, api_url, post_headers, api_usr, api_pwd, validate_certs, post_body,
-                                         array_status_timeout_sec)
-                except Exception as err:
-                    module.fail_json(msg="Failed to update storage system. Id[%s]. Request body [%s]. Error[%s]." %
-                                         (ssid, post_body, to_native(err)))
+                    rc, storage_system = self.request("storage-systems/%s" % system_id, method="DELETE")
+                except Exception as error:
+                    self.module.fail_json(msg="Discovery failed to remove temporary storage system, [%s]. Array [%s]. Error [%s]."
+                                              % (system_id, self.ssid, to_native(error)))
 
-        elif state == 'absent':
-            # delete the array
+        return system_addresses
+
+    def discover_array(self):
+        """Search for array using the world wide identifier."""
+        subnet = ipaddress.ip_network(u"%s" % self.array_subnet_mask)
+
+        try:
+            rc, request_id = self.request("discovery", method="POST", data={"startIP": str(subnet[0]), "endIP": str(subnet[-1]),
+                                                                            "connectionTimeout": self.DEFAULT_CONNECTION_TIMEOUT_SEC})
+            search_complete = False
+
             try:
-                (rc, resp) = request(api_url + "/storage-systems/%s" % ssid, method='DELETE',
-                                     url_username=api_usr,
-                                     url_password=api_pwd, validate_certs=validate_certs)
-            except Exception as err:
-                module.fail_json(msg="Failed to remove storage array. Id[%s]. Error[%s]." % (ssid, to_native(err)))
+                while not search_complete:
+                    rc, results = self.request("discovery?requestId=%s" % request_id["requestId"])
 
-            if rc == 422:
-                module.exit_json(changed=changed, msg="Storage system was not presnt.")
+                    # Search current findings
+                    search_complete = not results["discoverProcessRunning"]
+                    for storage_system in results["storageSystems"]:
+                        if storage_system["serialNumber"] == self.array_serial:
+                            # Clear discovery request so that other requests can ensue.
+                            try:
+                                rc, request_id = self.request("discovery", method="DELETE")
+                            except Exception as error:
+                                self.module.fail_json(msg="Failed to delete discovery search. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+                            search_complete = True
+                            self.controller_addresses = self.get_discovered_array_address_list(storage_system["ipAddresses"])
+                            self.module.log("Controller addresses: %s" % self.controller_addresses)
+                            break
+
+                    sleep(1)
+            except Exception as error:
+                self.module.fail_json(msg="Failed to get the discovery results. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+            # Ensure system has been discovered, otherwise fail.
+            if search_complete and not self.controller_addresses:
+                self.module.fail_json(msg="Failed to discover the storage array. Array [%s]." % self.ssid)
+
+        except Exception as error:
+            self.module.fail_json(msg="Failed to initiate array discovery. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+    @property
+    def system_info(self):
+        """Get current web services proxy storage systems."""
+        if self.system_info_cache is None:
+            try:
+                rc, storage_systems = self.request("storage-systems")
+
+                for storage_system in storage_systems:
+                    if storage_system["id"] == self.ssid:
+                        self.system_info_cache = storage_system
+                        break
+                else:
+                    self.system_info_cache = {}
+
+            except Exception as error:
+                self.module.fail_json(msg="Failed to retrieve storage systems. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+        return self.system_info_cache
+
+    def is_supplied_array_password_valid(self):
+        """Whether the supplied array password matches the current device password."""
+        if self.is_supplied_array_password_valid_cache is None:
+            self.is_supplied_array_password_valid_cache = False
+            rc, response = self.request("storage-systems/%s/passwords" % self.ssid, method="POST", ignore_errors=True,
+                                        data={"currentAdminPassword": self.array_password, "adminPassword": True, "newPassword": self.array_password})
+
             if rc == 204:
-                module.exit_json(changed=changed, msg="Storage system removed.")
+                self.is_supplied_array_password_valid_cache = True
+            elif rc == 422:
+                self.is_supplied_array_password_valid_cache = False
+            else:
+                self.module.fail_json(msg="Failed to validate password status. Array [%s]. Error [%s]." % (self.ssid, (rc, response)))
 
-    module.exit_json(changed=changed, **resp)
+        return self.is_supplied_array_password_valid_cache
+
+    def is_current_stored_password_valid(self):
+        """Determine whether the current stored password is valid."""
+        if self.is_current_stored_password_valid_cache is None:
+            self.is_current_stored_password_valid_cache = False
+            rc, response = self.request("storage-systems/%s/validatePassword" % self.ssid, method="POST", ignore_errors=True)
+
+            if rc == 204:
+                self.is_current_stored_password_valid_cache = True
+            elif rc == 422:
+                self.is_current_stored_password_valid_cache = False
+            else:
+                self.module.fail_json(msg="Failed to validate password status. Array [%s]. Error [%s]." % (self.ssid, (rc, response)))
+
+        return self.is_current_stored_password_valid_cache
+
+    def are_changes_required(self, update=False):
+        """Determine whether storage system configuration changes are required """
+        if self.system_info and (self.are_changes_required_cache is None or update):
+            self.are_changes_required_cache = False
+
+            # Check addresses or array wwn
+            if self.array_wwn:
+                if self.array_wwn != self.system_info["wwn"]:
+                    self.are_changes_required_cache = True
+            elif self.controller_addresses:
+                if sorted(self.controller_addresses) != sorted(self.system_info["managementPaths"]):
+                    self.are_changes_required_cache = True
+            else:
+                self.module.fail_json(msg="Controller addresses failed to be discovered or supplied. Array [%s]." % self.ssid)
+
+            # Check meta tags (length, keys, values)
+            if len(self.meta_tags.keys()) != len(self.system_info["metaTags"]):
+                self.are_changes_required_cache = True
+            else:
+                current_meta_tags = dict()
+                for meta_tag in self.system_info["metaTags"]:
+                    current_meta_tags.update({meta_tag["key"]: meta_tag["valueList"]})
+                    if meta_tag["key"] not in self.meta_tags.keys():
+                        self.are_changes_required_cache = True
+                        break
+                else:
+                    for meta_tag in current_meta_tags.keys():
+                        if sorted(self.meta_tags[meta_tag]) != sorted(current_meta_tags[meta_tag]):
+                            self.are_changes_required_cache = True
+                            break
+
+            if self.accept_array_certificate and self.system_info["certificateStatus"] != "trusted":
+                self.are_changes_required_cache = True
+
+            # Check whether the supplied password matches the stored password.
+            if self.force_password_update:
+                self.are_changes_required_cache = True
+            # elif self.is_supplied_array_password_valid():     # TODO: ??? PROXY does not seem to be accepting the current admin password of the storage array.
+            #     if not self.is_current_stored_password_valid():
+            #         self.are_changes_required_cache = True
+            # else:
+            #     self.module.fail_json(msg="The supplied array_password is not a valid password for the storage array. Array [%s]." % self.ssid)
+
+        return self.are_changes_required_cache
+
+    def structure_meta_tags(self):
+        """Structure the meta tags for the request body."""
+        structured_meta_tags = []
+        if self.meta_tags:
+            for key in self.meta_tags.keys():
+                if isinstance(self.meta_tags[key], list):
+                    structured_meta_tags.append({"key": key, "valueList": self.meta_tags[key]})
+                else:
+                    structured_meta_tags.append({"key": key, "valueList": [self.meta_tags[key]]})
+
+        return structured_meta_tags
+
+    def set_initial_system_password(self):
+        """Set the array password with it has not been set."""
+
+        if self.array_password and self.set_initial_array_password:
+            try:
+                rc, password_info = self.request("storage-systems/%s/passwords" % self.ssid)
+
+                # Set storage system's admin password
+                if not password_info["adminPasswordSet"]:
+
+                    # Ensure that proxy password is not set
+                    try:
+                        rc, storage_system = self.request("storage-systems/%s" % self.ssid, method="POST", data={"storedPassword": ""})
+                    except Exception as error:
+                        self.module.fail_json(msg="Failed to clear storage system's password. Array [%s]. Error [%s]" % (self.ssid, to_native(error)))
+
+                    try:
+                        headers = self.DEFAULT_HEADERS.update({"x-netapp-password-validate-method": "none"})
+                        rc, storage_system = self.request("storage-systems/%s/passwords" % self.ssid, method="POST", headers=headers,
+                                                          data={"currentAdminPassword": "", "adminPassword": True, "newPassword": self.array_password})
+                    except Exception as error:
+                        self.module.fail_json(msg="Failed to set storage system password. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+            except Exception as error:
+                self.module.fail_json(msg="Failed to validate storage system password. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+    def add_system(self):
+        """Add basic storage system definition to the web services proxy."""
+        data = {"id": self.ssid,
+                "acceptCertificate": self.accept_array_certificate,
+                "metaTags": self.structure_meta_tags()}
+
+        if self.controller_addresses:
+            data.update({"controllerAddresses": self.controller_addresses})
+        if self.array_wwn:
+            data.update({"wwn": self.array_wwn})
+        if self.array_password:
+            data.update({"password": self.array_password})
+        if self.structure_meta_tags():
+            data.update({"metaTags": self.structure_meta_tags()})
+        else:
+            data.update({"removeAllTags": True})
+
+        try:
+            rc, storage_system = self.request("storage-systems", method="POST", data=data)
+
+            # Check if system already exists
+            if rc == 200:
+                self.module.fail_json(msg="System already exists. Array [%s]." % self.ssid)
+        except Exception as error:
+            self.module.fail_json(msg="Failed to add storage system. Array [%s]. Error [%s]" % (self.ssid, to_native(error)))
+
+    def update_system(self):
+        """Update storage system configuration."""
+        data = {"acceptCertificate": self.accept_array_certificate, "metaTags": self.structure_meta_tags()}
+
+        if self.controller_addresses:
+            data.update({"controllerAddresses": self.controller_addresses})
+        if self.array_password:
+            data.update({"storedPassword": self.array_password})
+        if self.structure_meta_tags():
+            data.update({"metaTags": self.structure_meta_tags()})
+        else:
+            data.update({"removeAllTags": True})
+
+        try:
+            rc, storage_system = self.request("storage-systems/%s" % self.ssid, method="POST", data=data)
+        except Exception as error:
+            self.module.fail_json(msg="Failed to update storage system. Array [%s]. Error [%s]" % (self.ssid, to_native(error)))
+
+    def remove_system(self):
+        """Remove storage system."""
+        try:
+            rc, storage_system = self.request("storage-systems/%s" % self.ssid, method="DELETE")
+        except Exception as error:
+            self.module.fail_json(msg="Failed to remove storage system. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+    def apply(self):
+        """Determine whether changes are required and, if necessary, apply them."""
+        if self.is_embedded():
+            self.module.fail_json(msg="Cannot add storage systems to SANtricity Web Services Embedded instance. Array [%s]." % self.ssid)
+
+        changes_required = False
+        if self.state == "present":
+            if self.array_serial:
+                self.discover_array()
+
+            if self.system_info:
+                if self.are_changes_required():
+                    changes_required = True
+            else:
+                changes_required = True
+        elif self.system_info:
+            changes_required = True
+
+        if changes_required and not self.module.check_mode:
+            if self.state == "present":
+                if self.system_info:
+                    self.update_system()
+                    self.module.exit_json(msg="Storage system [%s] was updated." % self.ssid, changed=changes_required)
+                else:
+                    self.add_system()
+                    self.module.exit_json(msg="Storage system [%s] was added." % self.ssid, changed=changes_required)
+
+            elif self.system_info:
+                self.remove_system()
+                self.module.exit_json(msg="Storage system [%s] was removed." % self.ssid, changed=changes_required)
+
+        self.module.exit_json(msg="No changes were required for storage system [%s]." % self.ssid, changed=changes_required)
 
 
 if __name__ == '__main__':
-    main()
+    systems = NetAppESeriesStorageSystem()
+    systems.apply()
