@@ -83,7 +83,7 @@ class NetAppESeriesModule(object):
     :param list(list) required_together: list containing list(s) of options that are required together. (optional)
     :param bool log_requests: controls whether to log each request (default: True)
     """
-    DEFAULT_TIMEOUT = 60
+    DEFAULT_TIMEOUT = 120
     DEFAULT_SECURE_PORT = "8443"
     DEFAULT_REST_API_PATH = "devmgr/v2/"
     DEFAULT_REST_API_ABOUT_PATH = "devmgr/utils/about"
@@ -92,6 +92,9 @@ class NetAppESeriesModule(object):
     HTTP_AGENT = "Ansible / %s" % ansible_version
     SIZE_UNIT_MAP = dict(bytes=1, b=1, kb=1024, mb=1024**2, gb=1024**3, tb=1024**4,
                          pb=1024**5, eb=1024**6, zb=1024**7, yb=1024**8)
+
+    HOST_TYPE_INDEXES = {"aix mpio": 9, "avt 4m": 5, "hp-ux": 15, "linux atto": 24, "linux dm-mp": 28, "linux pathmanager": 25, "solaris 10 or earlier": 2,
+                         "solaris 11 or later": 17, "svc": 18, "ontap": 26, "mac": 22, "vmware": 10, "windows": 1, "windows atto": 23, "windows clustered": 8}
 
     def __init__(self, ansible_options, web_services_version=None, supports_check_mode=False,
                  mutually_exclusive=None, required_if=None, required_one_of=None, required_together=None,
@@ -185,7 +188,7 @@ class NetAppESeriesModule(object):
 
         return self.is_embedded_mode
 
-    def request(self, path, data=None, method='GET', headers=None, ignore_errors=False, use_proxy=True, force=False, timeout=None):
+    def request(self, path, data=None, method='GET', headers=None, ignore_errors=False, timeout=None):
         """Issue an HTTP request to a url, retrieving an optional JSON response.
 
         :param str path: web services rest api endpoint path (Example: storage-systems/1/graph). Note that when the
@@ -194,8 +197,6 @@ class NetAppESeriesModule(object):
         :param str method: request method such as GET, POST, DELETE.
         :param dict headers: dictionary containing request headers.
         :param bool ignore_errors: forces the request to ignore any raised exceptions.
-        :param bool use_proxy:
-        :param bool force:
         :param int timeout: duration of seconds before request finally times out.
         """
         self._check_web_services_version()
@@ -213,10 +214,10 @@ class NetAppESeriesModule(object):
         request_url = self.url + self.DEFAULT_REST_API_PATH + path
 
         if self.log_requests:
-            self.module.log(pformat(dict(url=request_url, data=data, method=method)))
+            self.module.log(pformat(dict(url=request_url, data=data, method=method, headers=headers)))
 
-        response = request(url=request_url, data=data, method=method, headers=headers, use_proxy=use_proxy, force=force, last_mod_time=None,
-                           timeout=timeout, http_agent=self.HTTP_AGENT, force_basic_auth=True, ignore_errors=ignore_errors, **self.creds)
+        response = request(url=request_url, data=data, method=method, headers=headers, last_mod_time=None, timeout=timeout,
+                           http_agent=self.HTTP_AGENT, force_basic_auth=True, ignore_errors=ignore_errors, **self.creds)
 
         if self.log_requests:
             self.module.log(pformat(response))
