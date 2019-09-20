@@ -5,10 +5,11 @@
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-    name: "{{ eseries_system_name | default(omit)}}"
-    cache_block_size: "{{ eseries_system_cache_block_size | default(omit)}}"
-    cache_flush_threshold: "{{ eseries_system_cache_flush_threshold | default(omit)}}"
-    automatic_load_balancing: "{{ eseries_system_autoload_balance | default(omit)}}"
+    name: "{{ eseries_system_name | default(omit) }}"
+    cache_block_size: "{{ eseries_system_cache_block_size | default(omit) }}"
+    cache_flush_threshold: "{{ eseries_system_cache_flush_threshold | default(omit) }}"
+    automatic_load_balancing: "{{ eseries_system_autoload_balance | default(omit) }}"
+    host_connectivity_reporting: "{{ eseries_system_host_connectivity_reporting | default(omit) }}"
     default_host_type: "{{ eseries_system_default_host_type | default(omit)}}"
   when: eseries_system_name is defined
   tags:
@@ -77,7 +78,7 @@
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
         channel: "{{ index + 1 }}"
         controller: A
-        address: "{{ item['address'] | default(omit) }}"
+        address: "{{ item[0]['address'] | default(omit) }}"
         config_method: "{{ item['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
         subnet_mask: "{{ item['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
         gateway: "{{ item['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
@@ -123,10 +124,6 @@
         - name: Try using alternate REST API URL.
           set_fact:
             eseries_api_url: "{{ eseries_alternate_api_url }}"
-        - name: Sleep 5 seconds to allow management changes to complete
-          pause:
-            seconds: 5
-
         - name: Ensure controller A management interfaces have been configure
           nac_santricity_mgmt_interface:
             ssid: "{{ eseries_ssid }}"

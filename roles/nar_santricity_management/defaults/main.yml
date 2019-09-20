@@ -21,27 +21,28 @@ eseries_ssid: 1                                          # Storage array identif
 
 # Storage system defaults
 # -----------------------------
-#eseries_system_name:                      # Name of the storage system.
-#eseries_system_cache_block_size:          # Cache block size
-#eseries_system_cache_flush_threshold:     # Unwritten data will be flushed when exceeds this threshold
-#eseries_system_autoload_balance:          # Whether automatic load balancing should be enabled. Choices: enabled, disabled
-#eseries_system_default_host_type:         # Only required when using something other than Linux kernel 3.10 or later with DM-MP (Linux DM-MP),
-                                           #     non-clustered Windows (Windows), or the storage system default host type is incorrect. Common definitions below:
-                                           #     - AIX MPIO: The Advanced Interactive Executive (AIX) OS and the native MPIO driver
-                                           #     - AVT 4M: Silicon Graphics, Inc. (SGI) proprietary multipath driver; refer to the SGI installation documentation for more information
-                                           #     - HP-UX: The HP-UX OS with native multipath driver
-                                           #     - Linux ATTO: The Linux OS and the ATTO Technology, Inc. driver (must use ATTO FC HBAs)
-                                           #     - Linux DM-MP: The Linux OS and the native DM-MP driver
-                                           #     - Linux Pathmanager: The Linux OS and the SGI proprietary multipath driver; refer to the SGI installation documentation for more information
-                                           #     - Mac: The Mac OS and the ATTO Technology, Inc. driver
-                                           #     - ONTAP: FlexArray
-                                           #     - Solaris 11 or later: The Solaris 11 or later OS and the native MPxIO driver
-                                           #     - Solaris 10 or earlier: The Solaris 10 or earlier OS and the native MPxIO driver
-                                           #     - SVC: IBM SAN Volume Controller
-                                           #     - VMware: ESXi OS
-                                           #     - Windows: Windows Server OS and Windows MPIO with a DSM driver
-                                           #     - Windows Clustered: Clustered Windows Server OS and Windows MPIO with a DSM driver
-                                           #     - Windows ATTO: Windows OS and the ATTO Technology, Inc. driver
+#eseries_system_name:                         # Name of the storage system.
+#eseries_system_cache_block_size:             # Cache block size
+#eseries_system_cache_flush_threshold:        # Unwritten data will be flushed when exceeds this threshold
+#eseries_system_autoload_balance:             # Whether automatic load balancing should be enabled. Choices: enabled, disabled
+#eseries_system_host_connectivity_reporting   # Whether host connectivity reporting should be enabled. Choices: enabled, disabled
+#eseries_system_default_host_type:            # Only required when using something other than Linux kernel 3.10 or later with DM-MP (Linux DM-MP),
+                                              #     non-clustered Windows (Windows), or the storage system default host type is incorrect. Common definitions below:
+                                              #     - AIX MPIO: The Advanced Interactive Executive (AIX) OS and the native MPIO driver
+                                              #     - AVT 4M: Silicon Graphics, Inc. (SGI) proprietary multipath driver; refer to the SGI installation documentation for more information
+                                              #     - HP-UX: The HP-UX OS with native multipath driver
+                                              #     - Linux ATTO: The Linux OS and the ATTO Technology, Inc. driver (must use ATTO FC HBAs)
+                                              #     - Linux DM-MP: The Linux OS and the native DM-MP driver
+                                              #     - Linux Pathmanager: The Linux OS and the SGI proprietary multipath driver; refer to the SGI installation documentation for more information
+                                              #     - Mac: The Mac OS and the ATTO Technology, Inc. driver
+                                              #     - ONTAP: FlexArray
+                                              #     - Solaris 11 or later: The Solaris 11 or later OS and the native MPxIO driver
+                                              #     - Solaris 10 or earlier: The Solaris 10 or earlier OS and the native MPxIO driver
+                                              #     - SVC: IBM SAN Volume Controller
+                                              #     - VMware: ESXi OS
+                                              #     - Windows: Windows Server OS and Windows MPIO with a DSM driver
+                                              #     - Windows Clustered: Clustered Windows Server OS and Windows MPIO with a DSM driver
+                                              #     - Windows ATTO: Windows OS and the ATTO Technology, Inc. driver
 
 # Storage system SSL certificates
 # -------------------------------
@@ -169,7 +170,3 @@ eseries_syslog_test: false                # Whether a test messages should be se
 eseries_syslog_protocol: udp              # Protocol to be used when transmitting log messages to syslog server. Choices: udp, tc, tls
 eseries_syslog_port: 514                  # Port to be used when transmitting log messages to syslog server.
 eseries_syslog_components: ["auditLog"]   # List of components log to syslog server. Choices: auditLog, (others may be available)
-
-
-
-
