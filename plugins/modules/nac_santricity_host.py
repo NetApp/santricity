@@ -167,30 +167,8 @@ from pprint import pformat
 from ansible.module_utils._text import to_native
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 
-HEADERS = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-}
-
 
 class NetAppESeriesHost(NetAppESeriesModule):
-    HOST_TYPE_INDEXES = {
-        "aix mpio": 9,
-        "avt 4m": 5,
-        "hp-ux": 15,
-        "linux atto": 24,
-        "linux dm-mp": 28,
-        "linux pathmanager": 25,
-        "solaris 10 or earlier": 2,
-        "solaris 11 or later": 17,
-        "svc": 18,
-        "ontap": 26,
-        "mac": 22,
-        "vmware": 10,
-        "windows": 1,
-        "windows atto": 23,
-        "windows clustered": 8}
-
     def __init__(self):
         ansible_options = dict(state=dict(type='str', default='present', choices=['absent', 'present']),
                                ports=dict(type='list', required=False),
