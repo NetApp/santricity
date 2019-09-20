@@ -88,7 +88,7 @@ from ansible.module_utils._text import to_native
 class NetAppESeriesLunMapping(NetAppESeriesModule):
     def __init__(self):
         ansible_options = dict(state=dict(required=True, choices=["present", "absent"]),
-                               target=dict(required=True, default=None),
+                               target=dict(required=False, default=None),
                                volume_name=dict(required=True, aliases=["volume"]),
                                lun=dict(type="int", required=False))
 
