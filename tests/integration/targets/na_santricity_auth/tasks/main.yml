@@ -6,474 +6,474 @@
 - set_fact:
     initial_password: "{{ password }}"
 
-## Test embedded web services
-#- name: Change admin password to adminPassword (changed, check_mode)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ ssid }}"
-#    api_url: "{{ base_url }}"
-#    api_username: "{{ username }}"
-#    api_password: "{{ initial_password }}"
-#    validate_certs: "{{ validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: adminPassword
-#    user: admin
-#  check_mode: True
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Change monitor password to monitorPassword (changed, check_mode)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ ssid }}"
-#    api_url: "{{ base_url }}"
-#    api_username: "{{ username }}"
-#    api_password:  "{{ initial_password }}"
-#    validate_certs: "{{ validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: monitorPassword
-#    user: monitor
-#  check_mode: True
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Change storage password to storagePassword (changed, check_mode)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ ssid }}"
-#    api_url: "{{ base_url }}"
-#    api_username: "{{ username }}"
-#    api_password: "{{ initial_password }}"
-#    validate_certs: "{{ validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: storagePassword
-#    user: storage
-#  check_mode: True
-#  register: result
-#- assert:
-#    that: result.changed
-#
-#- name: Change admin password to adminPassword (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ ssid }}"
-#    api_url: "{{ base_url }}"
-#    api_username: "{{ username }}"
-#    api_password: "{{ initial_password }}"
-#    validate_certs: "{{ validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: adminPassword
-#    user: admin
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Change monitor password to monitorPassword (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ ssid }}"
-#    api_url: "{{ base_url }}"
-#    api_username: "{{ username }}"
-#    api_password: adminPassword
-#    validate_certs: "{{ validate_cert }}"
-#    current_admin_password: adminPassword
-#    password: monitorPassword
-#    user: monitor
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Change storage password to storagePassword (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ ssid }}"
-#    api_url: "{{ base_url }}"
-#    api_username: "{{ username }}"
-#    api_password: adminPassword
-#    validate_certs: "{{ validate_cert }}"
-#    current_admin_password: adminPassword
-#    password: storagePassword
-#    user: storage
-#  register: result
-#- assert:
-#    that: result.changed
-#
-#- name: Ensure admin password is adminPassword (unchanged)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ ssid }}"
-#    api_url: "{{ base_url }}"
-#    api_username: "{{ username }}"
-#    api_password: adminPassword
-#    validate_certs: "{{ validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: adminPassword
-#    user: admin
-#  register: result
-#- assert:
-#    that: not result.changed
-#- name: Ensure monitor password is monitorPassword (unchanged)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ ssid }}"
-#    api_url: "{{ base_url }}"
-#    api_username: "{{ username }}"
-#    api_password: adminPassword
-#    validate_certs: "{{ validate_cert }}"
-#    current_admin_password: adminPassword
-#    password: monitorPassword
-#    user: monitor
-#  register: result
-#- assert:
-#    that: not result.changed
-#- name: Ensure storage password is storagePassword (unchanged)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ ssid }}"
-#    api_url: "{{ base_url }}"
-#    api_username: "{{ username }}"
-#    api_password: adminPassword
-#    validate_certs: "{{ validate_cert }}"
-#    current_admin_password: adminPassword
-#    password: storagePassword
-#    user: storage
-#  register: result
-#- assert:
-#    that: not result.changed
-#
-#- name: Change the admin password to the initial password (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ ssid }}"
-#    api_url: "{{ base_url }}"
-#    api_username: "{{ username }}"
-#    api_password: adminPassword
-#    validate_certs: "{{ validate_cert }}"
-#    current_admin_password: adminPassword
-#    password: "{{ initial_password }}"
-#    user: admin
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Change the monitor password to the initial password (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ ssid }}"
-#    api_url: "{{ base_url }}"
-#    api_username: "{{ username }}"
-#    api_password: "{{ initial_password }}"
-#    validate_certs: "{{ validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: "{{ initial_password }}"
-#    user: monitor
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Change the storage password to the initial password (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ ssid }}"
-#    api_url: "{{ base_url }}"
-#    api_username: "{{ username }}"
-#    api_password: "{{ initial_password }}"
-#    validate_certs: "{{ validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: "{{ initial_password }}"
-#    user: storage
-#  register: result
-#- assert:
-#    that: result.changed
-#
-## Test proxy web services by changing the proxy admin password itself
-#- name: Change the proxy admin password to proxyAdminPass (change, check_mode)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "0"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: "{{ proxy_password }}"
-#    password: proxyAdminPass
-#    user: admin
-#  check_mode: True
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Change the proxy monitor password to proxyMonitorPass (change, check_mode)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "0"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: "{{ proxy_password }}"
-#    password: proxyMonitorPass
-#    user: monitor
-#  check_mode: True
-#  register: result
-#- assert:
-#    that: result.changed
-#
-#- name: Ensure the proxy admin password is proxyAdminPass (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "0"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: "{{ proxy_password }}"
-#    password: proxyAdminPass
-#    user: admin
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Change the proxy monitor password to proxyMonitorPass (change)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "0"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: proxyAdminPass
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: proxyAdminPass
-#    password: proxyMonitorPass
-#    user: monitor
-#  register: result
-#- assert:
-#    that: result.changed
-#
-#- name: Ensure the proxy admin password is proxyAdminPass (unchanged)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "0"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: proxyAdminPass
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: proxyAdminPass
-#    password: proxyAdminPass
-#    user: admin
-#  register: result
-#- assert:
-#    that: not result.changed
-#- name: Change the proxy monitor password to proxyMonitorPass (unchange)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "0"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: proxyAdminPass
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: proxyAdminPass
-#    password: proxyMonitorPass
-#    user: monitor
-#  register: result
-#- assert:
-#    that: not result.changed
-#
-#- name: Change the proxy admin password to the initial password (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "0"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: proxyAdminPass
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: proxyAdminPass
-#    password: "{{ proxy_password }}"
-#    user: admin
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Clear the proxy monitor password (change)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "0"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: "{{ proxy_password }}"
-#    password: ""
-#    user: monitor
-#  register: result
-#- assert:
-#    that: result.changed
-#
-## Proxy with Embedded with web services
-#- name: Change the storage array read-write password to arrayRWPass (changed, check_mode)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: arrayRWPass
-#    user: ARRAY_RW
-#  check_mode: True
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Change the storage array read-only password to arrayROPass (changed, check_mode)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: arrayROPass
-#    user: ARRAY_RO
-#  check_mode: True
-#  register: result
-#- assert:
-#    that: result.changed
-#
-#- name: Change the storage array read-write password to arrayRWPass (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: arrayRWPass
-#    user: ARRAY_RW
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Change the storage array read-only password to arrayROPass (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: arrayRWPass
-#    password: arrayROPass
-#    user: ARRAY_RO
-#  register: result
-#- assert:
-#    that: result.changed
-#
-#- name: Change the storage array read-write password to arrayRWPass (unchanged)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: arrayRWPass
-#    user: ARRAY_RW
-#  register: result
-#- assert:
-#    that: not result.changed
-#- name: Change the storage array read-only password to arrayROPass (changed, due to inability to determine read-only array password)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: arrayRWPass
-#    password: arrayROPass
-#    user: ARRAY_RO
-#  register: result
-#- assert:
-#    that: result.changed
-#
-#- name: Restore the storage array read-write password to the initial password (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: arrayRWPass
-#    password: "{{ initial_password }}"
-#    user: ARRAY_RW
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Restore the storage array read-only password to the initial password (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: "{{ initial_password }}"
-#    user: ARRAY_RO
-#  register: result
-#- assert:
-#    that: result.changed
-#
-#- name: Change the storage array admin password to adminPass (changed, check_mode)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: adminPass
-#    user: admin
-#  check_mode: True
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Change the storage monitor user password to monitorPass (changed, check_mode)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: monitorPass
-#    user: monitor
-#  check_mode: True
-#  register: result
-#- assert:
-#    that: result.changed
-#
-#- name: Change the storage array admin password to adminPass (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: "{{ initial_password }}"
-#    password: adminPass
-#    user: admin
-#  register: result
-#- assert:
-#    that: result.changed
-#- name: Change the storage monitor user password to monitorPass (changed)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: adminPass
-#    password: monitorPass
-#    user: monitor
-#  register: result
-#- assert:
-#    that: result.changed
-#
-#- name: Change the storage array admin password to adminPass (unchanged)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: adminPass
-#    password: adminPass
-#    user: admin
-#  register: result
-#- assert:
-#    that: not result.changed
-#- name: Change the storage monitor user password to monitorPass (unchanged)
-#  netapp_eseries.santricity.na_santricity_auth:
-#    ssid: "{{ proxy_ssid }}"
-#    api_url: "{{ proxy_base_url }}"
-#    api_username: "{{ proxy_username }}"
-#    api_password: "{{ proxy_password }}"
-#    validate_certs: "{{ proxy_validate_cert }}"
-#    current_admin_password: adminPass
-#    password: monitorPass
-#    user: monitor
-#  register: result
-#- assert:
-#    that: not result.changed
+# Test embedded web services
+- name: Change admin password to adminPassword (changed, check_mode)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ initial_password }}"
+    validate_certs: "{{ validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: adminPassword
+    user: admin
+  check_mode: True
+  register: result
+- assert:
+    that: result.changed
+- name: Change monitor password to monitorPassword (changed, check_mode)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password:  "{{ initial_password }}"
+    validate_certs: "{{ validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: monitorPassword
+    user: monitor
+  check_mode: True
+  register: result
+- assert:
+    that: result.changed
+- name: Change storage password to storagePassword (changed, check_mode)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ initial_password }}"
+    validate_certs: "{{ validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: storagePassword
+    user: storage
+  check_mode: True
+  register: result
+- assert:
+    that: result.changed
+
+- name: Change admin password to adminPassword (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ initial_password }}"
+    validate_certs: "{{ validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: adminPassword
+    user: admin
+  register: result
+- assert:
+    that: result.changed
+- name: Change monitor password to monitorPassword (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: adminPassword
+    validate_certs: "{{ validate_cert }}"
+    current_admin_password: adminPassword
+    password: monitorPassword
+    user: monitor
+  register: result
+- assert:
+    that: result.changed
+- name: Change storage password to storagePassword (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: adminPassword
+    validate_certs: "{{ validate_cert }}"
+    current_admin_password: adminPassword
+    password: storagePassword
+    user: storage
+  register: result
+- assert:
+    that: result.changed
+
+- name: Ensure admin password is adminPassword (unchanged)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: adminPassword
+    validate_certs: "{{ validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: adminPassword
+    user: admin
+  register: result
+- assert:
+    that: not result.changed
+- name: Ensure monitor password is monitorPassword (unchanged)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: adminPassword
+    validate_certs: "{{ validate_cert }}"
+    current_admin_password: adminPassword
+    password: monitorPassword
+    user: monitor
+  register: result
+- assert:
+    that: not result.changed
+- name: Ensure storage password is storagePassword (unchanged)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: adminPassword
+    validate_certs: "{{ validate_cert }}"
+    current_admin_password: adminPassword
+    password: storagePassword
+    user: storage
+  register: result
+- assert:
+    that: not result.changed
+
+- name: Change the admin password to the initial password (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: adminPassword
+    validate_certs: "{{ validate_cert }}"
+    current_admin_password: adminPassword
+    password: "{{ initial_password }}"
+    user: admin
+  register: result
+- assert:
+    that: result.changed
+- name: Change the monitor password to the initial password (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ initial_password }}"
+    validate_certs: "{{ validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: "{{ initial_password }}"
+    user: monitor
+  register: result
+- assert:
+    that: result.changed
+- name: Change the storage password to the initial password (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ initial_password }}"
+    validate_certs: "{{ validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: "{{ initial_password }}"
+    user: storage
+  register: result
+- assert:
+    that: result.changed
+
+# Test proxy web services by changing the proxy admin password itself
+- name: Change the proxy admin password to proxyAdminPass (change, check_mode)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "0"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: "{{ proxy_password }}"
+    password: proxyAdminPass
+    user: admin
+  check_mode: True
+  register: result
+- assert:
+    that: result.changed
+- name: Change the proxy monitor password to proxyMonitorPass (change, check_mode)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "0"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: "{{ proxy_password }}"
+    password: proxyMonitorPass
+    user: monitor
+  check_mode: True
+  register: result
+- assert:
+    that: result.changed
+
+- name: Ensure the proxy admin password is proxyAdminPass (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "0"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: "{{ proxy_password }}"
+    password: proxyAdminPass
+    user: admin
+  register: result
+- assert:
+    that: result.changed
+- name: Change the proxy monitor password to proxyMonitorPass (change)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "0"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: proxyAdminPass
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: proxyAdminPass
+    password: proxyMonitorPass
+    user: monitor
+  register: result
+- assert:
+    that: result.changed
+
+- name: Ensure the proxy admin password is proxyAdminPass (unchanged)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "0"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: proxyAdminPass
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: proxyAdminPass
+    password: proxyAdminPass
+    user: admin
+  register: result
+- assert:
+    that: not result.changed
+- name: Change the proxy monitor password to proxyMonitorPass (unchange)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "0"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: proxyAdminPass
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: proxyAdminPass
+    password: proxyMonitorPass
+    user: monitor
+  register: result
+- assert:
+    that: not result.changed
+
+- name: Change the proxy admin password to the initial password (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "0"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: proxyAdminPass
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: proxyAdminPass
+    password: "{{ proxy_password }}"
+    user: admin
+  register: result
+- assert:
+    that: result.changed
+- name: Clear the proxy monitor password (change)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "0"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: "{{ proxy_password }}"
+    password: ""
+    user: monitor
+  register: result
+- assert:
+    that: result.changed
+
+# Proxy with Embedded with web services
+- name: Change the storage array read-write password to arrayRWPass (changed, check_mode)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: arrayRWPass
+    user: ARRAY_RW
+  check_mode: True
+  register: result
+- assert:
+    that: result.changed
+- name: Change the storage array read-only password to arrayROPass (changed, check_mode)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: arrayROPass
+    user: ARRAY_RO
+  check_mode: True
+  register: result
+- assert:
+    that: result.changed
+
+- name: Change the storage array read-write password to arrayRWPass (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: arrayRWPass
+    user: ARRAY_RW
+  register: result
+- assert:
+    that: result.changed
+- name: Change the storage array read-only password to arrayROPass (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: arrayRWPass
+    password: arrayROPass
+    user: ARRAY_RO
+  register: result
+- assert:
+    that: result.changed
+
+- name: Change the storage array read-write password to arrayRWPass (unchanged)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: arrayRWPass
+    user: ARRAY_RW
+  register: result
+- assert:
+    that: not result.changed
+- name: Change the storage array read-only password to arrayROPass (changed, due to inability to determine read-only array password)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: arrayRWPass
+    password: arrayROPass
+    user: ARRAY_RO
+  register: result
+- assert:
+    that: result.changed
+
+- name: Restore the storage array read-write password to the initial password (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: arrayRWPass
+    password: "{{ initial_password }}"
+    user: ARRAY_RW
+  register: result
+- assert:
+    that: result.changed
+- name: Restore the storage array read-only password to the initial password (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: "{{ initial_password }}"
+    user: ARRAY_RO
+  register: result
+- assert:
+    that: result.changed
+
+- name: Change the storage array admin password to adminPass (changed, check_mode)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: adminPass
+    user: admin
+  check_mode: True
+  register: result
+- assert:
+    that: result.changed
+- name: Change the storage monitor user password to monitorPass (changed, check_mode)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: monitorPass
+    user: monitor
+  check_mode: True
+  register: result
+- assert:
+    that: result.changed
+
+- name: Change the storage array admin password to adminPass (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: "{{ initial_password }}"
+    password: adminPass
+    user: admin
+  register: result
+- assert:
+    that: result.changed
+- name: Change the storage monitor user password to monitorPass (changed)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: adminPass
+    password: monitorPass
+    user: monitor
+  register: result
+- assert:
+    that: result.changed
+
+- name: Change the storage array admin password to adminPass (unchanged)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: adminPass
+    password: adminPass
+    user: admin
+  register: result
+- assert:
+    that: not result.changed
+- name: Change the storage monitor user password to monitorPass (unchanged)
+  netapp_eseries.santricity.na_santricity_auth:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: adminPass
+    password: monitorPass
+    user: monitor
+  register: result
+- assert:
+    that: not result.changed
 
 - name: Restore the storage array admin password to initial password (changed)
   netapp_eseries.santricity.na_santricity_auth:
