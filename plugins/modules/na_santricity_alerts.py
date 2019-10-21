@@ -142,14 +142,26 @@ class NetAppESeriesAlerts(NetAppESeriesModule):
                 self.module.fail_json(msg="At least one recipient address must be specified.")
 
     def get_configuration(self):
-        try:
-            rc, result = self.request("storage-systems/%s/device-alerts" % self.ssid)
-            return result
-
-        except Exception as err:
-            self.module.fail_json(msg="Failed to retrieve the alerts configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+        """Retrieve the current storage system alert settings."""
+        if self.is_proxy():
+            if self.is_embedded_available():
+                try:
+                    rc, result = self.request("storage-systems/%s/forward/devmgr/v2/storage-systems/1/device-alerts" % self.ssid)
+                    return result
+                except Exception as err:
+                    self.module.fail_json(msg="Failed to retrieve the alerts configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+            else:
+                self.module.fail_json(msg="Setting SANtricity alerts is only available from SANtricity Web Services Proxy if the storage system has"
+                                          " SANtricity Web Services Embedded available. Array [%s]." % self.ssid)
+        else:
+            try:
+                rc, result = self.request("storage-systems/%s/device-alerts" % self.ssid)
+                return result
+            except Exception as err:
+                self.module.fail_json(msg="Failed to retrieve the alerts configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def update_configuration(self):
+        """Update the storage system alert settings."""
         config = self.get_configuration()
         update = False
         body = dict()
@@ -181,28 +193,43 @@ class NetAppESeriesAlerts(NetAppESeriesModule):
                 update = True
 
         elif config['alertingEnabled']:
-            body = dict(alertingEnabled=False)
+            body = {"alertingEnabled": False, "emailServerAddress": "", "emailSenderAddress": "", "sendAdditionalContactInformation": False,
+                    "additionalContactInformation": "", "recipientEmailAddresses": []}
             update = True
 
         if update and not self.check_mode:
-            try:
-                rc, result = self.request("'storage-systems/%s/device-alerts" % self.ssid, method='POST', data=body)
-            except Exception as err:
-                self.module.fail_json(msg="We failed to set the storage-system name! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+            if self.is_proxy() and self.is_embedded_available():
+                try:
+                    rc, result = self.request("storage-systems/%s/forward/devmgr/v2/storage-systems/1/device-alerts" % self.ssid, method="POST", data=body)
+                except Exception as err:
+                    self.module.fail_json(msg="We failed to set the storage-system name! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+
+            else:
+                try:
+                    rc, result = self.request("storage-systems/%s/device-alerts" % self.ssid, method="POST", data=body)
+                except Exception as err:
+                    self.module.fail_json(msg="We failed to set the storage-system name! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         return update
 
     def send_test_email(self):
         """Send a test email to verify that the provided configuration is valid and functional."""
         if not self.check_mode:
-            try:
-                rc, result = self.request("storage-systems/%s/device-alerts/alert-email-test" % self.ssid, method="POST")
+            if self.is_proxy() and self.is_embedded_available():
+                try:
+                    rc, resp = self.request("storage-systems/%s/forward/devmgr/v2/storage-systems/1/device-alerts/alert-email-test" % self.ssid, method="POST")
+                    if resp['response'] != 'emailSentOK':
+                        self.module.fail_json(msg="The test email failed with status=[%s]! Array Id [%s]." % (resp['response'], self.ssid))
+                except Exception as err:
+                    self.module.fail_json(msg="We failed to send the test email! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
-                if result['response'] != 'emailSentOK':
-                    self.module.fail_json(msg="The test email failed with status=[%s]! Array Id [%s]." % (result['response'], self.ssid))
-
-            except Exception as err:
-                self.module.fail_json(msg="We failed to send the test email! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+            else:
+                try:
+                    rc, resp = self.request("storage-systems/%s/device-alerts/alert-email-test" % self.ssid, method="POST")
+                    if resp['response'] != 'emailSentOK':
+                        self.module.fail_json(msg="The test email failed with status=[%s]! Array Id [%s]." % (resp['response'], self.ssid))
+                except Exception as err:
+                    self.module.fail_json(msg="We failed to send the test email! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def update(self):
         update = self.update_configuration()

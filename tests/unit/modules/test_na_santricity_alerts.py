@@ -68,6 +68,9 @@ class AlertsTest(ModuleTestCase):
 
         expected = 'result'
         alerts = NetAppESeriesAlerts()
+        alerts.is_proxy = lambda: False
+        alerts.is_embedded_available = lambda: False
+
         # Expecting an update
         with mock.patch(self.REQ_FUNC, return_value=(200, expected)) as req:
             actual = alerts.get_configuration()
@@ -90,6 +93,8 @@ class AlertsTest(ModuleTestCase):
         self._set_args(**args)
 
         alerts = NetAppESeriesAlerts()
+        alerts.is_proxy = lambda: False
+        alerts.is_embedded_available = lambda: False
 
         # Ensure when trigger updates when each relevant field is changed
         with mock.patch(self.REQ_FUNC, return_value=(200, None)) as req:
@@ -130,6 +135,8 @@ class AlertsTest(ModuleTestCase):
         """Ensure we send a test email if test=True"""
         self._set_args(test=True)
         alerts = NetAppESeriesAlerts()
+        alerts.is_proxy = lambda: False
+        alerts.is_embedded_available = lambda: False
 
         with mock.patch(self.REQ_FUNC, return_value=(200, dict(response='emailSentOK'))) as req:
             alerts.send_test_email()
@@ -139,6 +146,8 @@ class AlertsTest(ModuleTestCase):
         """Ensure we fail if the test returned a failure status"""
         self._set_args(test=True)
         alerts = NetAppESeriesAlerts()
+        alerts.is_proxy = lambda: False
+        alerts.is_embedded_available = lambda: False
 
         ret_msg = 'fail'
         with self.assertRaisesRegexp(AnsibleFailJson, ret_msg):
@@ -150,6 +159,8 @@ class AlertsTest(ModuleTestCase):
         """Ensure we fail cleanly if we hit a connection failure"""
         self._set_args(test=True)
         alerts = NetAppESeriesAlerts()
+        alerts.is_proxy = lambda: False
+        alerts.is_embedded_available = lambda: False
 
         with self.assertRaisesRegexp(AnsibleFailJson, r"failed to send"):
             with mock.patch(self.REQ_FUNC, side_effect=Exception) as req:
