@@ -110,11 +110,7 @@ class FirmwareTest(ModuleTestCase):
         """Validate check_system_health method."""
         self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
         firmware = NetAppESeriesFirmware()
-        with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": "1"}),
-                                                   (200, {"healthCheckRunning": True,
-                                                          "results": [{"processingTimeMS": 0}]}),
-                                                   (200, {"healthCheckRunning": False,
-                                                          "results": [{"successful": True}]})]):
+        with patch(self.REQUEST_FUNC, return_value=(200, {"successful": True})):
             firmware.check_system_health()
 
     def test_check_system_health_fail(self):
@@ -122,19 +118,8 @@ class FirmwareTest(ModuleTestCase):
         self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
         firmware = NetAppESeriesFirmware()
         with patch(self.SLEEP_FUNC, return_value=None):
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to initiate health check."):
+            with self.assertRaisesRegexp(AnsibleFailJson, "Health check failed!"):
                 with patch(self.REQUEST_FUNC, return_value=(404, Exception())):
-                    firmware.check_system_health()
-
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve health check status."):
-                with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": "1"}),
-                                                           (404, Exception())]):
-                    firmware.check_system_health()
-
-            with self.assertRaisesRegexp(AnsibleFailJson, "Health check failed to complete."):
-                with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": "1"}),
-                                                           (200, {"healthCheckRunning": True,
-                                                                  "results": [{"processingTimeMS": 120001}]})]):
                     firmware.check_system_health()
 
     def test_embedded_check_nvsram_compatibility_pass(self):

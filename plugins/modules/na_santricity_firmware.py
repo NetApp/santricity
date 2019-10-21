@@ -172,25 +172,10 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
     def check_system_health(self):
         """Ensure E-Series storage system is healthy. Works for both embedded and proxy web services."""
         try:
-            rc, request_id = self.request("health-check", method="POST", data={"onlineOnly": True, "storageDeviceIds": [self.ssid]})
-
-            while True:
-                sleep(1)
-
-                try:
-                    rc, response = self.request("health-check?requestId=%s" % request_id["requestId"])
-
-                    if not response["healthCheckRunning"]:
-                        return response["results"][0]["successful"]
-                    elif int(response["results"][0]["processingTimeMS"]) > self.HEALTH_CHECK_TIMEOUT_MS:
-                        self.module.fail_json(msg="Health check failed to complete. Array Id [%s]." % self.ssid)
-
-                except Exception as error:
-                    self.module.fail_json(msg="Failed to retrieve health check status. Array Id [%s]. Error[%s]." % (self.ssid, to_native(error)))
+            rc, response = self.request("storage-systems/%s/health-check" % self.ssid, method="POST")
+            return response["successful"]
         except Exception as error:
-            self.module.fail_json(msg="Failed to initiate health check. Array Id [%s]. Error[%s]." % (self.ssid, to_native(error)))
-
-        self.module.fail_json(msg="Failed to retrieve health check status. Array Id [%s]. Error[%s]." % self.ssid)
+            self.module.fail_json(msg="Health check failed! Array Id [%s]. Error[%s]." % (self.ssid, to_native(error)))
 
     def embedded_check_compatibility(self):
         """Verify files are compatible with E-Series storage system."""
@@ -459,7 +444,8 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
 
     def apply(self):
         """Upgrade controller firmware."""
-        self.check_system_health()
+        if self.ignore_health_check:
+            self.check_system_health()
 
         # Verify firmware compatibility and whether changes are required
         if self.is_embedded():
