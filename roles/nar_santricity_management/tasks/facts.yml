@@ -1,15 +1,11 @@
 - name: Collect storage system facts
-  nac_santricity_facts:
+  na_santricity_facts:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
   register: eseries_facts
-
-- name: Determine whether SANtricity Web Services REST API is proxy or embedded
-  set_fact:
-    eseries_api_is_proxy: "{{ eseries_facts['storage_array_facts']['facts_from_proxy'] }}"
 
 - name: Collect current management address
   set_fact:

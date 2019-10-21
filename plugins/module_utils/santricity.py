@@ -54,11 +54,24 @@ def eseries_host_argument_spec():
     """Retrieve a base argument specification common to all NetApp E-Series modules"""
     argument_spec = basic_auth_argument_spec()
     argument_spec.update(dict(
-        api_username=dict(type='str', required=True),
-        api_password=dict(type='str', required=True, no_log=True),
-        api_url=dict(type='str', required=True),
-        ssid=dict(type='str', required=False, default='1'),
-        validate_certs=dict(type='bool', required=False, default=True)
+        api_username=dict(type="str", required=True),
+        api_password=dict(type="str", required=True, no_log=True),
+        api_url=dict(type="str", required=True),
+        ssid=dict(type="str", required=False, default="1"),
+        validate_certs=dict(type="bool", required=False, default=True)
+    ))
+    return argument_spec
+
+
+def eseries_proxy_argument_spec():
+    """Retrieve a base argument specification common to all NetApp E-Series modules for proxy specific tasks"""
+    argument_spec = basic_auth_argument_spec()
+    argument_spec.update(dict(
+        api_username=dict(type="str", required=True),
+        api_password=dict(type="str", required=True, no_log=True),
+        api_url=dict(type="str", required=True),
+        ssid=dict(type="str", required=False, default="1"),
+        validate_certs=dict(type="bool", required=False, default=True)
     ))
     return argument_spec
 
@@ -71,20 +84,20 @@ class NetAppESeriesModule(object):
 
     Be sure to add the following lines in the module's documentation section:
     extends_documentation_fragment:
-        - netapp.eseries
+        - santricity
 
     :param dict(dict) ansible_options: dictionary of ansible option definitions
     :param str web_services_version: minimally required web services rest api version (default value: "02.00.0000.0000")
     :param bool supports_check_mode: whether the module will support the check_mode capabilities (default=False)
     :param list(list) mutually_exclusive: list containing list(s) of mutually exclusive options (optional)
-    :param list(list) required_if: list containing list(s) containing the option, the option value, and then
-    a list of required options. (optional)
+    :param list(list) required_if: list containing list(s) containing the option, the option value, and then a list of required options. (optional)
     :param list(list) required_one_of: list containing list(s) of options for which at least one is required. (optional)
     :param list(list) required_together: list containing list(s) of options that are required together. (optional)
     :param bool log_requests: controls whether to log each request (default: True)
     """
-    DEFAULT_TIMEOUT = 120
+    DEFAULT_TIMEOUT = 300
     DEFAULT_SECURE_PORT = "8443"
+    DEFAULT_BASE_PATH = "devmgr/"
     DEFAULT_REST_API_PATH = "devmgr/v2/"
     DEFAULT_REST_API_ABOUT_PATH = "devmgr/utils/about"
     DEFAULT_HEADERS = {"Content-Type": "application/json", "Accept": "application/json",
@@ -98,9 +111,13 @@ class NetAppESeriesModule(object):
 
     def __init__(self, ansible_options, web_services_version=None, supports_check_mode=False,
                  mutually_exclusive=None, required_if=None, required_one_of=None, required_together=None,
-                 log_requests=True):
-        argument_spec = eseries_host_argument_spec()
-        argument_spec.update(ansible_options)
+                 log_requests=True, proxy_specific_task=False):
+
+        if proxy_specific_task:
+            argument_spec = eseries_proxy_argument_spec()
+        else:
+            argument_spec = eseries_host_argument_spec()
+            argument_spec.update(ansible_options)
 
         self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=supports_check_mode,
                                     mutually_exclusive=mutually_exclusive, required_if=required_if,
@@ -108,7 +125,11 @@ class NetAppESeriesModule(object):
 
         args = self.module.params
         self.web_services_version = web_services_version if web_services_version else "02.00.0000.0000"
-        self.ssid = args["ssid"]
+
+        if proxy_specific_task:
+            self.ssid = "0"
+        else:
+            self.ssid = args["ssid"]
         self.url = args["api_url"]
         self.log_requests = log_requests
         self.creds = dict(url_username=args["api_username"],
@@ -118,7 +139,8 @@ class NetAppESeriesModule(object):
         if not self.url.endswith("/"):
             self.url += "/"
 
-        self.is_embedded_mode = None
+        self.is_proxy_used_cache = None
+        self.is_embedded_available_cache = None
         self.is_web_services_valid_cache = None
 
     def _check_web_services_version(self):
@@ -142,7 +164,7 @@ class NetAppESeriesModule(object):
 
             self.url = "%s://%s/" % (url_parts.scheme, url_parts.netloc)
             about_url = self.url + self.DEFAULT_REST_API_ABOUT_PATH
-            rc, data = request(about_url, timeout=self.DEFAULT_TIMEOUT, headers=self.DEFAULT_HEADERS, ignore_errors=True, **self.creds)
+            rc, data = request(about_url, timeout=self.DEFAULT_TIMEOUT, headers=self.DEFAULT_HEADERS, ignore_errors=True, force_basic_auth=False, **self.creds)
 
             if rc != 200:
                 self.module.warn("Failed to retrieve web services about information! Retrying with secure ports. Array Id [%s]." % self.ssid)
@@ -154,50 +176,116 @@ class NetAppESeriesModule(object):
                     self.module.fail_json(msg="Failed to retrieve the webservices about information! Array Id [%s]. Error [%s]."
                                               % (self.ssid, to_native(error)))
 
-            major, minor, other, revision = data["version"].split(".")
-            minimum_major, minimum_minor, other, minimum_revision = self.web_services_version.split(".")
+            if len(data["version"].split(".")) == 4:
+                major, minor, other, revision = data["version"].split(".")
+                minimum_major, minimum_minor, other, minimum_revision = self.web_services_version.split(".")
 
+                if not (major > minimum_major or
+                        (major == minimum_major and minor > minimum_minor) or
+                        (major == minimum_major and minor == minimum_minor and revision >= minimum_revision)):
+                    self.module.fail_json(msg="Web services version does not meet minimum version required. Current version: [%s]."
+                                              " Version required: [%s]." % (data["version"], self.web_services_version))
+                self.module.log("Web services rest api version met the minimum required version.")
+            else:
+                self.module.warn("Web services rest api version unknown!")
+
+            self.is_web_services_valid_cache = True
+
+    def is_web_services_version_met(self, version):
+        """Determines whether a particular web services version has been satisfied."""
+        split_version = version.split(".")
+        if len(split_version) != 4 or not split_version[0].isdigit() or not split_version[1].isdigit() or not split_version[3].isdigit():
+            self.module.fail_json(msg="Version is not a valid Web Services version. Version [%s]." % version)
+
+        url_parts = urlparse(self.url)
+        if not url_parts.scheme or not url_parts.netloc:
+            self.module.fail_json(msg="Failed to provide valid API URL. Example: https://192.168.1.100:8443/devmgr/v2. URL [%s]." % self.url)
+
+        if url_parts.scheme not in ["http", "https"]:
+            self.module.fail_json(msg="Protocol must be http or https. URL [%s]." % self.url)
+
+        self.url = "%s://%s/" % (url_parts.scheme, url_parts.netloc)
+        about_url = self.url + self.DEFAULT_REST_API_ABOUT_PATH
+        rc, data = request(about_url, timeout=self.DEFAULT_TIMEOUT, headers=self.DEFAULT_HEADERS, ignore_errors=True, **self.creds)
+
+        if rc != 200:
+            self.module.warn("Failed to retrieve web services about information! Retrying with secure ports. Array Id [%s]." % self.ssid)
+            self.url = "https://%s:8443/" % url_parts.netloc.split(":")[0]
+            about_url = self.url + self.DEFAULT_REST_API_ABOUT_PATH
+            try:
+                rc, data = request(about_url, timeout=self.DEFAULT_TIMEOUT, headers=self.DEFAULT_HEADERS, **self.creds)
+            except Exception as error:
+                self.module.fail_json(msg="Failed to retrieve the webservices about information! Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+        if len(data["version"].split(".")) == 4:
+            major, minor, other, revision = data["version"].split(".")
+            minimum_major, minimum_minor, other, minimum_revision = split_version
             if not (major > minimum_major or
                     (major == minimum_major and minor > minimum_minor) or
                     (major == minimum_major and minor == minimum_minor and revision >= minimum_revision)):
-                self.module.fail_json(msg="Web services version does not meet minimum version required. Current version: [%s]."
-                                          " Version required: [%s]." % (data["version"], self.web_services_version))
+                return False
+        else:
+            return False
+        return True
 
-            self.module.log("Web services rest api version met the minimum required version.")
-            self.is_web_services_valid_cache = True
+    def is_embedded_available(self):
+        """Determine whether the storage array has embedded services available."""
+        self._check_web_services_version()
+
+        if self.is_embedded_available_cache is None:
+
+            if self.is_proxy() and self.ssid == "0":
+                self.is_embedded_available_cache = False
+            else:
+                try:
+                    rc, bundle = self.request("storage-systems/%s/graph/xpath-filter?query=/sa/saData/extendedSAData/codeVersions[codeModule='bundle']"
+                                              % self.ssid)
+                    self.is_embedded_available_cache = False
+                    if bundle:
+                        self.is_embedded_available_cache = True
+                except Exception as error:
+                    self.module.fail_json(msg="Failed to retrieve information about storage system [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+            self.module.log("embedded_available: [%s]" % ("True" if self.is_embedded_available_cache else "False"))
+        return self.is_embedded_available_cache
 
     def is_embedded(self):
-        """Determine whether web services server is the embedded web services.
+        """Determine whether web services server is the embedded web services."""
+        return not self.is_proxy()
 
-        If web services about endpoint fails based on an URLError then the request will be attempted again using
-        secure http.
+    def is_proxy(self):
+        """Determine whether web services server is the proxy web services.
 
         :raise AnsibleFailJson: raised when web services about endpoint failed to be contacted.
         :return bool: whether contacted web services is running from storage array (embedded) or from a proxy.
         """
         self._check_web_services_version()
 
-        if self.is_embedded_mode is None:
+        if self.is_proxy_used_cache is None:
             about_url = self.url + self.DEFAULT_REST_API_ABOUT_PATH
             try:
-                rc, data = request(about_url, timeout=self.DEFAULT_TIMEOUT, headers=self.DEFAULT_HEADERS, **self.creds)
-                self.is_embedded_mode = not data["runningAsProxy"]
+                rc, data = request(about_url, timeout=self.DEFAULT_TIMEOUT, headers=self.DEFAULT_HEADERS, force_basic_auth=False, **self.creds)
+                self.is_proxy_used_cache = data["runningAsProxy"]
+
+                self.module.log("proxy: [%s]" % ("True" if self.is_proxy_used_cache else "False"))
             except Exception as error:
-                self.module.fail_json(msg="Failed to retrieve the webservices about information! Array Id [%s]. Error [%s]."
-                                          % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to retrieve the webservices about information! Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
-        return self.is_embedded_mode
+        return self.is_proxy_used_cache
 
-    def request(self, path, data=None, method='GET', headers=None, ignore_errors=False, timeout=None):
+    def request(self, path, rest_api_path=DEFAULT_REST_API_PATH, data=None, method='GET', headers=None, ignore_errors=False, timeout=None,
+                force_basic_auth=True):
         """Issue an HTTP request to a url, retrieving an optional JSON response.
 
         :param str path: web services rest api endpoint path (Example: storage-systems/1/graph). Note that when the
         full url path is specified then that will be used without supplying the protocol, hostname, port and rest path.
+        :param str rest_api_path: override the class DEFAULT_REST_API_PATH which is used to build the request URL.
         :param data: data required for the request (data may be json or any python structured data)
         :param str method: request method such as GET, POST, DELETE.
         :param dict headers: dictionary containing request headers.
         :param bool ignore_errors: forces the request to ignore any raised exceptions.
         :param int timeout: duration of seconds before request finally times out.
+        :param bool force_basic_auth: Ensure that basic authentication is being used.
         """
         self._check_web_services_version()
 
@@ -206,18 +294,18 @@ class NetAppESeriesModule(object):
         if timeout is None:
             timeout = self.DEFAULT_TIMEOUT
 
-        if not isinstance(data, str) and headers["Content-Type"] == "application/json":
+        if not isinstance(data, str) and "Content-Type" in headers and headers["Content-Type"] == "application/json":
             data = json.dumps(data)
 
         if path.startswith("/"):
             path = path[1:]
-        request_url = self.url + self.DEFAULT_REST_API_PATH + path
+        request_url = self.url + rest_api_path + path
 
         if self.log_requests:
             self.module.log(pformat(dict(url=request_url, data=data, method=method, headers=headers)))
 
         response = request(url=request_url, data=data, method=method, headers=headers, last_mod_time=None, timeout=timeout,
-                           http_agent=self.HTTP_AGENT, force_basic_auth=True, ignore_errors=ignore_errors, **self.creds)
+                           http_agent=self.HTTP_AGENT, force_basic_auth=force_basic_auth, ignore_errors=ignore_errors, **self.creds)
 
         if self.log_requests:
             self.module.log(pformat(response))

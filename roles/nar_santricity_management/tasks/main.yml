@@ -1,6 +1,27 @@
+- name: Collect storage system facts
+  uri:
+    url: "{{ eseries_api_url | regex_replace('v2', 'utils/about') }}"
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+    validate_certs: false
+  register: about
+  delegate_to: localhost
+  tags:
+    - always
+
+- name: Determine whether SANtricity Web Services REST API is proxy or embedded
+  set_fact:
+    eseries_api_is_proxy: "{{ about['json']['runningAsProxy'] }}"
+  tags:
+    - always
+
 - name: Configure SANtricity WebServices Proxy
   import_tasks: proxy.yml
   delegate_to: localhost
+  run_once: true
+  when: eseries_api_is_proxy
+  ignore_errors: true
 
 - name: Collect storage system facts
   import_tasks: facts.yml
@@ -11,15 +32,19 @@
 - name: Ensure logging has been configured
   import_tasks: logging.yml
   delegate_to: localhost
+  ignore_errors: true
 
 - name: Ensure drive and controller firmware version are correct
   import_tasks: firmware.yml
   delegate_to: localhost
+  ignore_errors: true
 
 - name: Ensure all management settings are configured
   import_tasks: certificates.yml
   delegate_to: localhost
+  ignore_errors: true
 
 - name: Ensure all management settings are configured
   import_tasks: management.yml
   delegate_to: localhost
+  ignore_errors: true

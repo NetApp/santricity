@@ -14,7 +14,9 @@ class LookupModule(LookupBase):
             volumes = [volumes]
 
         if "storage_array_facts" not in array_facts.keys():
-            raise AnsibleError("Storage array information not available. Collect facts using na_santricity_facts module.")
+            # Don't throw exceptions unless you want run to terminate!!!
+            # raise AnsibleError("Storage array information not available. Collect facts using na_santricity_facts module.")
+            return list()
 
         self.array_facts = array_facts["storage_array_facts"]
         self.luns_by_target = self.array_facts["netapp_luns_by_target"]

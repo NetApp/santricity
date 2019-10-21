@@ -1,5 +1,5 @@
 - name: Ensure ASUP configuration
-  nac_santricity_asup:
+  na_santricity_asup:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -21,7 +21,7 @@
     - asup
 
 - name: Ensure auditLog configuration
-  nac_santricity_auditlog:
+  na_santricity_auditlog:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -38,7 +38,7 @@
     - auditlog
 
 - name: Ensure syslog configuration
-  nac_santricity_syslog:
+  na_santricity_syslog:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"

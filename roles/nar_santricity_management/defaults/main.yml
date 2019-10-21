@@ -3,11 +3,22 @@
 
 # Variables specific to SANtricity WebServices Proxy
 # --------------------------------------------------
+#eseries_proxy_set_initial_password: false               # Change the storage system's admin password when it is not set.
 #eseries_proxy_systems:                                  # List of dictionaries containing information for E-Series storage systems to added to the proxy
 #  - state:                                              # (optional) Whether the storage system should be added. Choices: present, absent
 #    ssid:                                               # Storage system identifier
 #    password:                                           # Storage system password
 #    addresses:                                          # List of controller addresses
+
+# Storage system user authentication defaults
+# -------------------------------------------
+eseries_proxy_default_admin_pass: admin       # The current proxy admin users. When eseries_proxy_user_authentication['admin'] is defined then it will take precedence.
+#eseries_proxy_user_authentication:
+#  admin: adminPass                           # Proxy admin user password
+#  monitor: monitorPass                       # Proxy monitor user password
+#  security: securityPass                     # Proxy security user password
+#  storage: storagePass                       # Proxy storage user password
+#  support: supportPass                       # Proxy support user password
 
 # Storage System Credentials for Interacting with Web Services REST API
 # ---------------------------------------------------------------------
@@ -18,6 +29,16 @@ eseries_ssid: 1                                          # Storage array identif
 #eseries_api_password: password                          # Password for the web services api.
 #eseries_validate_certs: false                           # Whether the SSL certificates should be verified. (boolean)
 #eseries_array_password:                                 # Required when adding storage systems to SANtricity Web Services Proxy.
+
+# Storage system user authentication defaults
+# -------------------------------------------
+eseries_system_default_admin_pass: ""         # The current system admin users. When eseries_proxy_user_authentication['admin'] is defined then it will take precedence.
+#eseries_system_user_authentication:
+#  admin: adminPass                           # Storage system admin user password
+#  monitor: monitorPass                       # Storage system monitor user password
+#  security: securityPass                     # Storage system security user password
+#  storage: storagePass                       # Storage system storage user password
+#  support: supportPass                       # Storage system support user password
 
 # Storage system defaults
 # -----------------------------

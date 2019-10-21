@@ -1,5 +1,71 @@
-- name: Ensure controller has the correct array globals
-  nac_santricity_global:
+
+- debug:
+    msg: |-
+      {%- if eseries_api_is_proxy %}
+      {{ eseries_api_password }}
+      {%- else %}
+      {{ eseries_system_user_authentication['admin'] | default(eseries_system_default_admin_pass) }}
+      {%- endif %}
+  tags:
+    - authentication
+    - admin_authentication
+
+- name: Ensure storage array has the correct authentication
+  block:
+    - name: Ensure storage array has the admin user passwords
+      na_santricity_auth:
+        ssid: "{{ eseries_ssid }}"
+        api_url: "{{ eseries_api_url }}"
+        api_username: "{{ eseries_api_username }}"
+        api_password: |-
+          {%- if eseries_api_is_proxy %}
+          {{ eseries_api_password }}
+          {%- else %}
+          {{ eseries_system_user_authentication['admin'] | default(eseries_system_default_admin_pass) }}
+          {%- endif %}
+        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+        current_admin_password: "{{ eseries_system_user_authentication['admin'] | default(eseries_system_default_admin_pass) }}"
+        password: "{{ eseries_system_user_authentication['admin'] }}"
+        user: admin
+      when: eseries_system_user_authentication["admin"] is defined
+  rescue:
+    - name: Attempting to set the initial storage array user passwords
+      na_santricity_auth:
+        ssid: "{{ eseries_ssid }}"
+        api_url: "{{ eseries_api_url }}"
+        api_username: "{{ eseries_api_username }}"
+        api_password: |-
+          {%- if eseries_api_is_proxy %}
+          {{ eseries_api_password }}
+          {%- else %}
+          {{ default(eseries_system_default_admin_pass) }}
+          {%- endif %}
+        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+        current_admin_password: "{{ eseries_system_default_admin_pass }}"
+        password: "{{ eseries_system_user_authentication['admin'] }}"
+        user: admin
+      when: eseries_system_user_authentication["admin"] is defined
+  tags:
+    - authentication
+    - admin_authentication
+
+- name: Ensure storage array has the non-admin user passwords
+  na_santricity_auth:
+    ssid: "{{ eseries_ssid }}"
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    current_admin_password: "{{ eseries_system_user_authentication['admin'] | default(eseries_system_default_admin_pass) }}"
+    password: "{{ eseries_system_user_authentication[item] }}"
+    user: "{{ item }}"
+  when: eseries_system_user_authentication is defined and item != "admin"
+  loop: "{{ lookup('list', (eseries_system_user_authentication.keys() | list)) }}"
+  tags:
+    - authentication
+
+- name: Ensure storage array has the correct array globals
+  na_santricity_global:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -17,7 +83,7 @@
     - system_name
 
 - name: Ensure alerts have been configured
-  nac_santricity_alerts:
+  na_santricity_alerts:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -35,7 +101,7 @@
     - alerts
 
 - name: Ensure LDAP has been configured
-  nac_santricity_ldap:
+  na_santricity_ldap:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -54,147 +120,196 @@
     - management
     - ldap
 
-- name: Ensure management interfaces are properly configured
-  block:
-    - name: Preemptively add new management IP address(es) to SANtricity Web Services Proxy
-      nac_santricity_storage_system:
-        ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
-        api_username: "{{ eseries_api_username }}"
-        api_password: "{{ eseries_api_password }}"
-        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-        state: present
-        controller_addresses: "{{ current_management_addresses + expected_management_addresses }}"
-        array_password: "{{ eseries_array_password | default(omit) }}"
-      when: eseries_api_is_proxy == true
-      register: proxy_management_ip_addresses
-
-    - name: Ensure controller A management interfaces have been configure
-      nac_santricity_mgmt_interface:
-        ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
-        api_username: "{{ eseries_api_username }}"
-        api_password: "{{ eseries_api_password }}"
-        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-        channel: "{{ index + 1 }}"
-        controller: A
-        address: "{{ item[0]['address'] | default(omit) }}"
-        config_method: "{{ item['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
-        subnet_mask: "{{ item['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-        gateway: "{{ item['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
-        dns_config_method: "{{ item['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
-        dns_address: "{{ item['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
-        dns_address_backup: "{{ item['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
-        ntp_config_method: "{{ item['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
-        ntp_address: "{{ item['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
-        ntp_address_backup: "{{ item['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
-        ssh: "{{ item['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-      loop: "{{ lookup('list', (eseries_management_interfaces['controller_a'] | default([]))) }}"
-      loop_control:
-        index_var: index
-      when: eseries_management_interfaces['controller_a'] is defined
-    - name: Ensure controller B management interfaces have been configure
-      nac_santricity_mgmt_interface:
-        ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
-        api_username: "{{ eseries_api_username }}"
-        api_password: "{{ eseries_api_password }}"
-        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-        channel: "{{ index + 1 }}"
-        controller: B
-        address: "{{ item['address'] | default(omit) }}"
-        config_method: "{{ item['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
-        subnet_mask: "{{ item['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-        gateway: "{{ item['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
-        dns_config_method: "{{ item['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
-        dns_address: "{{ item['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
-        dns_address_backup: "{{ item['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
-        ntp_config_method: "{{ item['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
-        ntp_address: "{{ item['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
-        ntp_address_backup: "{{ item['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
-        ssh: "{{ item['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-      loop: "{{ lookup('list', (eseries_management_interfaces['controller_b'] | default([]))) }}"
-      loop_control:
-        index_var: index
-      when: eseries_management_interfaces['controller_b'] is defined
-
-  rescue:
-    - name: Check if alternate SANtricity API URL is available
-      block:
-        - name: Try using alternate REST API URL.
-          set_fact:
-            eseries_api_url: "{{ eseries_alternate_api_url }}"
-        - name: Ensure controller A management interfaces have been configure
-          nac_santricity_mgmt_interface:
-            ssid: "{{ eseries_ssid }}"
-            api_url: "{{ eseries_alternate_api_url }}"
-            api_username: "{{ eseries_api_username }}"
-            api_password: "{{ eseries_api_password }}"
-            validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-            channel: "{{ index + 1 }}"
-            controller: A
-            address: "{{ item['address'] | default(omit) }}"
-            config_method: "{{ item['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
-            subnet_mask: "{{ item['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-            gateway: "{{ item['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
-            dns_config_method: "{{ item['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
-            dns_address: "{{ item['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
-            dns_address_backup: "{{ item['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
-            ntp_config_method: "{{ item['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
-            ntp_address: "{{ item['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
-            ntp_address_backup: "{{ item['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
-            ssh: "{{ item['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-          loop: "{{ query('list', (eseries_management_interfaces['controller_a'] | default([]))) }}"
-          loop_control:
-            index_var: index
-          when: eseries_management_interfaces['controller_a'] is defined
-        - name: Ensure controller B management interfaces have been configure
-          nac_santricity_mgmt_interface:
-            ssid: "{{ eseries_ssid }}"
-            api_url: "{{ eseries_alternate_api_url }}"
-            api_username: "{{ eseries_api_username }}"
-            api_password: "{{ eseries_api_password }}"
-            validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-            channel: "{{ index + 1 }}"
-            controller: B
-            address: "{{ item['address'] | default(omit) }}"
-            config_method: "{{ item['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
-            subnet_mask: "{{ item['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-            gateway: "{{ item['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
-            dns_config_method: "{{ item['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
-            dns_address: "{{ item['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
-            dns_address_backup: "{{ item['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
-            ntp_config_method: "{{ item['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
-            ntp_address: "{{ item['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
-            ntp_address_backup: "{{ item['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
-            ssh: "{{ item['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-          loop: "{{ query('list', (eseries_management_interfaces['controller_b'] | default([]))) }}"
-          loop_control:
-            index_var: index
-          when: eseries_management_interfaces['controller_b'] is defined
-      when: eseries_alternate_api_url != ""
-  when: eseries_management_interfaces is defined
-  tags:
-    - management
-    - ntp
-    - dns
-    - ssh
-    - interfaces
-
-- name: Remove any additional management IP adddress from SANtricity Web Services Proxy
-  nac_santricity_storage_system:
+- name: Ensure controller A management interfaces have been configure
+  na_santricity_mgmt_interface:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-    state: present
-    controller_addresses: "{{ expected_management_addresses }}"
-    array_password: "{{ eseries_array_password | default(omit) }}"
-  when: proxy_management_ip_addresses.changed == true
-  tags:
-    - management
-    - ntp
-    - dns
-    - ssh
-    - interfaces
+    channel: "{{ index + 1 }}"
+    controller: A
+    address: "{{ item['address'] | default(omit) }}"
+    config_method: "{{ item['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
+    subnet_mask: "{{ item['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
+    gateway: "{{ item['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+    dns_config_method: "{{ item['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
+    dns_address: "{{ item['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
+    dns_address_backup: "{{ item['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
+    ntp_config_method: "{{ item['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
+    ntp_address: "{{ item['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
+    ntp_address_backup: "{{ item['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
+    ssh: "{{ item['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+  loop: "{{ lookup('list', (eseries_management_interfaces['controller_a'] | default([]))) }}"
+  loop_control:
+    index_var: index
+  when: eseries_management_interfaces['controller_a'] is defined
+- name: Ensure controller B management interfaces have been configure
+  na_santricity_mgmt_interface:
+    ssid: "{{ eseries_ssid }}"
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    channel: "{{ index + 1 }}"
+    controller: B
+    address: "{{ item['address'] | default(omit) }}"
+    config_method: "{{ item['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
+    subnet_mask: "{{ item['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
+    gateway: "{{ item['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+    dns_config_method: "{{ item['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
+    dns_address: "{{ item['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
+    dns_address_backup: "{{ item['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
+    ntp_config_method: "{{ item['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
+    ntp_address: "{{ item['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
+    ntp_address_backup: "{{ item['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
+    ssh: "{{ item['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+  loop: "{{ lookup('list', (eseries_management_interfaces['controller_b'] | default([]))) }}"
+  loop_control:
+    index_var: index
+  when: eseries_management_interfaces['controller_b'] is defined
+
+#- name: Ensure management interfaces are properly configured
+#  block:
+#    - name: Preemptively add new management IP address(es) to SANtricity Web Services Proxy
+#      na_santricity_storage_system:
+#        ssid: "{{ eseries_ssid }}"
+#        api_url: "{{ eseries_api_url }}"
+#        api_username: "{{ eseries_api_username }}"
+#        api_password: "{{ eseries_api_password }}"
+#        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+#        state: present
+#        controller_addresses: "{{ current_management_addresses + expected_management_addresses }}"
+#        array_password: "{{ eseries_array_password | default(omit) }}"
+#      when: eseries_api_is_proxy == true
+#      register: proxy_management_ip_addresses
+#
+#    - name: Ensure controller A management interfaces have been configure
+#      na_santricity_mgmt_interface:
+#        ssid: "{{ eseries_ssid }}"
+#        api_url: "{{ eseries_api_url }}"
+#        api_username: "{{ eseries_api_username }}"
+#        api_password: "{{ eseries_api_password }}"
+#        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+#        channel: "{{ index + 1 }}"
+#        controller: A
+#        address: "{{ item[0]['address'] | default(omit) }}"
+#        config_method: "{{ item['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
+#        subnet_mask: "{{ item['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
+#        gateway: "{{ item['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+#        dns_config_method: "{{ item['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
+#        dns_address: "{{ item['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
+#        dns_address_backup: "{{ item['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
+#        ntp_config_method: "{{ item['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
+#        ntp_address: "{{ item['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
+#        ntp_address_backup: "{{ item['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
+#        ssh: "{{ item['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+#      loop: "{{ lookup('list', (eseries_management_interfaces['controller_a'] | default([]))) }}"
+#      loop_control:
+#        index_var: index
+#      when: eseries_management_interfaces['controller_a'] is defined
+#    - name: Ensure controller B management interfaces have been configure
+#      na_santricity_mgmt_interface:
+#        ssid: "{{ eseries_ssid }}"
+#        api_url: "{{ eseries_api_url }}"
+#        api_username: "{{ eseries_api_username }}"
+#        api_password: "{{ eseries_api_password }}"
+#        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+#        channel: "{{ index + 1 }}"
+#        controller: B
+#        address: "{{ item['address'] | default(omit) }}"
+#        config_method: "{{ item['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
+#        subnet_mask: "{{ item['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
+#        gateway: "{{ item['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+#        dns_config_method: "{{ item['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
+#        dns_address: "{{ item['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
+#        dns_address_backup: "{{ item['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
+#        ntp_config_method: "{{ item['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
+#        ntp_address: "{{ item['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
+#        ntp_address_backup: "{{ item['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
+#        ssh: "{{ item['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+#      loop: "{{ lookup('list', (eseries_management_interfaces['controller_b'] | default([]))) }}"
+#      loop_control:
+#        index_var: index
+#      when: eseries_management_interfaces['controller_b'] is defined
+#
+#  rescue:
+#    - name: Check if alternate SANtricity API URL is available
+#      block:
+#        - name: Try using alternate REST API URL.
+#          set_fact:
+#            eseries_api_url: "{{ eseries_alternate_api_url }}"
+#        - name: Ensure controller A management interfaces have been configure
+#          na_santricity_mgmt_interface:
+#            ssid: "{{ eseries_ssid }}"
+#            api_url: "{{ eseries_alternate_api_url }}"
+#            api_username: "{{ eseries_api_username }}"
+#            api_password: "{{ eseries_api_password }}"
+#            validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+#            channel: "{{ index + 1 }}"
+#            controller: A
+#            address: "{{ item['address'] | default(omit) }}"
+#            config_method: "{{ item['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
+#            subnet_mask: "{{ item['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
+#            gateway: "{{ item['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+#            dns_config_method: "{{ item['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
+#            dns_address: "{{ item['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
+#            dns_address_backup: "{{ item['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
+#            ntp_config_method: "{{ item['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
+#            ntp_address: "{{ item['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
+#            ntp_address_backup: "{{ item['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
+#            ssh: "{{ item['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+#          loop: "{{ query('list', (eseries_management_interfaces['controller_a'] | default([]))) }}"
+#          loop_control:
+#            index_var: index
+#          when: eseries_management_interfaces['controller_a'] is defined
+#        - name: Ensure controller B management interfaces have been configure
+#          na_santricity_mgmt_interface:
+#            ssid: "{{ eseries_ssid }}"
+#            api_url: "{{ eseries_alternate_api_url }}"
+#            api_username: "{{ eseries_api_username }}"
+#            api_password: "{{ eseries_api_password }}"
+#            validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+#            channel: "{{ index + 1 }}"
+#            controller: B
+#            address: "{{ item['address'] | default(omit) }}"
+#            config_method: "{{ item['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
+#            subnet_mask: "{{ item['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
+#            gateway: "{{ item['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+#            dns_config_method: "{{ item['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
+#            dns_address: "{{ item['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
+#            dns_address_backup: "{{ item['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
+#            ntp_config_method: "{{ item['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
+#            ntp_address: "{{ item['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
+#            ntp_address_backup: "{{ item['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
+#            ssh: "{{ item['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+#          loop: "{{ query('list', (eseries_management_interfaces['controller_b'] | default([]))) }}"
+#          loop_control:
+#            index_var: index
+#          when: eseries_management_interfaces['controller_b'] is defined
+#      when: eseries_alternate_api_url != ""
+#  when: eseries_management_interfaces is defined
+#  tags:
+#    - management
+#    - ntp
+#    - dns
+#    - ssh
+#    - interfaces
+#
+#- name: Remove any additional management IP adddress from SANtricity Web Services Proxy
+#  na_santricity_storage_system:
+#    ssid: "{{ eseries_ssid }}"
+#    api_url: "{{ eseries_api_url }}"
+#    api_username: "{{ eseries_api_username }}"
+#    api_password: "{{ eseries_api_password }}"
+#    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+#    state: present
+#    controller_addresses: "{{ expected_management_addresses }}"
+#    array_password: "{{ eseries_array_password | default(omit) }}"
+#  when: proxy_management_ip_addresses.changed == true
+#  tags:
+#    - management
+#    - ntp
+#    - dns
+#    - ssh
+#    - interfaces

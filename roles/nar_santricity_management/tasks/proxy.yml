@@ -1,22 +1,37 @@
-- name: Collect storage system facts
-  uri:
-    url: "{{ eseries_api_url | regex_replace('v2', 'utils/about') }}"
-    headers:
-      Content-Type: "application/json"
-      Accept: "application/json"
-    validate_certs: False
-  register: about
+- name: Determine all systems to add to SANtricity Web Services Proxy
+  set_fact:
+    eseries_proxy_systems: |-
+      {%- set systems = [] %}
+        {%- for host in ansible_play_hosts_all %}
+          {%- set system = {} %}
+          {%- if "eseries_serial" in hostvars[host] %}
+            {%- if system.update({"serial": hostvars[host]["eseries_serial"]}) %}{%- endif %}
+            {%- if "eseries_ssid" in hostvars[host] %}
+              {%- if system.update({"ssid": hostvars[host]["eseries_ssid"]}) %}{%- endif %}
+            {%- else %}
+              {%- if system.update({"ssid": hostvars[host]["eseries_serial"]}) %}{%- endif %}
+            {%- endif %}
+            {%- if "eseries_password" in hostvars[host] %}
+              {%- if system.update({"password": hostvars[host]["eseries_password"]}) %}{%- endif %}
+            {%- endif %}
+            {%- if "eseries_tags" in hostvars[host] %}
+              {%- if system.update({"tags": hostvars[host]["eseries_tags"]}) %}{%- endif %}
+            {%- endif %}
+            {%- if systems.append(system) %}{%- endif %}
+          {%- endif %}
+        {%- endfor %}
+      {{ systems | list }}
+  when: eseries_proxy_systems is not defined
 
-- name: Add storage systems to SANtricity WebServices Proxy
-  nac_santricity_storage_system:
+- name: Add storage systems to SANtricity Web Services Proxy
+  na_santricity_proxy_systems:
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-    state: "{{ item['state'] | default('present') }}"
-    ssid: "{{ item['ssid'] }}"
-    array_password:  "{{ item['password'] }}"
-    controller_addresses: "{{ item['addresses'] }}"
-  when: about["json"]["runningAsProxy"] and eseries_proxy_systems is defined
-  loop: "{{ lookup('list', eseries_proxy_systems) }}"
-  run_once: true
+    accept_certificate: "{{ eseries_proxy_accept_certifications | default(false) }}"
+    subnet_mask: "{{ eseries_proxy_discovery_subnet }}"
+    password: "{{ eseries_proxy_default_system_password | default(omit) }}"
+    tags: "{{ eseries_proxy_default_system_tags | default(omit) }}"
+    systems: "{{ eseries_proxy_systems }}"
+  when: eseries_proxy_systems is defined and eseries_proxy_systems and eseries_proxy_discovery_subnet is defined

@@ -1,5 +1,3 @@
-#beegfs_eseries_group:      # Ansible inventory group or list that contains E-Series storage systems pertaining to BeeGFS host.
-
 beegfs_open_firewall_ports: False
 beegfs_enable_rdma: False
 #beegfs_ofed_include_path: /usr/src/openib/include    # Define path to the infiniband OFED include directory if not

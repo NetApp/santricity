@@ -1,0 +1,14 @@
+# url and credentials - all santricity modules will use this information
+ssid: "1"
+base_url: https://10.113.1.192:8443/devmgr/v2/
+username: admin
+password: infiniti
+validate_cert: false
+
+# proxy url and credentials - modules that require special api testing will use this information
+proxy_ssid: "10"
+proxy_legacy_ssid: "20"
+proxy_base_url: https://10.113.1.117:8443/devmgr/v2/
+proxy_username: admin
+proxy_password: admin
+proxy_validate_cert: false

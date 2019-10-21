@@ -2,7 +2,7 @@
 # netapp_eseries_iscsi/tasks/initiator.yml
 
 - name: Collect facts on the storage array
-  nac_santricity_facts:
+  na_santricity_facts:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -33,7 +33,7 @@
   when: eseries_host_object is defined
 
 - name: Configure inventory-defined hostgroup definitions
-  nac_santricity_hostgroup:
+  na_santricity_hostgroup:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -47,7 +47,7 @@
   when: eseries_host_object is defined and (hostgroups|length>0)
 
 - name: Configure inventory-defined host definitions
-  nac_santricity_host:
+  na_santricity_host:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -64,7 +64,7 @@
   when: eseries_host_object is defined
 
 - name: Collect facts on the storage array
-  nac_santricity_facts:
+  na_santricity_facts:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -97,7 +97,7 @@
   when: eseries_host_object is defined
 
 - name: Configure inventory-defined hostgroup definitions
-  nac_santricity_hostgroup:
+  na_santricity_hostgroup:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"

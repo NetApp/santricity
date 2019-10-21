@@ -1,5 +1,5 @@
 - name: Configure controller A inventory-defined controller port definitions
-  nac_santricity_iscsi_interface:
+  na_santricity_iscsi_interface:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -29,7 +29,7 @@
          eseries_controller_port['controller_a']['ports'] is defined"
 
 - name: Configure controller B inventory-defined controller port definitions
-  nac_santricity_iscsi_interface:
+  na_santricity_iscsi_interface:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -59,7 +59,7 @@
          eseries_controller_port['controller_b']['ports'] is defined"
 
 - name: Configure iSCSI discovery parameters
-  nac_santricity_iscsi_target:
+  na_santricity_iscsi_target:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"

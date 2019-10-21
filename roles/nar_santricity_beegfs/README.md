@@ -37,7 +37,6 @@ Example Storage System Inventory File
           
 Example BeeGFS host using E-Series Storage inventory file
 ---------------------------------------------------------
-    beegfs_eseries_group: eseries_arrays        # Ansible inventory group or explicit list of E-Series storage systems.
     beegfs_mgmt_node_ip: 192.168.1.100          # BeeGFS nanagement node address
     beegfs_ntp_enabled: true                    # Forces ntp to be configured. *Note, this will uninstall Chrony if it exists.
     beegfs_connInterfaces:                      # List of beegfs interfaces for beegfs traffic
@@ -51,9 +50,6 @@ Example BeeGFS host using E-Series Storage inventory file
 Role Variables
 --------------
     # For complete variable list and definitions, see defaults/main.yml file.
-
-    beegfs_eseries_group:           # Ansible inventory group or list that contains E-Series storage systems pertaining to BeeGFS host.
-
     beegfs_open_firewall_ports:     # Ensures firewall ports are open on all BeeGFS nodes
     beegfs_enable_rdma: False       # Ensures remote direct memory access (RDMA) is enabled on metadata and storage nodes.
     beegfs_ofed_include_path:       # Define path to the infiniband OFED include directory if not using default kernel infiniband modules.

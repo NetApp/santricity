@@ -1,5 +1,5 @@
 - name: Configure NetApp E-Series storage system disk pool configuration
-  nac_santricity_storagepool:
+  na_santricity_storagepool:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
