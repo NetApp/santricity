@@ -152,7 +152,7 @@ eseries_drive_firmware_upgrade_drives_online: true        # Forces drive firmwar
 #eseries_firmware_nvsram:                     # Local path for NVSRAM file.
 #eseries_firmware_firmware:                   # Local path for controller firmware file.
 eseries_firmware_wait_for_completion: true    # Forces controller firmware upgrade to wait until upgrade has completed before continuing. Choices: true, false
-eseries_firmware_ignore_health_check: false   # Forces firmware upgrade to be attempted regardless of the health check results. Choices: true, false
+eseries_firmware_ignore_mel_events: false   # Forces firmware upgrade to be attempted regardless of the health check results. Choices: true, false
 
 # ASUP configuration defaults
 # ---------------------------

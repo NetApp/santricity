@@ -1,68 +1,56 @@
-
-- debug:
-    msg: |-
-      {%- if eseries_api_is_proxy %}
-      {{ eseries_api_password }}
-      {%- else %}
-      {{ eseries_system_user_authentication['admin'] | default(eseries_system_default_admin_pass) }}
-      {%- endif %}
-  tags:
-    - authentication
-    - admin_authentication
-
-- name: Ensure storage array has the correct authentication
-  block:
-    - name: Ensure storage array has the admin user passwords
-      na_santricity_auth:
-        ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
-        api_username: "{{ eseries_api_username }}"
-        api_password: |-
-          {%- if eseries_api_is_proxy %}
-          {{ eseries_api_password }}
-          {%- else %}
-          {{ eseries_system_user_authentication['admin'] | default(eseries_system_default_admin_pass) }}
-          {%- endif %}
-        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-        current_admin_password: "{{ eseries_system_user_authentication['admin'] | default(eseries_system_default_admin_pass) }}"
-        password: "{{ eseries_system_user_authentication['admin'] }}"
-        user: admin
-      when: eseries_system_user_authentication["admin"] is defined
-  rescue:
-    - name: Attempting to set the initial storage array user passwords
-      na_santricity_auth:
-        ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
-        api_username: "{{ eseries_api_username }}"
-        api_password: |-
-          {%- if eseries_api_is_proxy %}
-          {{ eseries_api_password }}
-          {%- else %}
-          {{ default(eseries_system_default_admin_pass) }}
-          {%- endif %}
-        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-        current_admin_password: "{{ eseries_system_default_admin_pass }}"
-        password: "{{ eseries_system_user_authentication['admin'] }}"
-        user: admin
-      when: eseries_system_user_authentication["admin"] is defined
-  tags:
-    - authentication
-    - admin_authentication
-
-- name: Ensure storage array has the non-admin user passwords
-  na_santricity_auth:
-    ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
-    api_username: "{{ eseries_api_username }}"
-    api_password: "{{ eseries_api_password }}"
-    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-    current_admin_password: "{{ eseries_system_user_authentication['admin'] | default(eseries_system_default_admin_pass) }}"
-    password: "{{ eseries_system_user_authentication[item] }}"
-    user: "{{ item }}"
-  when: eseries_system_user_authentication is defined and item != "admin"
-  loop: "{{ lookup('list', (eseries_system_user_authentication.keys() | list)) }}"
-  tags:
-    - authentication
+#- name: Ensure storage array has the correct authentication
+#  block:
+#    - name: Ensure storage array has the admin user passwords
+#      na_santricity_auth:
+#        ssid: "{{ eseries_ssid }}"
+#        api_url: "{{ eseries_api_url }}"
+#        api_username: "{{ eseries_api_username }}"
+#        api_password: |-
+#          {%- if eseries_api_is_proxy %}
+#          {{ eseries_api_password }}
+#          {%- else %}
+#          {{ eseries_system_user_authentication['admin'] | default(eseries_system_default_admin_pass) }}
+#          {%- endif %}
+#        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+#        current_admin_password: "{{ eseries_system_user_authentication['admin'] | default(eseries_system_default_admin_pass) }}"
+#        password: "{{ eseries_system_user_authentication['admin'] }}"
+#        user: admin
+#      when: eseries_system_user_authentication["admin"] is defined
+#  rescue:
+#    - name: Attempting to set the initial storage array user passwords
+#      na_santricity_auth:
+#        ssid: "{{ eseries_ssid }}"
+#        api_url: "{{ eseries_api_url }}"
+#        api_username: "{{ eseries_api_username }}"
+#        api_password: |-
+#          {%- if eseries_api_is_proxy %}
+#          {{ eseries_api_password }}
+#          {%- else %}
+#          {{ default(eseries_system_default_admin_pass) }}
+#          {%- endif %}
+#        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+#        current_admin_password: "{{ eseries_system_default_admin_pass }}"
+#        password: "{{ eseries_system_user_authentication['admin'] }}"
+#        user: admin
+#      when: eseries_system_user_authentication["admin"] is defined
+#  tags:
+#    - authentication
+#    - admin_authentication
+#
+#- name: Ensure storage array has the non-admin user passwords
+#  na_santricity_auth:
+#    ssid: "{{ eseries_ssid }}"
+#    api_url: "{{ eseries_api_url }}"
+#    api_username: "{{ eseries_api_username }}"
+#    api_password: "{{ eseries_api_password }}"
+#    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+#    current_admin_password: "{{ eseries_system_user_authentication['admin'] | default(eseries_system_default_admin_pass) }}"
+#    password: "{{ eseries_system_user_authentication[item] }}"
+#    user: "{{ item }}"
+#  when: eseries_system_user_authentication is defined and item != "admin"
+#  loop: "{{ lookup('list', (eseries_system_user_authentication.keys() | list)) }}"
+#  tags:
+#    - authentication
 
 - name: Ensure storage array has the correct array globals
   na_santricity_global:
@@ -144,6 +132,9 @@
   loop_control:
     index_var: index
   when: eseries_management_interfaces['controller_a'] is defined
+  tags:
+    - management
+
 - name: Ensure controller B management interfaces have been configure
   na_santricity_mgmt_interface:
     ssid: "{{ eseries_ssid }}"
@@ -168,6 +159,8 @@
   loop_control:
     index_var: index
   when: eseries_management_interfaces['controller_b'] is defined
+  tags:
+    - management
 
 #- name: Ensure management interfaces are properly configured
 #  block:

@@ -23,11 +23,11 @@
   when: eseries_api_is_proxy
   ignore_errors: true
 
-- name: Collect storage system facts
-  import_tasks: facts.yml
-  delegate_to: localhost
-  tags:
-    - always
+#- name: Collect storage system facts
+#  import_tasks: facts.yml
+#  delegate_to: localhost
+#  tags:
+#    - always
 
 - name: Ensure logging has been configured
   import_tasks: logging.yml

@@ -1,3 +1,52 @@
+- name: Collect firmware file lists
+  set_fact:
+    eseries_proxy_drive_firmware: |-
+      {%- set drive_firmware = [] %}
+      {%- for host in ansible_play_hosts_all %}
+        {%- if "eseries_drive_firmware_firmware_list" in hostvars[host] %}
+          {%- if drive_firmware.extend(hostvars[host]["eseries_drive_firmware_firmware_list"]) %}{%- endif %}
+        {%- endif %}
+      {%- endfor %}
+      {{ drive_firmware | list }}
+    eseries_proxy_nvsram: |-
+      {%- set nvsram = [] %}
+      {%- for host in ansible_play_hosts_all %}
+        {%- if "eseries_firmware_nvsram" in hostvars[host] %}
+          {%- if nvsram.append(hostvars[host]["eseries_firmware_nvsram"]) %}{%- endif %}
+        {%- endif %}
+      {%- endfor %}
+      {{ nvsram | list }}
+    eseries_proxy_firmware: |-
+      {%- set firmware = [] %}
+      {%- for host in ansible_play_hosts_all %}
+        {%- if "eseries_firmware_firmware" in hostvars[host] %}
+          {%- if firmware.append(hostvars[host]["eseries_firmware_firmware"]) %}{%- endif %}
+        {%- endif %}
+      {%- endfor %}
+      {{ firmware | list }}
+  run_once: true
+
+- name: Drive firmware upload
+  na_santricity_proxy_drive_firmware_upload:
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    firmware: "{{ eseries_proxy_drive_firmware | default(omit) }}"
+  run_once: true
+  when: eseries_api_is_proxy
+
+- name: Firmware upload
+  na_santricity_proxy_firmware_upload:
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    nvsram: "{{ eseries_proxy_nvsram | default(omit) }}"
+    firmware: "{{ eseries_proxy_firmware | default(omit) }}"
+  run_once: true
+  when: eseries_api_is_proxy
+
 - name: Ensure drive firmware is properly configured
   na_santricity_drive_firmware:
     ssid: "{{ eseries_ssid }}"
@@ -24,7 +73,7 @@
     nvsram: "{{ eseries_firmware_nvsram | default('') }}"
     firmware: "{{ eseries_firmware_firmware | default('') }}"
     wait_for_completion: "{{ eseries_firmware_wait_for_completion | default(true) }}"
-    ignore_health_check: "{{ eseries_firmware_ignore_health_check | default(omit) }}"
+    ignore_mel_events: "{{ eseries_firmware_ignore_mel_events | default(omit) }}"
   when: eseries_firmware_nvsram is defined or eseries_firmware_firmware is defined
   tags:
     - firmware
