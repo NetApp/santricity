@@ -21,25 +21,13 @@ author: Nathan Swartz (@ndswartz)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
-  state:
-    description:
-      - Dictates whether remote server certificates should be added to the storage array.
-    required: true
-    choices: ["present", "absent"]
-  alias:
-    description:
-      - Alias for the supplied remote server certificate
-      - A randomly generated alias will be used when an alias is not given.
-      - This option may not be available in older versions of NetApp E-Series web services.
-    required: false
   certificates:
     description:
       - List of certificate files
       - Each item must include the path to the file
     required: false
 note:
-  - When I(state=="absent") either I(alias) or I(file_path) must be specified.
-  - Use M(ssid=0) to specifically reference SANtricity Web Services Proxy.
+  - Use M(ssid=0) or M(ssid=PROXY) to specifically reference SANtricity Web Services Proxy.
 '''
 EXAMPLES = '''
 '''
@@ -76,7 +64,7 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
 
         # Check whether request needs to be forwarded on to the controller web services rest api.
         self.url_path_prefix = ""
-        if not self.is_embedded() and self.ssid != 0:
+        if self.is_proxy() and self.ssid != "0" and self.ssid != "PROXY":
             self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid
 
         self.remove_certificates = list()
@@ -84,10 +72,49 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
         self.certificate_fingerprint_cache = None
         self.certificate_info_cache = None
 
-    def determine_changes(self):
-        """Search for remote server certificate that goes by the alias or has a matching fingerprint.
+    def certificate_info(self, path):
+        """Determine the pertinent certificate information: alias, subjectDN, issuerDN, start and expire.
 
-        :returns dict: dictionary containing information about the certificate."""
+        Note: Use only when certificate/remote-server endpoints do not exist. Used to identify certificates through
+        the sslconfig/ca endpoint.
+        """
+        certificate = None
+        with open(path, "rb") as fh:
+            data = fh.read()
+            try:
+                certificate = x509.load_pem_x509_certificate(data, default_backend())
+            except Exception as error:
+                try:
+                    certificate = x509.load_der_x509_certificate(data, default_backend())
+                except Exception as error:
+                    self.module.fail_json(msg="Failed to load certificate. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+        if not isinstance(certificate, x509.Certificate):
+            self.module.fail_json(msg="Failed to open certificate file or invalid certificate object type. Array [%s]." % self.ssid)
+
+        return dict(start_date=certificate.not_valid_before,
+                    expire_date=certificate.not_valid_after,
+                    subject_dn=[attr.value for attr in certificate.subject],
+                    issuer_dn=[attr.value for attr in certificate.issuer])
+
+    def certificate_fingerprint(self, path):
+        """Load x509 certificate that is either encoded DER or PEM encoding and return the certificate fingerprint."""
+        certificate = None
+        with open(path, "rb") as fh:
+            data = fh.read()
+            try:
+                certificate = x509.load_pem_x509_certificate(data, default_backend())
+            except Exception as error:
+                try:
+                    certificate = x509.load_der_x509_certificate(data, default_backend())
+                except Exception as error:
+                    self.module.fail_json(msg="Failed to determine certificate fingerprint. File [%s]. Array [%s]. Error [%s]."
+                                              % (path, self.ssid, to_native(error)))
+
+        return binascii.hexlify(certificate.fingerprint(certificate.signature_hash_algorithm)).decode("utf-8")
+
+    def determine_changes(self):
+        """Search for remote server certificate that goes by the alias or has a matching fingerprint."""
         rc, current_certificates = self.request(self.url_path_prefix + "certificates/remote-server", ignore_errors=True)
 
         if rc == 404:   # system down or endpoint does not exist
@@ -106,7 +133,6 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
                                issuer_dn=[re.sub(r".*=", "", item) for item in current_certificate["issuerDN"].split(", ")],
                                start_date=datetime.strptime(current_certificate["start"].split(".")[0], "%Y-%m-%dT%H:%M:%S"),
                                expire_date=datetime.strptime(current_certificate["expire"].split(".")[0], "%Y-%m-%dT%H:%M:%S"))
-
                     if (all([attr in info["subject_dn"] for attr in tmp["subject_dn"]]) and
                             all([attr in info["issuer_dn"] for attr in tmp["issuer_dn"]]) and
                             tmp["start_date"] == info["start_date"] and
@@ -133,58 +159,15 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
                     self.add_certificates.append(path)
             self.remove_certificates = [certificate for certificate in user_installed_certificates if certificate not in existing_certificates]
 
-    def certificate_info(self, path):
-        """Determine the pertinent certificate information: alias, subjectDN, issuerDN, start and expire.
-
-        Note: Use only when certificate/remote-server endpoints do not exist. Used to identify certificates through
-        the sslconfig/ca endpoint.
-        """
-        certificate = None
-        with open(path, "rb") as fh:
-            data = fh.read()
-            try:
-                certificate = x509.load_pem_x509_certificate(data, default_backend())
-            except Exception as error:
-                try:
-                    certificate = x509.load_der_x509_certificate(data, default_backend())
-                    pass
-                except Exception as error:
-                    self.module.fail_json(msg="Failed to load certificate. Array [%s]. Error [%s]."
-                                              % (self.ssid, to_native(error)))
-
-        if not isinstance(certificate, x509.Certificate):
-            self.module.fail_json(msg="Failed to open certificate file or invalid certificate object type. Array [%s]." % self.ssid)
-
-        return dict(start_date=certificate.not_valid_before,
-                    expire_date=certificate.not_valid_after,
-                    subject_dn=[attr.value for attr in certificate.subject],
-                    issuer_dn=[attr.value for attr in certificate.issuer])
-
-    def certificate_fingerprint(self, path):
-        """Load x509 certificate that is either encoded DER or PEM encoding and return the certificate fingerprint."""
-        certificate = None
-        with open(path, "rb") as fh:
-            data = fh.read()
-            try:
-                certificate = x509.load_pem_x509_certificate(data, default_backend())
-            except Exception as error:
-                try:
-                    certificate = x509.load_der_x509_certificate(data, default_backend())
-                except Exception as error:
-                    self.module.fail_json(msg="Failed to determine certificate fingerprint. File [%s]. Array [%s]. Error [%s]."
-                                              % (path, self.ssid, to_native(error)))
-
-        return binascii.hexlify(certificate.fingerprint(certificate.signature_hash_algorithm)).decode("utf-8")
-
     def upload_certificate(self, path):
         """Add or update remote server certificate to the storage array."""
         file_name = os.path.basename(path)
         headers, data = create_multipart_formdata(files=[("file", file_name, path)])
 
         rc, resp = self.request(self.url_path_prefix + "certificates/remote-server", method="POST", headers=headers, data=data, ignore_errors=True)
-
         if rc == 404:
             rc, resp = self.request(self.url_path_prefix + "sslconfig/ca?useTruststore=true", method="POST", headers=headers, data=data, ignore_errors=True)
+
         if rc > 299:
             self.module.fail_json(msg="Failed to upload certificate. Array [%s]. Error [%s, %s]." % (self.ssid, rc, resp))
 
@@ -216,10 +199,6 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
         self.module.exit_json(changed=changed, removed_certificates=self.remove_certificates, add_certificates=self.add_certificates)
 
 
-def main():
+if __name__ == '__main__':
     client_certs = NetAppESeriesClientCertificate()
     client_certs.apply()
-
-
-if __name__ == '__main__':
-    main()
