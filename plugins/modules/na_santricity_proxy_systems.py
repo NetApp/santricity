@@ -566,6 +566,11 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
         if set_password:
             self.set_system_password(system)
 
+        try:
+            rc, response = self.request("storage-systems/%s/validatePassword" % system["ssid"], method="POST", data=body)
+        except Exception as error:
+            self.module.warn("Password failed to be validated. Array [%s]." % system["ssid"])
+
     def update_system(self, system):
         """Update storage system configuration."""
         if not system["password_set"] and system["password"]:
@@ -608,7 +613,6 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
         # Determine whether the storage system requires updating
         thread_pool = []
         for system in self.systems:
-            # self.module.fail_json(msg="%s" % system)
             if not system["failed"]:
                 thread = threading.Thread(target=self.update_system_changes, args=(system,))
                 thread_pool.append(thread)
