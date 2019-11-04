@@ -273,43 +273,82 @@ class NetAppESeriesModule(object):
 
         return self.is_proxy_used_cache
 
-    def request(self, path, rest_api_path=DEFAULT_REST_API_PATH, data=None, method='GET', headers=None, ignore_errors=False, timeout=None,
-                force_basic_auth=True):
+    def request(self, path, rest_api_path=DEFAULT_REST_API_PATH, rest_api_url=None, data=None, method='GET', headers=None, ignore_errors=False, timeout=None,
+                force_basic_auth=True, log_request=None):
         """Issue an HTTP request to a url, retrieving an optional JSON response.
 
         :param str path: web services rest api endpoint path (Example: storage-systems/1/graph). Note that when the
         full url path is specified then that will be used without supplying the protocol, hostname, port and rest path.
         :param str rest_api_path: override the class DEFAULT_REST_API_PATH which is used to build the request URL.
+        :param str rest_api_url: override the class url member which contains the base url for web services.
         :param data: data required for the request (data may be json or any python structured data)
         :param str method: request method such as GET, POST, DELETE.
         :param dict headers: dictionary containing request headers.
         :param bool ignore_errors: forces the request to ignore any raised exceptions.
         :param int timeout: duration of seconds before request finally times out.
         :param bool force_basic_auth: Ensure that basic authentication is being used.
+        :param bool log_request: Log the request and response
         """
         self._check_web_services_version()
 
+        if rest_api_url is None:
+            rest_api_url = self.url
         if headers is None:
             headers = self.DEFAULT_HEADERS
         if timeout is None:
             timeout = self.DEFAULT_TIMEOUT
+        if log_request is None:
+            log_request = self.log_requests
 
         if not isinstance(data, str) and "Content-Type" in headers and headers["Content-Type"] == "application/json":
             data = json.dumps(data)
 
         if path.startswith("/"):
             path = path[1:]
-        request_url = self.url + rest_api_path + path
+        request_url = rest_api_url + rest_api_path + path
 
-        if self.log_requests:
+        if log_request:
             self.module.log(pformat(dict(url=request_url, data=data, method=method, headers=headers)))
 
-        response = request(url=request_url, data=data, method=method, headers=headers, last_mod_time=None, timeout=timeout,
-                           http_agent=self.HTTP_AGENT, force_basic_auth=force_basic_auth, ignore_errors=ignore_errors, **self.creds)
-
-        if self.log_requests:
+        response = self._request(url=request_url, data=data, method=method, headers=headers, last_mod_time=None, timeout=timeout,
+                                 http_agent=self.HTTP_AGENT, force_basic_auth=force_basic_auth, ignore_errors=ignore_errors, **self.creds)
+        if log_request:
             self.module.log(pformat(response))
+
         return response
+
+    def _request(self, url, data=None, headers=None, method='GET', use_proxy=True, force=False, last_mod_time=None, timeout=10, validate_certs=True,
+                 url_username=None, url_password=None, http_agent=None, force_basic_auth=True, ignore_errors=False):
+        """Issue an HTTP request to a url, retrieving an optional JSON response."""
+
+        if headers is None:
+            headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        headers.update({"netapp-client-type": "Ansible-%s" % ansible_version})
+
+        if not http_agent:
+            http_agent = "Ansible / %s" % ansible_version
+
+        try:
+            r = open_url(url=url, data=data, headers=headers, method=method, use_proxy=use_proxy, force=force, last_mod_time=last_mod_time, timeout=timeout,
+                         validate_certs=validate_certs, url_username=url_username, url_password=url_password, http_agent=http_agent,
+                         force_basic_auth=force_basic_auth)
+            rc = r.getcode()
+            response = r.read()
+            if response:
+                response = json.loads(response)
+
+        except HTTPError as error:
+            rc = error.code
+            response = error.fp.read()
+            try:
+                response = json.loads(response)
+            except Exception:
+                pass
+
+            if not ignore_errors:
+                raise Exception(rc, response)
+
+        return rc, response
 
 
 def create_multipart_formdata(files, fields=None, send_8kb=False):
