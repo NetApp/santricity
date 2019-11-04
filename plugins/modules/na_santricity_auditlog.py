@@ -65,7 +65,6 @@ EXAMPLES = """
     api_username: "admin"
     api_password: "adminpass"
     validate_certs: true
-    validate_certs: no
     max_records: 50000
     log_level: all
     full_policy: preventSystemAccess
@@ -112,11 +111,9 @@ class NetAppESeriesAuditLog(NetAppESeriesModule):
         if self.threshold < 60 or self.threshold > 90:
             self.module.fail_json(msg="Audit-log percent threshold must be between 60 and 90: [%s]" % self.threshold)
 
-        self.proxy_used = not self.is_embedded()
-
         # Append web services proxy forward end point.
         self.url_path_prefix = ""
-        if not self.is_embedded() and self.ssid != 0:
+        if not self.is_embedded() and self.ssid != "0" and self.ssid != "PROXY":
             self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid
 
     def get_configuration(self):
@@ -125,7 +122,7 @@ class NetAppESeriesAuditLog(NetAppESeriesModule):
         :returns: dictionary containing current audit-log configuration
         """
         try:
-            if self.proxy_used and self.ssid == 0:
+            if self.is_proxy() and (self.ssid == "0" or self.ssid == "PROXY"):
                 rc, data = self.request("audit-log/config")
             else:
                 rc, data = self.request(self.url_path_prefix + "storage-systems/1/audit-log/config")
@@ -156,7 +153,7 @@ class NetAppESeriesAuditLog(NetAppESeriesModule):
     def delete_log_messages(self):
         """Delete all audit-log messages."""
         try:
-            if self.proxy_used and self.ssid == 0:
+            if self.is_proxy() and (self.ssid == "0" or self.ssid == "PROXY"):
                 rc, result = self.request("audit-log?clearAll=True", method="DELETE")
             else:
                 rc, result = self.request(self.url_path_prefix + "storage-systems/1/audit-log?clearAll=True", method="DELETE")
@@ -170,8 +167,8 @@ class NetAppESeriesAuditLog(NetAppESeriesModule):
 
         if update and not self.module.check_mode:
             try:
-                if self.proxy_used and self.ssid == 0:
-                    rc, result = self.request("storage-systems/audit-log/config", data=json.dumps(body), method='POST', ignore_errors=True)
+                if self.is_proxy() and (self.ssid == "0" or self.ssid == "PROXY"):
+                    rc, result = self.request("audit-log/config", data=json.dumps(body), method='POST', ignore_errors=True)
                 else:
                     rc, result = self.request(self.url_path_prefix + "storage-systems/1/audit-log/config",
                                               data=json.dumps(body), method='POST', ignore_errors=True)
