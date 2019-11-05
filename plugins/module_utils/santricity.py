@@ -317,7 +317,8 @@ class NetAppESeriesModule(object):
 
         return response
 
-    def _request(self, url, data=None, headers=None, method='GET', use_proxy=True, force=False, last_mod_time=None, timeout=10, validate_certs=True,
+    @staticmethod
+    def _request(url, data=None, headers=None, method='GET', use_proxy=True, force=False, last_mod_time=None, timeout=10, validate_certs=True,
                  url_username=None, url_password=None, http_agent=None, force_basic_auth=True, ignore_errors=False):
         """Issue an HTTP request to a url, retrieving an optional JSON response."""
 
