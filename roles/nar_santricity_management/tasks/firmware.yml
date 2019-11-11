@@ -1,4 +1,4 @@
-- name: Collect firmware file lists
+- name: Collect expected firmware file lists
   set_fact:
     eseries_proxy_drive_firmware: |-
       {%- set drive_firmware = [] %}
@@ -26,7 +26,7 @@
       {{ firmware | list }}
   run_once: true
 
-- name: Drive firmware upload
+- name: Ensure SANtricity Web Services has the expected drive firmware
   na_santricity_proxy_drive_firmware_upload:
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
@@ -36,7 +36,7 @@
   run_once: true
   when: eseries_api_is_proxy
 
-- name: Firmware upload
+- name: Ensure SANtricity Web Services has the expected controller firmware and NVSRAM
   na_santricity_proxy_firmware_upload:
     api_url: "{{ eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
