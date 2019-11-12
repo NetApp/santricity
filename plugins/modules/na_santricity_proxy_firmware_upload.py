@@ -13,8 +13,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = """
 ---
-module: v
-version_added: "2.9"
+module: na_santricity_proxy_firmware_upload
 short_description: NetApp E-Series manage proxy firmware uploads.
 description:
     - Ensure specific firmware versions are available on SANtricity Web Services Proxy.
@@ -23,24 +22,12 @@ author:
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_proxy_doc
 options:
-    nvsram:
-        description:
-            - List of paths for the NVSRAM files.
-            - All NVSRAM files that are not specified will be removed from the proxy if they exist.
-        type: list
-        required: false
     firmware:
         description:
-            - List of paths for the firmware files.
-            - All firmware files that are not specified will be removed from the proxy if they exist.
+            - List of paths and/or directories containing firmware/NVSRAM files.
+            - All firmware/NVSRAM files that are not specified will be removed from the proxy if they exist.
         type: list
         required: false
-    remove_unlisted_files:
-        description:
-            - Remove all unspecified firmware or NVSRAM files
-        type: bool
-        required: false
-        default: true
 """
 EXAMPLES = """
 - name: Ensure proxy has the expected firmware versions.
@@ -49,12 +36,10 @@ EXAMPLES = """
     api_username: "admin"
     api_password: "adminpass"
     validate_certs: true
-    nvsram:
-      - "path/to/nvsram1"
-      - "path/to/nvsram2"
     firmware:
-      - "path/to/firmware1"
-      - "path/to/firmware2"
+      - "path/to/firmware/dlp_files"
+      - "path/to/nvsram.dlp"
+      - "path/to/firmware.dlp"
 """
 RETURN = """
 msg:
@@ -69,42 +54,38 @@ from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santrici
 
 
 class NetAppESeriesProxyFirmwareUpload(NetAppESeriesModule):
-    HEALTH_CHECK_TIMEOUT_MS = 120
-    COMPATIBILITY_CHECK_TIMEOUT_SEC = 60
-    DEFAULT_TIMEOUT = 60 * 15       # This will override the NetAppESeriesModule request method timeout.
-    REBOOT_TIMEOUT_SEC = 15 * 60
-
     def __init__(self):
-        ansible_options = dict(
-            nvsram=dict(type="list", required=False),
-            firmware=dict(type="list", required=False),
-            remove_unlisted_files=dict(type="bool", required=False, default=True))
-
+        ansible_options = dict(firmware=dict(type="list", required=False))
         super(NetAppESeriesProxyFirmwareUpload, self).__init__(ansible_options=ansible_options,
                                                                web_services_version="02.00.0000.0000",
                                                                supports_check_mode=True)
 
         args = self.module.params
-        self.remove_unlisted_files = args["remove_unlisted_files"]
-        self.files = {}
-        if args["nvsram"]:
-            for nvsram in args["nvsram"]:
-                path = nvsram
-                name = os.path.basename(nvsram)
-                if not os.path.exists(path) or os.path.isdir(path):
-                    self.module.fail_json(msg="NVSRAM file does not exist! File [%s]." % path)
-                self.files.update({name: path})
-        if args["firmware"]:
-            for firmware in args["firmware"]:
-                path = firmware
-                name = os.path.basename(firmware)
-                if not os.path.exists(path) or os.path.isdir(path):
-                    self.module.fail_json(msg="Firmware file does not exist! File [%s]." % path)
-                self.files.update({name: path})
-
+        self.firmware = args["firmware"]
+        
+        self.files = None
         self.add_files = []
         self.remove_files = []
         self.upload_failures = []
+
+    def determine_file_paths(self):
+        """Determine all the drive firmware file paths."""
+        self.files = {}
+        if self.firmware:
+            for firmware_path in self.firmware:
+
+                if not os.path.exists(firmware_path):
+                    self.module.fail_json(msg="Drive firmware file does not exist! File [%s]" % firmware_path)
+                elif os.path.isdir(firmware_path):
+                    if not firmware_path.endswith("/"):
+                        firmware_path = firmware_path + "/"
+
+                    for dir_filename in os.listdir(firmware_path):
+                        if ".dlp" in dir_filename:
+                            self.files.update({dir_filename: firmware_path + dir_filename})
+                elif ".dlp" in firmware_path:
+                    name = os.path.basename(firmware_path)
+                    self.files.update({name: firmware_path})
 
     def determine_changes(self):
         """Determine whether files need to be added or removed."""
@@ -112,55 +93,55 @@ class NetAppESeriesProxyFirmwareUpload(NetAppESeriesModule):
             rc, results = self.request("firmware/cfw-files")
             current_files = [result["filename"] for result in results]
 
-            # Populate remove file list
-            if self.remove_unlisted_files:
-                for current_file in current_files:
-                    if current_file not in self.files.keys():
-                        self.remove_files.append(current_file)
+            for current_file in current_files:
+                if current_file not in self.files.keys():
+                    self.remove_files.append(current_file)
 
-            # Populate add file list
             for expected_file in self.files.keys():
                 if expected_file not in current_files:
                     self.add_files.append(expected_file)
-
         except Exception as error:
             self.module.fail_json(msg="Failed to retrieve current firmware file listing.")
 
-    def upload_file(self, filename):
+    def upload_files(self):
         """Upload firmware and nvsram file."""
-        fields = [("validate", "true")]
-        files = [("firmwareFile", filename, self.files[filename])]
-        headers, data = create_multipart_formdata(files=files, fields=fields)
-        try:
-            rc, response = self.request("firmware/upload/", method="POST", data=data, headers=headers)
-        except Exception as error:
-            self.upload_failures.append(filename)
-            self.module.warn(msg="Failed to upload firmware file. File [%s]" % filename)
+        for filename in self.add_files:
+            fields = [("validate", "true")]
+            files = [("firmwareFile", filename, self.files[filename])]
+            headers, data = create_multipart_formdata(files=files, fields=fields)
+            try:
+                rc, response = self.request("firmware/upload/", method="POST", data=data, headers=headers)
+            except Exception as error:
+                self.upload_failures.append(filename)
+                self.module.warn(msg="Failed to upload firmware file. File [%s]" % filename)
 
-    def remove_file(self, filename):
+    def delete_files(self):
         """Remove firmware and nvsram file."""
-        try:
-            rc, response = self.request("firmware/upload/%s" % filename, method="DELETE")
-        except Exception as error:
-            self.upload_failures.append(filename)
-            self.module.warn(msg="Failed to delete firmware file. File [%s]" % filename)
+        for filename in self.remove_files:
+            try:
+                rc, response = self.request("firmware/upload/%s" % filename, method="DELETE")
+            except Exception as error:
+                self.upload_failures.append(filename)
+                self.module.warn(msg="Failed to delete firmware file. File [%s]" % filename)
 
     def apply(self):
         """Upgrade controller firmware."""
         change_required = False
         if not self.is_proxy():
             self.module.fail_json(msg="Module can only be executed against SANtricity Web Services Proxy.")
-        
+
+        self.determine_file_paths()
         self.determine_changes()
         if self.add_files or self.remove_files:
             change_required = True
 
         if change_required and not self.module.check_mode:
-            for filename in self.add_files:
-                self.upload_file(filename)
-            for filename in self.remove_files:
-                self.remove_file(filename)
+            self.upload_files()
+            self.delete_files()
 
+        if self.upload_failures:
+            self.module.fail_json(msg="Some file failed to be uploaded! changed=%s, Files_added [%s]. Files_removed [%s]. Upload_failures [%s]"
+                                      % (change_required, self.add_files, self.remove_files, self.upload_failures))
         self.module.exit_json(changed=change_required, files_added=self.add_files, files_removed=self.remove_files)
 
 
