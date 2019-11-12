@@ -2,7 +2,7 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 
-from ansible.modules.storage.netapp.netapp_e_global import GlobalSettings
+from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_global import NetAppESeriesGlobalSettings
 from units.modules.utils import AnsibleFailJson, ModuleTestCase, set_module_args
 
 __metaclass__ = type
@@ -16,7 +16,7 @@ class GlobalSettingsTest(ModuleTestCase):
         'api_url': 'http://localhost',
         'ssid': '1',
     }
-    REQ_FUNC = 'ansible.modules.storage.netapp.netapp_e_global.request'
+    REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_global.request'
 
     def _set_args(self, args=None):
         module_args = self.REQUIRED_PARAMS.copy()
@@ -29,7 +29,7 @@ class GlobalSettingsTest(ModuleTestCase):
         self._set_args(dict(name="x"))
 
         expected = dict(name='y', status='online')
-        namer = GlobalSettings()
+        namer = NetAppESeriesGlobalSettings()
         # Expecting an update
         with mock.patch(self.REQ_FUNC, return_value=(200, expected)) as req:
             with mock.patch.object(namer, 'get_name', return_value='y'):
@@ -54,7 +54,7 @@ class GlobalSettingsTest(ModuleTestCase):
         self._set_args()
 
         expected = dict(name='y', status='online')
-        namer = GlobalSettings()
+        namer = NetAppESeriesGlobalSettings()
 
         with mock.patch(self.REQ_FUNC, return_value=(200, expected)) as req:
             name = namer.get_name()
@@ -65,7 +65,7 @@ class GlobalSettingsTest(ModuleTestCase):
         self._set_args()
 
         expected = dict(name='y', status='offline')
-        namer = GlobalSettings()
+        namer = NetAppESeriesGlobalSettings()
 
         with self.assertRaises(AnsibleFailJson):
             with mock.patch(self.REQ_FUNC, side_effect=Exception()) as req:
