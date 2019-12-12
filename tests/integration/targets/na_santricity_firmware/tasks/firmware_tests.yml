@@ -41,7 +41,7 @@
     nvsram: "{{ path }}{{ upgrades[0]['nvsram'] }}"
     firmware: "{{ path }}{{ upgrades[0]['firmware'] }}"
     wait_for_completion: true
-    ignore_mel_events: true
+    clear_mel_events: true
   check_mode: true
   register: results
 - name: Retrieve current firmware version
@@ -77,7 +77,7 @@
     nvsram: "{{ path }}{{ upgrades[0]['nvsram'] }}"
     firmware: "{{ path }}{{ upgrades[0]['firmware'] }}"
     wait_for_completion: true
-    ignore_mel_events: true
+    clear_mel_events: true
   register: results
 - name: Retrieve current firmware version
   uri:
@@ -112,7 +112,7 @@
     nvsram: "{{ path }}{{ upgrades[1]['nvsram'] }}"
     firmware: "{{ path }}{{ upgrades[1]['firmware'] }}"
     wait_for_completion: true
-    ignore_mel_events: true
+    clear_mel_events: true
   register: results
   check_mode: true
 - name: Retrieve current firmware version
@@ -148,7 +148,7 @@
     nvsram: "{{ path }}{{ upgrades[1]['nvsram'] }}"
     firmware: "{{ path }}{{ upgrades[1]['firmware'] }}"
     wait_for_completion: true
-    ignore_mel_events: true
+    clear_mel_events: true
   register: results
 - name: Retrieve current firmware version
   uri:
@@ -183,9 +183,8 @@
     nvsram: "{{ path }}{{ upgrades[0]['nvsram'] }}"
     firmware: "{{ path }}{{ upgrades[0]['firmware'] }}"
     wait_for_completion: true
-    ignore_mel_events: true
+    clear_mel_events: true
   register: results
-  debugger: true
 - name: Retrieve current firmware version
   uri:
     url: "{{ proxy_base_url }}storage-systems/{{ proxy_ssid }}/graph/xpath-filter?query=/sa/saData/fwVersion"
@@ -219,7 +218,7 @@
     nvsram: "{{ path }}{{ upgrades[0]['nvsram'] }}"
     firmware: "{{ path }}{{ upgrades[0]['firmware'] }}"
     wait_for_completion: true
-    ignore_mel_events: true
+    clear_mel_events: true
   check_mode: true
   register: results
 - name: Retrieve current firmware version
@@ -255,7 +254,7 @@
     nvsram: "{{ path }}{{ upgrades[2]['nvsram'] }}"
     firmware: "{{ path }}{{ upgrades[2]['firmware'] }}"
     wait_for_completion: true
-    ignore_mel_events: true
+    clear_mel_events: true
   check_mode: true
   register: results
 - name: Retrieve current firmware version
@@ -291,7 +290,7 @@
     nvsram: "{{ path }}{{ upgrades[2]['nvsram'] }}"
     firmware: "{{ path }}{{ upgrades[2]['firmware'] }}"
     wait_for_completion: true
-    ignore_mel_events: true
+    clear_mel_events: true
   register: results
 - name: Retrieve current firmware version
   uri:

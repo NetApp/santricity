@@ -25,13 +25,13 @@
         expected_firmware_version: "08.40.30.00"
         expected_nvsram_version: "N5600-840834-D03"
 
-#- name: Perform firmware upgrade using the Web Services Proxy (changed, firmware)
-#  na_santricity_firmware:
-#    <<: *proxy_creds
-#    nvsram: "{{ path }}{{ upgrades[1]['nvsram'] }}"
-#    firmware: "{{ path }}{{ upgrades[1]['firmware'] }}"
-#    wait_for_completion: true
-#    ignore_mel_events: true
+- name: Perform firmware upgrade using the Web Services Proxy (changed, firmware)
+  na_santricity_firmware:
+    <<: *proxy_creds
+    nvsram: "{{ path }}{{ upgrades[1]['nvsram'] }}"
+    firmware: "{{ path }}{{ upgrades[1]['firmware'] }}"
+    wait_for_completion: true
+    clear_mel_events: true
   register: results
 - name: Retrieve current firmware version
   uri:
@@ -62,7 +62,7 @@
     nvsram: "{{ path }}{{ upgrades[0]['nvsram'] }}"
     firmware: "{{ path }}{{ upgrades[0]['firmware'] }}"
     wait_for_completion: true
-    ignore_mel_events: true
+    clear_mel_events: true
   register: results
   check_mode: true
 - name: Retrieve current firmware version
@@ -98,7 +98,7 @@
     nvsram: "{{ path }}{{ upgrades[0]['nvsram'] }}"
     firmware: "{{ path }}{{ upgrades[0]['firmware'] }}"
     wait_for_completion: true
-    ignore_mel_events: true
+    clear_mel_events: true
   register: results
 - name: Retrieve current firmware version
   uri:
