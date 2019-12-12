@@ -164,7 +164,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             self.host_connectivity_reporting_enabled = True
 
         if self.autoload_enabled and not self.host_connectivity_reporting_enabled:
-            self.modulefail_json(msg="Option automatic_load_balancing requires host_connectivity_reporting to be enabled. Array [%s]." % self.ssid)
+            self.module.fail_json(msg="Option automatic_load_balancing requires host_connectivity_reporting to be enabled. Array [%s]." % self.ssid)
 
         self.current_configuration_cache = None
 
@@ -204,7 +204,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                 self.current_configuration_cache["host_connectivity_reporting_enabled"] = array_info["hostConnectivityReportingEnabled"]
                 self.current_configuration_cache["name"] = array_info['name']
             except Exception as error:
-                self.module.fail_json(msg="Failed to retrieve *. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to determine current configuration. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
         return self.current_configuration_cache
 
@@ -224,7 +224,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         if self.cache_flush_threshold is None:
             return False
 
-        if self.cache_flush_threshold < 0 or self.cache_flush_threshold > 100:
+        if self.cache_flush_threshold <= 0 or self.cache_flush_threshold >= 100:
             self.module.fail_json(msg="Invalid cache flushing threshold, it must be equal to or between 0 and 100. Array [%s]" % self.ssid)
 
         return self.cache_flush_threshold != self.get_current_configuration()["cache_settings"]["cache_flush_threshold"]
@@ -278,7 +278,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             return False
 
         if self.name and len(self.name) > 30:
-            self.module.fail_json(msg="The provided name is invalid, it must be < 30 characters in length. Array [%s]" % self.ssid)
+            self.module.fail_json(msg="The provided name is invalid, it must be less than or equal to 30 characters in length. Array [%s]" % self.ssid)
 
         return self.name != self.get_current_configuration()["name"]
 
@@ -329,7 +329,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         try:
             rc, result = self.request("storage-systems/%s/configuration" % self.ssid, method="POST", data={"name": self.name})
         except Exception as err:
-            self.module.fail_json(msg="We failed to set the storage array name! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to set the storage array name! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def update(self):
         """Ensure the storage array's global setting are correctly set."""
