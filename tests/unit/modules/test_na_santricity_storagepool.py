@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
-from ansible.modules.storage.netapp.netapp_e_storagepool import NetAppESeriesStoragePool
+from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_storagepool import NetAppESeriesStoragePool
 
 try:
     from unittest.mock import patch, PropertyMock
@@ -230,7 +230,6 @@ class StoragePoolTest(ModuleTestCase):
                                                                                   'protectionType': 'type2Protection'},
                     'rawCapacity': '300000000000', 'removed': False, 'status': 'optimal', 'uncertified': False,
                     'usableCapacity': '299463129088'}]
-
     RAID6_CANDIDATE_DRIVES = {"volumeCandidate": [
         {"raidLevel": "raid6", "trayLossProtection": False, "rawSize": "898389368832", "usableSize": "898388459520",
          "driveCount": 5, "freeExtentRef": "0000000000000000000000000000000000000000", "driveRefList": {
@@ -310,7 +309,6 @@ class StoragePoolTest(ModuleTestCase):
                                                "protectionType": "type2Protection"},
          "volumeCandidateData": {"type": "traditional", "diskPoolVolumeCandidateData": None},
          "driveBlockFormat": "allNative", "allocateReservedSpace": False, "securityLevel": "fde"}], "returnCode": "ok"}
-
     EXPANSION_DDP_DRIVES_LIST = ["010000005000C500551ED1FF0000000000000000", "010000005000C500551E7F2B0000000000000000",
                                  "010000005000C500551EC9270000000000000000", "010000005000C500551EC97F0000000000000000",
                                  "010000005000C500551ECBFF0000000000000000", "010000005000C500551E9ED30000000000000000",
@@ -371,12 +369,10 @@ class StoragePoolTest(ModuleTestCase):
          "trayLossProtection": False, "wastedCapacity": "0", "spindleSpeedMatch": True, "drawerLossProtection": False,
          "usableCapacity": "2994631290880", "driveBlockFormat": "allNative"}]}
 
-    REQUEST_FUNC = "ansible.modules.storage.netapp.netapp_e_storagepool.request"
-    NETAPP_REQUEST_FUNC = "ansible.module_utils.netapp.NetAppESeriesModule.request"
-    VALIDATE_FUNC = "ansible.modules.storage.netapp.netapp_e_storagepool.NetAppESeriesModule.validate_instance"
-
-    DRIVES_PROPERTY = "ansible.modules.storage.netapp.netapp_e_storagepool.NetAppESeriesStoragePool.drives"
-    STORAGE_POOL_PROPERTY = "ansible.modules.storage.netapp.netapp_e_storagepool.NetAppESeriesStoragePool.storage_pool"
+    REQUEST_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_storagepool.request"
+    NETAPP_REQUEST_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity.NetAppESeriesModule.request"
+    DRIVES_PROPERTY = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_storagepool.NetAppESeriesStoragePool.drives"
+    STORAGE_POOL_PROPERTY = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_storagepool.NetAppESeriesStoragePool.storage_pool"
 
     def _set_args(self, args=None):
         module_args = self.REQUIRED_PARAMS.copy()
