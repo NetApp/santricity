@@ -229,13 +229,13 @@ eseries_initiator_configuration:
   ib_iser:
     eseries_skip_port_task: False
     eseries_initiator_command:
-      linux: ""
+      linux: "cat /etc/iscsi/initiatorname.iscsi | grep iqn. | cut -d'=' -f 2 && iscsiadm -m iface | grep iqn. | cut -d',' -f 5 | sort | uniq"
       windows: ""   # add windows command for determining host iqn address(es)
   ib_srp:
     eseries_skip_port_task: True
     eseries_initiator_command:
-      linux: ""     # add linux command for determining host wwpn address(es)
-      windows: ""   # add windows command for determining host wwpn address(es)
+      linux: "ibstat -p"
+      windows: ""   # add windows command for determining host guid
   nvme:
     eseries_skip_port_task: False
     eseries_initiator_command:
