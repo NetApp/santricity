@@ -221,6 +221,9 @@ class NetAppESeriesHost(NetAppESeriesModule):
                 if re.match(r'^(0x)?[0-9a-f]{16}$', port['port'].replace(':', '')):
                     port['port'] = port['port'].replace(':', '').replace('0x', '')
 
+                    if port['type'] == "ib":
+                        port['port'] = "0" * (32 - len(port['port'])) + port['port']
+
     @property
     def default_host_type(self):
         """Return the default host type index."""

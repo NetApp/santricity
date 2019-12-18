@@ -88,7 +88,10 @@ class LookupModule(LookupBase):
                         for index, address in enumerate([base[:-1] + str(index) for base in interface["stdout_lines"] for index in range(8)]):
                             label = "%s_%s_%s" % (sanitized_hostname, protocol, index)
                             hosts["expected_hosts"][host]["ports"].append({"type": "sas", "label": label, "port": address})
-
+                    elif protocol == "ib_iser" or protocol == "ib_srp":
+                        for index, address in enumerate(interface["stdout_lines"]):
+                            label = "%s_%s_%s" % (sanitized_hostname, protocol, index)
+                            hosts["expected_hosts"][host]["ports"].append({"type": "ib", "label": label, "port": address})
                     else:
                         for index, address in enumerate(interface["stdout_lines"]):
                             label = "%s_%s_%s" % (sanitized_hostname, protocol, index)
