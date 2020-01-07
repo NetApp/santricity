@@ -175,7 +175,8 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
 
         super(NetAppESeriesProxySystems, self).__init__(ansible_options=ansible_options,
                                                         web_services_version=version,
-                                                        supports_check_mode=True)
+                                                        supports_check_mode=True,
+                                                        proxy_specific_task=True)
         args = self.module.params
         self.add_discovered_systems = args["add_discovered_systems"]
         self.subnet_mask = args["subnet_mask"]
