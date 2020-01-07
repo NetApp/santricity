@@ -16,7 +16,6 @@ DOCUMENTATION = """
 module: na_santricity_host
 short_description: NetApp E-Series manage eseries hosts
 description: Create, update, remove hosts on NetApp E-series storage arrays
-version_added: '2.2'
 author:
     - Kevin Hulquest (@hulquest)
     - Nathan Swartz (@ndswartz)
@@ -143,23 +142,18 @@ id:
     returned: on success when state=present
     type: str
     sample: 00000000600A098000AAC0C3003004700AD86A52
-    version_added: "2.6"
-
 ssid:
     description:
         - the unique identifer of the E-Series storage-system with the current api
     returned: on success
     type: str
     sample: 1
-    version_added: "2.6"
-
 api_url:
     description:
         - the url of the API that this request was proccessed by
     returned: on success
     type: str
     sample: https://webservices.example.com:8443
-    version_added: "2.6"
 """
 import re
 from pprint import pformat
@@ -387,6 +381,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
                     # Check if the port label is found in the port dict list of each host
                     if arg_port['label'] == port['label'] or arg_port['port'] == port['address']:
                         self.other_host = host
+
                         return True
         return False
 
@@ -444,7 +439,8 @@ class NetAppESeriesHost(NetAppESeriesModule):
 
     def build_success_payload(self, host=None):
         keys = ['id']
-        if host is not None:
+        if host:
+            self.module.log("%s" % host)
             result = dict((key, host[key]) for key in keys)
         else:
             result = dict()
