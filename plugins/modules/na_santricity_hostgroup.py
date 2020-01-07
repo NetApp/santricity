@@ -16,7 +16,6 @@ ANSIBLE_METADATA = {"metadata_version": "1.1",
 DOCUMENTATION = """
 ---
 module: na_santricity_hostgroup
-version_added: "2.2"
 short_description: NetApp E-Series manage array host groups
 author:
     - Kevin Hulquest (@hulquest)
@@ -26,10 +25,10 @@ extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
     state:
-        required: true
         description:
             - Whether the specified host group should exist or not.
         choices: ["present", "absent"]
+        default: present
     name:
         required: false
         description:
@@ -109,7 +108,7 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
     def __init__(self):
         version = "02.00.0000.0000"
         ansible_options = dict(
-            state=dict(required=True, choices=["present", "absent"], type="str"),
+            state=dict(choices=["present", "absent"], type="str", default="present"),
             name=dict(required=True, type="str"),
             hosts=dict(required=False, type="list"))
         super(NetAppESeriesHostGroup, self).__init__(ansible_options=ansible_options,
