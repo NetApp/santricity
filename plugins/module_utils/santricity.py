@@ -94,6 +94,7 @@ class NetAppESeriesModule(object):
     :param list(list) required_one_of: list containing list(s) of options for which at least one is required. (optional)
     :param list(list) required_together: list containing list(s) of options that are required together. (optional)
     :param bool log_requests: controls whether to log each request (default: True)
+    :param bool proxy_specific_task: controls whether ssid is a default option (default: False)
     """
     DEFAULT_TIMEOUT = 300
     DEFAULT_SECURE_PORT = "8443"
@@ -117,7 +118,8 @@ class NetAppESeriesModule(object):
             argument_spec = eseries_proxy_argument_spec()
         else:
             argument_spec = eseries_host_argument_spec()
-            argument_spec.update(ansible_options)
+
+        argument_spec.update(ansible_options)
 
         self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=supports_check_mode,
                                     mutually_exclusive=mutually_exclusive, required_if=required_if,
