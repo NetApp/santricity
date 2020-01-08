@@ -15,7 +15,7 @@ class IscsiInterfaceTest(ModuleTestCase):
         'api_url': 'http://localhost',
         'ssid': '1',
         'state': 'disabled',
-        'name': 1,
+        'channel': 1,
         'controller': 'A',
     }
     REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_iscsi_interface.NetAppESeriesIscsiInterface.request'
@@ -34,7 +34,7 @@ class IscsiInterfaceTest(ModuleTestCase):
                 for mtu in [1500, 2500, 9000]:
                     self._set_args(dict(
                         state='disabled',
-                        name=i,
+                        channel=i,
                         controller=controller,
                         mtu=mtu,
                     ))
@@ -46,7 +46,7 @@ class IscsiInterfaceTest(ModuleTestCase):
         # Currently a 'C' controller is invalid
         self._set_args(dict(
             state='disabled',
-            name=1,
+            channel=1,
             controller="C",
         ))
         with self.assertRaises(AnsibleFailJson) as result:
@@ -56,7 +56,7 @@ class IscsiInterfaceTest(ModuleTestCase):
         for mtu in [500, 1499, 9001]:
             self._set_args({
                 'state': 'disabled',
-                'name': 1,
+                'channel': 1,
                 'controller': 'A',
                 'mtu': mtu
             })

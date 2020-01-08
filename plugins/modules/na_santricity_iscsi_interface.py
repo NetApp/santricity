@@ -7,9 +7,9 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {"metadata_version": "1.1",
+                    "status": ["preview"],
+                    "supported_by": "community"}
 
 DOCUMENTATION = """
 ---
@@ -17,8 +17,8 @@ module: na_santricity_iscsi_interface
 short_description: NetApp E-Series manage iSCSI interface configuration
 description:
     - Configure settings of an E-Series iSCSI interface
-version_added: '2.7'
-author: Michael Price (@lmprice)
+author:
+    - Michael Price (@lmprice)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -29,20 +29,18 @@ options:
              the second as B, and so on.
             - Current hardware models have either 1 or 2 available controllers, but that is not a guaranteed hard
              limitation and could change in the future.
-        required: yes
+        required: true
         choices:
             - A
             - B
-    name:
+    channel:
         description:
             - The channel of the port to modify the configuration of.
             - The list of choices is not necessarily comprehensive. It depends on the number of ports
               that are available in the system.
             - The numerical value represents the number of the channel (typically from left to right on the HIC),
               beginning with a value of 1.
-        required: yes
-        aliases:
-            - channel
+        required: true
     state:
         description:
             - When enabled, the provided configuration will be utilized.
@@ -161,14 +159,14 @@ from ansible.module_utils._text import to_native
 
 class NetAppESeriesIscsiInterface(NetAppESeriesModule):
     def __init__(self):
-        ansible_options = dict(controller=dict(type='str', required=True, choices=['A', 'B']),
-                               name=dict(type='int', aliases=['channel']),
-                               state=dict(type='str', required=False, default='enabled', choices=['enabled', 'disabled']),
-                               address=dict(type='str', required=False),
-                               subnet_mask=dict(type='str', required=False),
-                               gateway=dict(type='str', required=False),
-                               config_method=dict(type='str', required=False, default='dhcp', choices=['dhcp', 'static']),
-                               mtu=dict(type='int', default=1500, required=False, aliases=['max_frame_size']))
+        ansible_options = dict(controller=dict(type="str", required=True, choices=["A", "B"]),
+                               channel=dict(type="int"),
+                               state=dict(type="str", required=False, default="enabled", choices=["enabled", "disabled"]),
+                               address=dict(type="str", required=False),
+                               subnet_mask=dict(type="str", required=False),
+                               gateway=dict(type="str", required=False),
+                               config_method=dict(type="str", required=False, default="dhcp", choices=["dhcp", "static"]),
+                               mtu=dict(type="int", default=1500, required=False, aliases=["max_frame_size"]))
 
         required_if = [["config_method", "static", ["address", "subnet_mask"]]]
         super(NetAppESeriesIscsiInterface, self).__init__(ansible_options=ansible_options,
@@ -177,14 +175,14 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
                                                           supports_check_mode=True)
 
         args = self.module.params
-        self.controller = args['controller']
-        self.name = args['name']
-        self.mtu = args['mtu']
-        self.state = args['state']
-        self.address = args['address']
-        self.subnet_mask = args['subnet_mask']
-        self.gateway = args['gateway']
-        self.config_method = args['config_method']
+        self.controller = args["controller"]
+        self.channel = args["channel"]
+        self.mtu = args["mtu"]
+        self.state = args["state"]
+        self.address = args["address"]
+        self.subnet_mask = args["subnet_mask"]
+        self.gateway = args["gateway"]
+        self.config_method = args["config_method"]
 
         self.check_mode = self.module.check_mode
         self.post_body = dict()
@@ -193,12 +191,12 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
         if self.mtu < 1500 or self.mtu > 9000:
             self.module.fail_json(msg="The provided mtu is invalid, it must be > 1500 and < 9000 bytes.")
 
-        if self.config_method == 'dhcp' and any([self.address, self.subnet_mask, self.gateway]):
-            self.module.fail_json(msg='A config_method of dhcp is mutually exclusive with the address,'
-                                      ' subnet_mask, and gateway options.')
+        if self.config_method == "dhcp" and any([self.address, self.subnet_mask, self.gateway]):
+            self.module.fail_json(msg="A config_method of dhcp is mutually exclusive with the address,"
+                                      " subnet_mask, and gateway options.")
 
         # A relatively primitive regex to validate that the input is formatted like a valid ip address
-        address_regex = re.compile(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}')
+        address_regex = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
 
         if self.address and not address_regex.match(self.address):
             self.module.fail_json(msg="An invalid ip address was provided for address.")
@@ -218,15 +216,15 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
             self.module.fail_json(msg="Failed to retrieve defined host interfaces. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         # Filter out non-iSCSI interfaces
-        ifaces = [iface['iscsi'] for iface in ifaces if iface['interfaceType'] == 'iscsi']
+        ifaces = [iface["iscsi"] for iface in ifaces if iface["interfaceType"] == "iscsi"]
 
         return ifaces
 
     def get_controllers(self):
         """Retrieve a mapping of controller labels to their references
         {
-            'A': '070000000000000000000001',
-            'B': '070000000000000000000002',
+            "A": "070000000000000000000001",
+            "B": "070000000000000000000002",
         }
         :return: the controllers defined on the system
         """
@@ -239,7 +237,7 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
         controllers.sort()
 
         controllers_dict = {}
-        i = ord('A')
+        i = ord("A")
         for controller in controllers:
             label = chr(i)
             controllers_dict[label] = controller
@@ -251,53 +249,53 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
         interfaces = self.interfaces
 
         for iface in interfaces:
-            if iface['channel'] == self.name and self.controllers[self.controller] == iface['controllerId']:
+            if iface["channel"] == self.channel and self.controllers[self.controller] == iface["controllerId"]:
                 return iface
 
-        channels = sorted(set((str(iface['channel'])) for iface in interfaces
-                              if self.controllers[self.controller] == iface['controllerId']))
+        channels = sorted(set((str(iface["channel"])) for iface in interfaces
+                              if self.controllers[self.controller] == iface["controllerId"]))
 
-        self.module.fail_json(msg="The requested channel of %s is not valid. Valid channels include: %s." % (self.name, ", ".join(channels)))
+        self.module.fail_json(msg="The requested channel of %s is not valid. Valid channels include: %s." % (self.channel, ", ".join(channels)))
 
     def make_update_body(self, target_iface):
-        body = dict(iscsiInterface=target_iface['id'])
+        body = dict(iscsiInterface=target_iface["id"])
         update_required = False
 
-        if self.state == 'enabled':
+        if self.state == "enabled":
             settings = dict()
-            if not target_iface['ipv4Enabled']:
+            if not target_iface["ipv4Enabled"]:
                 update_required = True
-                settings['ipv4Enabled'] = [True]
-            if self.mtu != target_iface['interfaceData']['ethernetData']['maximumFramePayloadSize']:
+                settings["ipv4Enabled"] = [True]
+            if self.mtu != target_iface["interfaceData"]["ethernetData"]["maximumFramePayloadSize"]:
                 update_required = True
-                settings['maximumFramePayloadSize'] = [self.mtu]
-            if self.config_method == 'static':
-                ipv4Data = target_iface['ipv4Data']['ipv4AddressData']
+                settings["maximumFramePayloadSize"] = [self.mtu]
+            if self.config_method == "static":
+                ipv4Data = target_iface["ipv4Data"]["ipv4AddressData"]
 
-                if ipv4Data['ipv4Address'] != self.address:
+                if ipv4Data["ipv4Address"] != self.address:
                     update_required = True
-                    settings['ipv4Address'] = [self.address]
-                if ipv4Data['ipv4SubnetMask'] != self.subnet_mask:
+                    settings["ipv4Address"] = [self.address]
+                if ipv4Data["ipv4SubnetMask"] != self.subnet_mask:
                     update_required = True
-                    settings['ipv4SubnetMask'] = [self.subnet_mask]
-                if self.gateway is not None and ipv4Data['ipv4GatewayAddress'] != self.gateway:
+                    settings["ipv4SubnetMask"] = [self.subnet_mask]
+                if self.gateway is not None and ipv4Data["ipv4GatewayAddress"] != self.gateway:
                     update_required = True
-                    settings['ipv4GatewayAddress'] = [self.gateway]
+                    settings["ipv4GatewayAddress"] = [self.gateway]
 
-                if target_iface['ipv4Data']['ipv4AddressConfigMethod'] != 'configStatic':
+                if target_iface["ipv4Data"]["ipv4AddressConfigMethod"] != "configStatic":
                     update_required = True
-                    settings['ipv4AddressConfigMethod'] = ['configStatic']
+                    settings["ipv4AddressConfigMethod"] = ["configStatic"]
 
-            elif target_iface['ipv4Data']['ipv4AddressConfigMethod'] != 'configDhcp':
+            elif target_iface["ipv4Data"]["ipv4AddressConfigMethod"] != "configDhcp":
                 update_required = True
                 settings.update(dict(ipv4Enabled=[True],
-                                     ipv4AddressConfigMethod=['configDhcp']))
-            body['settings'] = settings
+                                     ipv4AddressConfigMethod=["configDhcp"]))
+            body["settings"] = settings
 
         else:
-            if target_iface['ipv4Enabled']:
+            if target_iface["ipv4Enabled"]:
                 update_required = True
-                body['settings'] = dict(ipv4Enabled=[False])
+                body["settings"] = dict(ipv4Enabled=[False])
 
         return update_required, body
 
@@ -310,10 +308,10 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
         update_required, body = self.make_update_body(iface_before)
         if update_required and not self.check_mode:
             try:
-                rc, result = self.request("storage-systems/%s/symbol/setIscsiInterfaceProperties" % self.ssid, method='POST', data=body, ignore_errors=True)
+                rc, result = self.request("storage-systems/%s/symbol/setIscsiInterfaceProperties" % self.ssid, method="POST", data=body, ignore_errors=True)
                 # We could potentially retry this a few times, but it's probably a rare enough case (unless a playbook
                 #  is cancelled mid-flight), that it isn't worth the complexity.
-                if rc == 422 and result['retcode'] in ['busy', '3']:
+                if rc == 422 and result["retcode"] in ["busy", "3"]:
                     self.module.fail_json(msg="The interface is currently busy (probably processing a previously requested modification request)."
                                               " This operation cannot currently be completed. Array Id [%s]. Error [%s]." % (self.ssid, result))
                 # Handle authentication issues, etc.
@@ -325,9 +323,9 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
 
         iface_after = self.fetch_target_interface()
 
-        self.module.exit_json(msg="The interface settings have been updated.", changed=update_required, enabled=iface_after['ipv4Enabled'])
+        self.module.exit_json(msg="The interface settings have been updated.", changed=update_required, enabled=iface_after["ipv4Enabled"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     iface = NetAppESeriesIscsiInterface()
     iface.update()
