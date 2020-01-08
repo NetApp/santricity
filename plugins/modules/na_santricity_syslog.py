@@ -17,7 +17,6 @@ module: na_santricity_syslog
 short_description: NetApp E-Series manage syslog settings
 description:
     - Allow the syslog settings to be configured for an individual E-Series storage-system
-version_added: '2.7'
 author: Nathan Swartz (@ndswartz)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
