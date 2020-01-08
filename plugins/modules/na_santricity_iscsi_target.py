@@ -5,9 +5,9 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {"metadata_version": "1.1",
+                    "status": ["preview"],
+                    "supported_by": "community"}
 
 DOCUMENTATION = """
 ---
@@ -15,8 +15,8 @@ module: na_santricity_iscsi_target
 short_description: NetApp E-Series manage iSCSI target configuration
 description:
     - Configure the settings of an E-Series iSCSI target
-version_added: '2.7'
-author: Michael Price (@lmprice)
+author:
+    - Michael Price (@lmprice)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -30,7 +30,7 @@ options:
         description:
             - Enable ICMP ping responses from the configured iSCSI ports.
         type: bool
-        default: yes
+        default: true
     chap_secret:
         description:
             - Enable Challenge-Handshake Authentication Protocol (CHAP), utilizing this value as the password.
@@ -48,7 +48,7 @@ options:
               discovery session if the iSCSI target iqn is not specified in the request.
             - This option may be disabled to increase security if desired.
         type: bool
-        default: yes
+        default: true
 notes:
     - Check mode is supported.
     - Some of the settings are dependent on the settings applied to the iSCSI interfaces. These can be configured using
@@ -65,8 +65,8 @@ EXAMPLES = """
         api_password: "adminpass"
         validate_certs: true
         name: myTarget
-        ping: yes
-        unnamed_discovery: yes
+        ping: true
+        unnamed_discovery: true
 
     - name: Set the target alias and the CHAP secret
       na_santricity_iscsi_target:
@@ -109,10 +109,10 @@ HEADERS = {
 
 class NetAppESeriesIscsiTarget(NetAppESeriesModule):
     def __init__(self):
-        ansible_options = dict(name=dict(type='str', required=False, aliases=['alias']),
-                               ping=dict(type='bool', required=False, default=True),
-                               chap_secret=dict(type='str', required=False, aliases=['chap', 'password'], no_log=True),
-                               unnamed_discovery=dict(type='bool', required=False, default=True))
+        ansible_options = dict(name=dict(type="str", required=False, aliases=["alias"]),
+                               ping=dict(type="bool", required=False, default=True),
+                               chap_secret=dict(type="str", required=False, aliases=["chap", "password"], no_log=True),
+                               unnamed_discovery=dict(type="bool", required=False, default=True))
 
         super(NetAppESeriesIscsiTarget, self).__init__(ansible_options=ansible_options,
                                                        web_services_version="02.00.0000.0000",
@@ -120,10 +120,10 @@ class NetAppESeriesIscsiTarget(NetAppESeriesModule):
 
         args = self.module.params
 
-        self.name = args['name']
-        self.ping = args['ping']
-        self.chap_secret = args['chap_secret']
-        self.unnamed_discovery = args['unnamed_discovery']
+        self.name = args["name"]
+        self.ping = args["ping"]
+        self.chap_secret = args["chap_secret"]
+        self.unnamed_discovery = args["unnamed_discovery"]
 
         self.check_mode = self.module.check_mode
         self.post_body = dict()
@@ -146,28 +146,28 @@ class NetAppESeriesIscsiTarget(NetAppESeriesModule):
 
         Sample:
         {
-          'alias': 'myCustomName',
-          'ping': True,
-          'unnamed_discovery': True,
-          'chap': False,
-          'iqn': 'iqn.1992-08.com.netapp:2800.000a132000b006d2000000005a0e8f45',
+          "alias": "myCustomName",
+          "ping": True,
+          "unnamed_discovery": True,
+          "chap": False,
+          "iqn": "iqn.1992-08.com.netapp:2800.000a132000b006d2000000005a0e8f45",
         }
         """
         target = dict()
         try:
             rc, data = self.request("storage-systems/%s/graph/xpath-filter?query=/storagePoolBundle/target" % self.ssid)
-            # This likely isn't an iSCSI-enabled system
+            # This likely isn"t an iSCSI-enabled system
             if not data:
-                self.module.fail_json(msg="This storage-system doesn't appear to have iSCSI interfaces. Array Id [%s]." % self.ssid)
+                self.module.fail_json(msg="This storage-system does not appear to have iSCSI interfaces. Array Id [%s]." % self.ssid)
 
             data = data[0]
-            chap = any([auth for auth in data['configuredAuthMethods']['authMethodData'] if auth['authMethod'] == 'chap'])
-            target.update(dict(alias=data['alias']['iscsiAlias'], iqn=data['nodeName']['iscsiNodeName'], chap=chap))
+            chap = any([auth for auth in data["configuredAuthMethods"]["authMethodData"] if auth["authMethod"] == "chap"])
+            target.update(dict(alias=data["alias"]["iscsiAlias"], iqn=data["nodeName"]["iscsiNodeName"], chap=chap))
 
             rc, data = self.request("storage-systems/%s/graph/xpath-filter?query=/sa/iscsiEntityData" % self.ssid)
 
             data = data[0]
-            target.update(dict(ping=data['icmpPingResponseEnabled'], unnamed_discovery=data['unnamedDiscoverySessionsEnabled']))
+            target.update(dict(ping=data["icmpPingResponseEnabled"], unnamed_discovery=data["unnamedDiscoverySessionsEnabled"]))
 
         except Exception as err:
             self.module.fail_json(msg="Failed to retrieve the iSCSI target information. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
@@ -181,9 +181,9 @@ class NetAppESeriesIscsiTarget(NetAppESeriesModule):
 
         body = dict()
 
-        if self.name is not None and self.name != target['alias']:
+        if self.name is not None and self.name != target["alias"]:
             update = True
-            body['alias'] = self.name
+            body["alias"] = self.name
 
         # If the CHAP secret was provided, we trigger an update.
         if self.chap_secret:
@@ -191,13 +191,13 @@ class NetAppESeriesIscsiTarget(NetAppESeriesModule):
             body.update(dict(enableChapAuthentication=True,
                              chapSecret=self.chap_secret))
         # If no secret was provided, then we disable chap
-        elif target['chap']:
+        elif target["chap"]:
             update = True
             body.update(dict(enableChapAuthentication=False))
 
         if update and not self.check_mode:
             try:
-                self.request("storage-systems/%s/iscsi/target-settings" % self.ssid, method='POST', data=body)
+                self.request("storage-systems/%s/iscsi/target-settings" % self.ssid, method="POST", data=body)
             except Exception as err:
                 self.module.fail_json(msg="Failed to update the iSCSI target settings. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
@@ -209,17 +209,17 @@ class NetAppESeriesIscsiTarget(NetAppESeriesModule):
 
         body = dict()
 
-        if self.ping != target['ping']:
+        if self.ping != target["ping"]:
             update = True
-            body['icmpPingResponseEnabled'] = self.ping
+            body["icmpPingResponseEnabled"] = self.ping
 
-        if self.unnamed_discovery != target['unnamed_discovery']:
+        if self.unnamed_discovery != target["unnamed_discovery"]:
             update = True
-            body['unnamedDiscoverySessionsEnabled'] = self.unnamed_discovery
+            body["unnamedDiscoverySessionsEnabled"] = self.unnamed_discovery
 
         if update and not self.check_mode:
             try:
-                self.request("storage-systems/%s/iscsi/entity" % self.ssid, method='POST', data=body)
+                self.request("storage-systems/%s/iscsi/entity" % self.ssid, method="POST", data=body)
             except Exception as err:
                 self.module.fail_json(msg="Failed to update the iSCSI target settings. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
         return update
@@ -229,11 +229,11 @@ class NetAppESeriesIscsiTarget(NetAppESeriesModule):
         update = self.apply_target_changes() or update
 
         target = self.target
-        data = dict((key, target[key]) for key in target if key in ['iqn', 'alias'])
+        data = dict((key, target[key]) for key in target if key in ["iqn", "alias"])
 
         self.module.exit_json(msg="The interface settings have been updated.", changed=update, **data)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     iface = NetAppESeriesIscsiTarget()
     iface.update()
