@@ -77,21 +77,21 @@ from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santrici
 from ansible.module_utils._text import to_native
 
 
-class NetAppESeriesSyslog(NetAppESeriesModule):
+class NetAppESeriesAlertSyslog(NetAppESeriesModule):
     def __init__(self):
         ansible_options = dict(servers=dict(type="list", required=False),
                                test=dict(type="bool", default=False, require=False))
 
         required_if = [["state", "present", ["address"]]]
         mutually_exclusive = [["test", "absent"]]
-        super(NetAppESeriesSyslog, self).__init__(ansible_options=ansible_options,
-                                                  web_services_version="02.00.0000.0000",
-                                                  mutually_exclusive=mutually_exclusive,
-                                                  required_if=required_if,
-                                                  supports_check_mode=True)
+        super(NetAppESeriesAlertSyslog, self).__init__(ansible_options=ansible_options,
+                                                       web_services_version="02.00.0000.0000",
+                                                       mutually_exclusive=mutually_exclusive,
+                                                       required_if=required_if,
+                                                       supports_check_mode=True)
         args = self.module.params
         if args["servers"] and len(args["servers"]) > 5:
-            self.module.fail_json(msg="Maximum number of syslog servers is 5! Array Id [%s]. Error [%s]." % self.ssid)
+            self.module.fail_json(msg="Maximum number of syslog servers is 5! Array Id [%s]." % self.ssid)
 
         self.servers = {}
         if args["servers"] is not None:
@@ -123,10 +123,15 @@ class NetAppESeriesSyslog(NetAppESeriesModule):
 
         # When syslog servers should exist, search for them.
         if self.servers:
-            if not current_config["syslogReceivers"]:
-                return True
             for entry in current_config["syslogReceivers"]:
                 if entry["serverName"] not in self.servers.keys() or entry["portNumber"] != self.servers[entry["serverName"]]:
+                    return True
+                
+            for server, port in self.servers.items():
+                for entry in current_config["syslogReceivers"]:
+                    if server == entry["serverName"] and port == entry["portNumber"]:
+                        break
+                else:
                     return True
             return False
 
@@ -150,7 +155,7 @@ class NetAppESeriesSyslog(NetAppESeriesModule):
             rc, result = self.request(self.url_path_prefix + "storage-systems/%s/device-alerts/alert-syslog-test"
                                       % ("1" if self.url_path_prefix else self.ssid), method="POST")
         except Exception as error:
-            self.module.fail_json(msg="We failed to send test message! Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to send test message! Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
     def update(self):
         """Update configuration and respond to ansible."""
@@ -170,5 +175,5 @@ class NetAppESeriesSyslog(NetAppESeriesModule):
 
 
 if __name__ == "__main__":
-    settings = NetAppESeriesSyslog()
+    settings = NetAppESeriesAlertSyslog()
     settings.update()

@@ -78,6 +78,22 @@
     that: "{{ results['changed'] }}"
     msg: "Unexpected results!"
 
+- name: Add one alert syslog server (change)
+  na_santricity_alert_syslog:
+    <<: *creds
+    test: true
+    servers:
+      - address: "192.168.1.100"
+      - address: "192.168.2.100"
+        port: 514
+      - address: "192.168.3.100"
+        port: 1000
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
 - name: Delete all alert syslog servers (change)
   na_santricity_alert_syslog:
     <<: *creds
