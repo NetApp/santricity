@@ -39,34 +39,26 @@ options:
             - disabled
             - maintenance_enabled
             - maintenance_disabled
-        aliases:
-            - asup
-            - auto_support
-            - autosupport
     active:
         description:
-            - Enable active/proactive monitoring for ASUP. When a problem is detected by our monitoring systems, it"s
+            - Enable active/proactive monitoring for ASUP. When a problem is detected by our monitoring systems, it's
               possible that the bundle did not contain all of the required information at the time of the event.
               Enabling this option allows NetApp support personnel to manually request transmission or re-transmission
               of support data in order ot resolve the problem.
             - Only applicable if I(state=enabled).
-        default: yes
+        default: true
         type: bool
     start:
         description:
             - A start hour may be specified in a range from 0 to 23 hours.
             - ASUP bundles will be sent daily between the provided start and end time (UTC).
             - I(start) must be less than I(end).
-        aliases:
-            - start_time
         default: 0
     end:
         description:
             - An end hour may be specified in a range from 1 to 24 hours.
             - ASUP bundles will be sent daily between the provided start and end time (UTC).
             - I(start) must be less than I(end).
-        aliases:
-            - end_time
         default: 24
     days:
         description:
@@ -80,10 +72,7 @@ options:
             - friday
             - saturday
             - sunday
-        required: no
-        aliases:
-            - days_of_week
-            - schedule_days
+        required: false
     method:
         description:
             - AutoSupport dispatch delivery method.
@@ -115,19 +104,19 @@ options:
             host:
                 description:
                     - Proxy host IP address or fully qualified domain name.
-                    - Required when M(routing_type==proxy) and M(.
+                    - Required when M(method==http or method==https) and M(routing_type==proxy).
                 type: str
                 required: false
             port:
                 description:
                     - Proxy host port.
-                    - Required when M(routing_type==proxy).
+                    - Required when M(method==http or method==https) and M(routing_type==proxy).
                 type: str
                 required: false
             script:
                 description:
                     - Path to the AutoSupport routing script file.
-                    - Required when M(routing_type==script) and M(.
+                    - Required when M(method==http or method==https) and M(routing_type==script).
                 type: str
                 required: false
     email:
@@ -160,7 +149,7 @@ options:
         description:
             - The duration of time the ASUP maintenance mode will be active.
             - Permittable range is between 1 and 72 hours.
-            - Required when I(state==maintenance).
+            - Required when I(state==maintenance_enabled).
         type: int
         required: false
     maintenance_emails:
@@ -190,7 +179,7 @@ EXAMPLES = """
         api_password: "adminpass"
         validate_certs: true
         state: enabled
-        active: yes
+        active: true
         days: ["saturday", "sunday"]
         start: 17
         end: 20
@@ -232,13 +221,13 @@ asup:
     description:
         - True if ASUP is enabled.
     returned: on success
-    sample: True
+    sample: true
     type: bool
 active:
     description:
         - True if the active option has been enabled.
     returned: on success
-    sample: True
+    sample: true
     type: bool
 cfg:
     description:
@@ -271,12 +260,11 @@ class NetAppESeriesAsup(NetAppESeriesModule):
     def __init__(self):
 
         ansible_options = dict(
-            state=dict(type="str", required=False, default="enabled", aliases=["asup", "auto_support", "autosupport"],
-                       choices=["enabled", "disabled", "maintenance_enabled", "maintenance_disabled"]),
-            active=dict(type="bool", required=False, default=True, ),
+            state=dict(type="str", required=False, default="enabled", choices=["enabled", "disabled", "maintenance_enabled", "maintenance_disabled"]),
+            active=dict(type="bool", required=False, default=True),
             days=dict(type="list", required=False, aliases=["schedule_days", "days_of_week"], choices=self.DAYS_OPTIONS),
-            start=dict(type="int", required=False, default=0, aliases=["start_time"]),
-            end=dict(type="int", required=False, default=24, aliases=["end_time"]),
+            start=dict(type="int", required=False, default=0),
+            end=dict(type="int", required=False, default=24),
             method=dict(type="str", required=False, choices=["https", "http", "email"], default="https"),
             routing_type=dict(type="str", required=False, choices=["direct", "proxy", "script"], default="direct"),
             proxy=dict(type="dict", required=False, options=dict(host=dict(type="str", required=False),
@@ -288,6 +276,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
             maintenance_duration=dict(type="int", required=False, default=72),
             maintenance_emails=dict(type="list", required=False),
             validate=dict(type="bool", require=False, default=False))
+
         mutually_exclusive = [["host", "script"],
                               ["port", "script"]]
 
@@ -347,7 +336,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
 
     def get_configuration(self):
         try:
-            (rc, result) = self.request(self.url_path_prefix + "device-asup")
+            rc, result = self.request(self.url_path_prefix + "device-asup")
 
             if not (result["asupCapable"] and result["onDemandCapable"]):
                 self.module.fail_json(msg="ASUP is not supported on this device. Array Id [%s]." % self.ssid)
@@ -360,7 +349,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
         """Determine whether storage device is currently in maintenance mode."""
         results = False
         try:
-            rc, key_values = self.request(self.url_path_prefix + "key-values", method="GET")
+            rc, key_values = self.request(self.url_path_prefix + "key-values")
 
             for key_value in key_values:
                 if key_value["key"] == "ansible_asup_maintenance_email_list":
@@ -371,7 +360,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
                         results = True
 
         except Exception as error:
-            self.module.fail_json(msg="Failed to store maintenance email list. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to retrieve maintenance windows information! Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
         return results
 
@@ -481,7 +470,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
                                                 data=dict(maintenanceWindowEnabled=False,
                                                           emailAddresses=self.maintenance_emails))
                 except Exception as error:
-                    self.module.fail_json(msg="Failed to enabled ASUP maintenance window. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                    self.module.fail_json(msg="Failed to disable ASUP maintenance window. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
                 # Remove maintenance information to the key-value store
                 try:
@@ -499,13 +488,13 @@ class NetAppESeriesAsup(NetAppESeriesModule):
                     try:
                         rc, response = self.request(self.url_path_prefix + "device-asup/verify-config", timeout=600, method="POST", data=validate_body)
                     except Exception as err:
-                        self.module.fail_json(msg="We failed to verify ASUP configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+                        self.module.fail_json(msg="Failed to validate ASUP configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
                 try:
                     rc, response = self.request(self.url_path_prefix + "device-asup", method="POST", data=body)
                 # This is going to catch cases like a connection failure
                 except Exception as err:
-                    self.module.fail_json(msg="We failed to set the storage-system name! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+                    self.module.fail_json(msg="Failed to change ASUP configuration! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         return update
 

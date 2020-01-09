@@ -3,26 +3,22 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-import json
-
-try:
-    from unittest.mock import patch, mock_open
-except ImportError:
-    from mock import patch, mock_open
-
+import time
+from units.compat import mock
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_asup import NetAppESeriesAsup
 from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
 
 
 class AsupTest(ModuleTestCase):
     REQUIRED_PARAMS = {
-        'api_username': 'rw',
-        'api_password': 'password',
-        'api_url': 'http://localhost',
-        'ssid': '1',
+        "api_username": "rw",
+        "api_password": "password",
+        "api_url": "http://localhost",
+        "ssid": "1",
     }
 
     REQ_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_asup.NetAppESeriesAsup.request"
+    BASE_REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity.request'
     TIME_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_asup.time.time"
 
     def _set_args(self, args=None):
@@ -31,191 +27,293 @@ class AsupTest(ModuleTestCase):
             module_args.update(args)
         set_module_args(module_args)
 
+    def test_valid_options_pass(self):
+        """Validate valid options."""
+        options_list = [
+            {"state": "disabled", "active": False},
+            {"state": "enabled", "active": False, "start": 20, "end": 24, "days": ["saturday", "sunday"],
+             "method": "email", "email": {"server": "192.168.1.100", "sender": "noreply@netapp.com"}},
+            {"state": "enabled", "active": False, "start": 20, "end": 24, "days": ["saturday", "sunday"],
+             "method": "https", "routing_type": "direct"},
+            {"state": "enabled", "active": False, "start": 20, "end": 24, "days": ["saturday", "sunday"],
+             "method": "https", "routing_type": "proxy", "proxy": {"host": "192.168.1.100", "port": 1234}},
+            {"state": "enabled", "active": False, "start": 20, "end": 24, "days": ["saturday", "sunday"],
+             "method": "https", "routing_type": "script", "proxy": {"script": "/path/to/proxy/script.sh"}},
+            {"state": "maintenance_enabled", "maintenance_duration": 24, "maintenance_emails": ["janey@netapp.com", "joe@netapp.com"]},
+            {"state": "maintenance_disabled"}
+        ]
 
-    #
-    # def test_get_config_asup_capable_false(self):
-    #     """Ensure we fail correctly if ASUP is not available on this platform"""
-    #     self._set_args()
-    #
-    #     expected = dict(asupCapable=False, onDemandCapable=True)
-    #     asup = NetAppESeriesAsup()
-    #     # Expecting an update
-    #     with self.assertRaisesRegexp(AnsibleFailJson, r"not supported"):
-    #         with patch(self.REQ_FUNC, return_value=(200, expected)):
-    #             asup.get_configuration()
-    #
-    # def test_get_config_on_demand_capable_false(self):
-    #     """Ensure we fail correctly if ASUP is not available on this platform"""
-    #     self._set_args()
-    #
-    #     expected = dict(asupCapable=True, onDemandCapable=False)
-    #     asup = NetAppESeriesAsup()
-    #     # Expecting an update
-    #     with self.assertRaisesRegexp(AnsibleFailJson, r"not supported"):
-    #         with patch(self.REQ_FUNC, return_value=(200, expected)):
-    #             asup.get_configuration()
-    #
-    # def test_get_config(self):
-    #     """Validate retrieving the ASUP configuration"""
-    #     self._set_args()
-    #
-    #     expected = dict(asupCapable=True, onDemandCapable=True)
-    #     asup = NetAppESeriesAsup()
-    #
-    #     with patch(self.REQ_FUNC, return_value=(200, expected)):
-    #         config = asup.get_configuration()
-    #         self.assertEquals(config, expected)
-    #
-    # def test_update_configuration(self):
-    #     """Validate retrieving the ASUP configuration"""
-    #     self._set_args(dict(asup='enabled'))
-    #
-    #     expected = dict()
-    #     initial = dict(asupCapable=True,
-    #                    asupEnabled=True,
-    #                    onDemandEnabled=False,
-    #                    remoteDiagsEnabled=False,
-    #                    schedule=dict(daysOfWeek=[], dailyMinTime=0, weeklyMinTime=0, dailyMaxTime=24, weeklyMaxTime=24))
-    #     asup = NetAppESeriesAsup()
-    #
-    #     with patch(self.REQ_FUNC, return_value=(200, expected)) as req:
-    #         with patch.object(asup, 'get_configuration', return_value=initial):
-    #             updated = asup.update_configuration()
-    #             self.assertTrue(req.called)
-    #             self.assertTrue(updated)
-    #
-    # def test_update_configuration_asup_disable(self):
-    #     """Validate retrieving the ASUP configuration"""
-    #     self._set_args(dict(asup='disabled'))
-    #
-    #     expected = dict()
-    #     initial = dict(asupCapable=True,
-    #                    asupEnabled=True,
-    #                    onDemandEnabled=False,
-    #                    remoteDiagsEnabled=False,
-    #                    schedule=dict(daysOfWeek=[], dailyMinTime=0, weeklyMinTime=0, dailyMaxTime=24, weeklyMaxTime=24))
-    #     asup = NetAppESeriesAsup()
-    #
-    #     with patch(self.REQ_FUNC, return_value=(200, expected)) as req:
-    #         with patch.object(asup, 'get_configuration', return_value=initial):
-    #             updated = asup.update_configuration()
-    #             self.assertTrue(updated)
-    #
-    #             self.assertTrue(req.called)
-    #
-    #             # Ensure it was called with the right arguments
-    #             called_with = req.call_args
-    #             body = json.loads(called_with[1]['data'])
-    #             self.assertFalse(body['asupEnabled'])
-    #
-    # def test_update_configuration_enable(self):
-    #     """Validate retrieving the ASUP configuration"""
-    #     self._set_args(dict(asup='enabled'))
-    #
-    #     expected = dict()
-    #     initial = dict(asupCapable=False,
-    #                    asupEnabled=False,
-    #                    onDemandEnabled=False,
-    #                    remoteDiagsEnabled=False,
-    #                    schedule=dict(daysOfWeek=[], dailyMinTime=0, weeklyMinTime=0, dailyMaxTime=24, weeklyMaxTime=24))
-    #     asup = NetAppESeriesAsup()
-    #
-    #     with patch(self.REQ_FUNC, return_value=(200, expected)) as req:
-    #         with patch.object(asup, 'get_configuration', return_value=initial):
-    #             updated = asup.update_configuration()
-    #             self.assertTrue(updated)
-    #
-    #             self.assertTrue(req.called)
-    #
-    #             # Ensure it was called with the right arguments
-    #             called_with = req.call_args
-    #             body = json.loads(called_with[1]['data'])
-    #             self.assertTrue(body['asupEnabled'])
-    #             self.assertTrue(body['onDemandEnabled'])
-    #             self.assertTrue(body['remoteDiagsEnabled'])
-    #
-    # def test_update_configuration_request_exception(self):
-    #     """Validate exception handling when request throws an exception."""
-    #     config_response = dict(asupEnabled=True,
-    #                            onDemandEnabled=True,
-    #                            remoteDiagsEnabled=True,
-    #                            schedule=dict(daysOfWeek=[],
-    #                                          dailyMinTime=0,
-    #                                          weeklyMinTime=0,
-    #                                          dailyMaxTime=24,
-    #                                          weeklyMaxTime=24))
-    #
-    #     self._set_args(dict(state="enabled"))
-    #     asup = NetAppESeriesAsup()
-    #     with self.assertRaises(Exception):
-    #         with patch.object(asup, 'get_configuration', return_value=config_response):
-    #             with patch(self.REQ_FUNC, side_effect=Exception):
-    #                 asup.update_configuration()
-    #
-    # def test_init_schedule(self):
-    #     """Validate schedule correct schedule initialization"""
-    #     self._set_args(dict(state="enabled", active=True, days=["sunday", "monday", "tuesday"], start=20, end=24))
-    #     asup = NetAppESeriesAsup()
-    #
-    #     self.assertTrue(asup.asup)
-    #     self.assertEquals(asup.days, ["sunday", "monday", "tuesday"]),
-    #     self.assertEquals(asup.start, 1200)
-    #     self.assertEquals(asup.end, 1439)
-    #
-    # def test_init_schedule_invalid(self):
-    #     """Validate updating ASUP with invalid schedule fails test."""
-    #     self._set_args(dict(state="enabled", active=True, start=22, end=20))
-    #     with self.assertRaisesRegexp(AnsibleFailJson, r"start time is invalid"):
-    #         NetAppESeriesAsup()
-    #
-    # def test_init_schedule_days_invalid(self):
-    #     """Validate updating ASUP with invalid schedule fails test."""
-    #     self._set_args(dict(state="enabled", active=True, days=["someday", "thataday", "nonday"]))
-    #     with self.assertRaises(AnsibleFailJson):
-    #         NetAppESeriesAsup()
-    #
-    # def test_update(self):
-    #     """Validate updating ASUP with valid schedule passes"""
-    #     initial = dict(asupCapable=True,
-    #                    onDemandCapable=True,
-    #                    asupEnabled=True,
-    #                    onDemandEnabled=False,
-    #                    remoteDiagsEnabled=False,
-    #                    schedule=dict(daysOfWeek=[], dailyMinTime=0, weeklyMinTime=0, dailyMaxTime=24, weeklyMaxTime=24))
-    #     self._set_args(dict(state="enabled", active=True, days=["sunday", "monday", "tuesday"], start=10, end=20))
-    #     asup = NetAppESeriesAsup()
-    #     with self.assertRaisesRegexp(AnsibleExitJson, r"ASUP settings have been updated"):
-    #         with patch(self.REQ_FUNC, return_value=(200, dict(asupCapable=True))):
-    #             with patch.object(asup, "get_configuration", return_value=initial):
-    #                 asup.update()
-    #
-    # def test_get_configuration_asup_not_available_fail(self):
-    #     """Validate exception is thrown when ASUP is not available."""
-    #     self._set_args(dict(state="enabled", active=True, days=["sunday", "monday", "tuesday"], start=20, end=24))
-    #     asup = NetAppESeriesAsup()
-    #
-    #     with self.assertRaisesRegexp(AnsibleFailJson, r"ASUP is not supported on this device."):
-    #         with patch(self.REQ_FUNC, return_value=(200, {"asupCapable": False, "onDemandCapable": False})):
-    #             asup.get_configuration()
-    #
-    #     with self.assertRaisesRegexp(AnsibleFailJson, r"ASUP is not supported on this device."):
-    #         with patch(self.REQ_FUNC, return_value=(200, {"asupCapable": True, "onDemandCapable": False})):
-    #             asup.get_configuration()
-    #
-    #     with self.assertRaisesRegexp(AnsibleFailJson, r"ASUP is not supported on this device."):
-    #         with patch(self.REQ_FUNC, return_value=(200, {"asupCapable": False, "onDemandCapable": True})):
-    #             asup.get_configuration()
-    #
-    # def test_in_maintenance_mode_pass(self):
-    #     """Verify in_maintenance_mode method performs successful."""
-    #     self._set_args(dict(state="enabled", active=True, days=["sunday", "monday", "tuesday"], start=20, end=24))
-    #     asup = NetAppESeriesAsup()
-    #
-    #     with patch(self.TIME_FUNC, return_value=0.0):
-    #         with patch(self.REQ_FUNC, return_value=(200, [{"key": "ansible_asup_maintenance_email_list", "value": ["a@xyz.com", "b@xyz.com"]},
-    #                                                       {"key": "ansible_asup_maintenance_stop_time", "value": "1573753309.260346"}])):
-    #             asup.get_configuration()
-    #
-    #
-    # def test_in_maintenance_mode_fail(self):
-    #     """Verify in_maintenance_mode method throws expected exceptions."""
+        for options in options_list:
+            self._set_args(options)
+            with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+                asup = NetAppESeriesAsup()
+        for options in options_list:
+            self._set_args(options)
+            with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": True})]):
+                asup = NetAppESeriesAsup()
+
+    def test_invalid_options_fail(self):
+        """Verify invalid options throw expected exceptions."""
+        options_list = [
+            {"state": "enabled", "active": False, "start": 24, "end": 23, "days": ["saturday", "sunday"],
+             "method": "email", "email": {"server": "192.168.1.100", "sender": "noreply@netapp.com"}},
+            {"state": "enabled", "active": False, "start": -1, "end": 23, "days": ["saturday", "sunday"],
+             "method": "email", "email": {"server": "192.168.1.100", "sender": "noreply@netapp.com"}},
+            {"state": "enabled", "active": False, "start": 20, "end": 25, "days": ["saturday", "sunday"],
+             "method": "email", "email": {"server": "192.168.1.100", "sender": "noreply@netapp.com"}},
+            {"state": "enabled", "active": False, "start": 20, "end": 24, "days": ["not_a_day", "sunday"],
+             "method": "https", "routing_type": "direct"},
+            {"state": "maintenance_enabled", "maintenance_duration": 0, "maintenance_emails": ["janey@netapp.com", "joe@netapp.com"]},
+            {"state": "maintenance_enabled", "maintenance_duration": 73, "maintenance_emails": ["janey@netapp.com", "joe@netapp.com"]},
+        ]
+
+        for options in options_list:
+            self._set_args(options)
+            with self.assertRaises(AnsibleFailJson):
+                with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+                    asup = NetAppESeriesAsup()
+
+    def test_get_configuration_fail(self):
+        """Verify get_configuration method throws expected exceptions."""
+        self._set_args({"state": "disabled", "active": False})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve ASUP configuration!"):
+                    asup.get_configuration()
+        self._set_args({"state": "disabled", "active": False})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            with mock.patch(self.REQ_FUNC, return_value=(200, {"asupCapable": False, "onDemandCapable": True})):
+                with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve ASUP configuration!"):
+                    asup.get_configuration()
+        self._set_args({"state": "disabled", "active": False})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            with mock.patch(self.REQ_FUNC, return_value=(200, {"asupCapable": True, "onDemandCapable": False})):
+                with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve ASUP configuration!"):
+                    asup.get_configuration()
+        self._set_args({"state": "disabled", "active": False})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            with mock.patch(self.REQ_FUNC, return_value=(200, {"asupCapable": False, "onDemandCapable": False})):
+                with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve ASUP configuration!"):
+                    asup.get_configuration()
+
+    def test_in_maintenance_mode_pass(self):
+        """Verify whether asup is in maintenance mode successful."""
+        self._set_args({"state": "disabled", "active": False})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            with mock.patch(self.REQ_FUNC, return_value=(200, [{"key": "ansible_asup_maintenance_stop_time", "value": str(time.time() + 10000)}])):
+                self.assertTrue(asup.in_maintenance_mode())
+
+        self._set_args({"state": "disabled", "active": False})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            with mock.patch(self.REQ_FUNC, return_value=(200, [{"key": "ansible_asup_maintenance_email_list", "value": "janey@netapp.com,joe@netapp.com"},
+                                                               {"key": "ansible_asup_maintenance_stop_time", "value": str(time.time() - 1)}])):
+                self.assertFalse(asup.in_maintenance_mode())
+
+    def test_in_maintenance_mode_fail(self):
+        """Verify that in_maintenance mode throws expected exceptions."""
+        self._set_args({"state": "disabled", "active": False})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve maintenance windows information!"):
+                with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                    asup.in_maintenance_mode()
+
+    def test_update_configuration_pass(self):
+        """Verify that update_configuration completes successfully."""
+        asup_config = [{"asupCapable": True,
+                        "onDemandCapable": True,
+                        "asupEnabled": True,
+                        "onDemandEnabled": True,
+                        "remoteDiagsEnabled": True,
+                        "delivery": {"method": "smtp",
+                                     "routingType": "none",
+                                     "proxyHost": None,
+                                     "proxyPort": 0,
+                                     "proxyUserName": None,
+                                     "proxyPassword": None,
+                                     "proxyScript": None,
+                                     "mailRelayServer": "server@example.com",
+                                     "mailSenderAddress": "noreply@example.com"},
+                        "destinationAddress": "autosupport@netapp.com",
+                        "schedule": {"dailyMinTime": 0,
+                                     "dailyMaxTime": 1439,
+                                     "weeklyMinTime": 0,
+                                     "weeklyMaxTime": 1439,
+                                     "daysOfWeek": ["sunday", "monday", "tuesday"]}},
+                       {"asupCapable": True,
+                        "onDemandCapable": True,
+                        "asupEnabled": True,
+                        "onDemandEnabled": False,
+                        "remoteDiagsEnabled": False,
+                        "delivery": {
+                            "method": "https",
+                            "routingType": "proxyServer",
+                            "proxyHost": "192.168.1.100",
+                            "proxyPort": 1234,
+                            "proxyUserName": None,
+                            "proxyPassword": None,
+                            "proxyScript": None,
+                            "mailRelayServer": None,
+                            "mailSenderAddress": None
+                        },
+                        "destinationAddress": "https://support.netapp.com/put/AsupPut/",
+                        "schedule": {
+                            "dailyMinTime": 1200,
+                            "dailyMaxTime": 1439,
+                            "weeklyMinTime": 0,
+                            "weeklyMaxTime": 1439,
+                            "daysOfWeek": ["sunday", "saturday"]}},
+                       {"asupCapable": True,
+                        "onDemandCapable": True,
+                        "asupEnabled": True,
+                        "onDemandEnabled": False,
+                        "remoteDiagsEnabled": False,
+                        "delivery": {
+                            "method": "https",
+                            "routingType": "proxyScript",
+                            "proxyHost": None,
+                            "proxyPort": 0,
+                            "proxyUserName": None,
+                            "proxyPassword": None,
+                            "proxyScript": "/home/user/path/to/script.sh",
+                            "mailRelayServer": None,
+                            "mailSenderAddress": None
+                        },
+                        "destinationAddress": "https://support.netapp.com/put/AsupPut/",
+                        "schedule": {
+                            "dailyMinTime": 0,
+                            "dailyMaxTime": 420,
+                            "weeklyMinTime": 0,
+                            "weeklyMaxTime": 1439,
+                            "daysOfWeek": ["monday", "tuesday", "wednesday", "thursday", "friday"]}}]
+        options_list = [{"state": "disabled", "active": False},
+                        {"state": "enabled", "active": False, "start": 20, "end": 24, "days": ["saturday"],
+                         "method": "email", "email": {"server": "192.168.1.100", "sender": "noreply@netapp.com"}},
+                        {"state": "enabled", "active": False, "start": 20, "end": 24, "days": ["sunday"],
+                         "method": "https", "routing_type": "direct"},
+                        {"state": "enabled", "active": False, "start": 20, "end": 24, "days": ["saturday", "sunday"],
+                         "method": "https", "routing_type": "proxy", "proxy": {"host": "192.168.1.100", "port": 1234}},
+                        {"state": "enabled", "active": False, "start": 20, "end": 24, "days": ["saturday", "sunday"],
+                         "method": "https", "routing_type": "script", "proxy": {"script": "/path/to/proxy/script.sh"}},
+                        {"state": "maintenance_enabled", "maintenance_duration": 24, "maintenance_emails": ["janey@netapp.com", "joe@netapp.com"]},
+                        {"state": "maintenance_disabled"}]
+
+        for index, options in enumerate(options_list):
+            self._set_args(options)
+            with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+                asup = NetAppESeriesAsup()
+                asup.get_configuration = lambda: asup_config[index % 3]
+                asup.in_maintenance_mode = lambda: False
+
+                with mock.patch(self.REQ_FUNC, return_value=(200, None)):
+                    asup.update_configuration()
+
+    def test_update_configuration_fail(self):
+        """Verify that update_configuration throws expected exceptions."""
+        asup_config = {"asupCapable": True,
+                       "onDemandCapable": True,
+                       "asupEnabled": True,
+                       "onDemandEnabled": True,
+                       "remoteDiagsEnabled": True,
+                       "delivery": {"method": "smtp",
+                                    "routingType": "none",
+                                    "proxyHost": None,
+                                    "proxyPort": 0,
+                                    "proxyUserName": None,
+                                    "proxyPassword": None,
+                                    "proxyScript": None,
+                                    "mailRelayServer": "server@example.com",
+                                    "mailSenderAddress": "noreply@example.com"},
+                       "destinationAddress": "autosupport@netapp.com",
+                       "schedule": {"dailyMinTime": 0,
+                                    "dailyMaxTime": 1439,
+                                    "weeklyMinTime": 0,
+                                    "weeklyMaxTime": 1439,
+                                    "daysOfWeek": ["sunday", "monday", "tuesday"]}}
+
+        # Exceptions for state=="enabled" or state=="disabled"
+        self._set_args({"state": "enabled", "active": False, "start": 20, "end": 24, "days": ["saturday"],
+                        "method": "email", "email": {"server": "192.168.1.100", "sender": "noreply@netapp.com"}})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            asup.get_configuration = lambda: asup_config
+            asup.in_maintenance_mode = lambda: False
+            asup.validate = lambda: True
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to validate ASUP configuration!"):
+                with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                    asup.update_configuration()
+        self._set_args({"state": "disabled", "active": False})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            asup.get_configuration = lambda: asup_config
+            asup.in_maintenance_mode = lambda: False
+            asup.validate = lambda: False
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to change ASUP configuration!"):
+                with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                    asup.update_configuration()
+
+        # Exceptions for state=="maintenance enabled"
+        self._set_args({"state": "maintenance_enabled", "maintenance_duration": 24, "maintenance_emails": ["janey@netapp.com", "joe@netapp.com"]})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            asup.get_configuration = lambda: {"asupEnabled": False}
+            asup.in_maintenance_mode = lambda: False
+            with self.assertRaisesRegexp(AnsibleFailJson, "AutoSupport must be enabled before enabling or disabling maintenance mode."):
+                asup.update_configuration()
+        self._set_args({"state": "maintenance_enabled", "maintenance_duration": 24, "maintenance_emails": ["janey@netapp.com", "joe@netapp.com"]})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            asup.get_configuration = lambda: {"asupEnabled": True}
+            asup.in_maintenance_mode = lambda: False
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to enabled ASUP maintenance window."):
+                with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                    asup.update_configuration()
+        self._set_args({"state": "maintenance_enabled", "maintenance_duration": 24, "maintenance_emails": ["janey@netapp.com", "joe@netapp.com"]})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            asup.get_configuration = lambda: {"asupEnabled": True}
+            asup.in_maintenance_mode = lambda: False
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to store maintenance information."):
+                with mock.patch(self.REQ_FUNC, side_effect=[(200, None), Exception()]):
+                    asup.update_configuration()
+        self._set_args({"state": "maintenance_enabled", "maintenance_duration": 24, "maintenance_emails": ["janey@netapp.com", "joe@netapp.com"]})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            asup.get_configuration = lambda: {"asupEnabled": True}
+            asup.in_maintenance_mode = lambda: False
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to store maintenance information."):
+                with mock.patch(self.REQ_FUNC, side_effect=[(200, None), (200, None), Exception()]):
+                    asup.update_configuration()
+
+        # Exceptions for state=="maintenance disabled"
+        self._set_args({"state": "maintenance_disabled"})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            asup.get_configuration = lambda: {"asupEnabled": True}
+            asup.in_maintenance_mode = lambda: True
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to disable ASUP maintenance window."):
+                with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                    asup.update_configuration()
+        self._set_args({"state": "maintenance_disabled"})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            asup.get_configuration = lambda: {"asupEnabled": True}
+            asup.in_maintenance_mode = lambda: True
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to store maintenance information."):
+                with mock.patch(self.REQ_FUNC, side_effect=[(200, None), Exception()]):
+                    asup.update_configuration()
+        self._set_args({"state": "maintenance_disabled"})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+            asup = NetAppESeriesAsup()
+            asup.get_configuration = lambda: {"asupEnabled": True}
+            asup.in_maintenance_mode = lambda: True
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to store maintenance information."):
+                with mock.patch(self.REQ_FUNC, side_effect=[(200, None), (200, None), Exception()]):
+                    asup.update_configuration()
+
