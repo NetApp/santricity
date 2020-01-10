@@ -35,11 +35,9 @@ options:
             - B
     channel:
         description:
-            - The channel of the port to modify the configuration of.
-            - The list of choices is not necessarily comprehensive. It depends on the number of ports
-              that are available in the system.
-            - The numerical value represents the number of the channel (typically from left to right on the HIC),
-              beginning with a value of 1.
+            - The controller iSCSI HIC port to modify.
+            - You can determine this value by numbering the iSCSI ports left to right on the controller you wish to modify.
+        type: int
         required: true
     state:
         description:
@@ -142,14 +140,6 @@ msg:
     returned: on success
     type: str
     sample: The interface settings have been updated.
-enabled:
-    description:
-        - Indicates whether IPv4 connectivity has been enabled or disabled.
-        - This does not necessarily indicate connectivity. If dhcp was enabled without a dhcp server, for instance,
-          it is unlikely that the configuration will actually be valid.
-    returned: on success
-    sample: True
-    type: bool
 """
 import re
 
@@ -187,6 +177,7 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
         self.check_mode = self.module.check_mode
         self.post_body = dict()
         self.controllers = list()
+        self.get_target_interface_cache = None
 
         if self.mtu < 1500 or self.mtu > 9000:
             self.module.fail_json(msg="The provided mtu is invalid, it must be > 1500 and < 9000 bytes.")
@@ -216,9 +207,12 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
             self.module.fail_json(msg="Failed to retrieve defined host interfaces. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         # Filter out non-iSCSI interfaces
-        ifaces = [iface["iscsi"] for iface in ifaces if iface["interfaceType"] == "iscsi"]
+        iscsi_interfaces = []
+        for iface in [iface for iface in ifaces if iface["interfaceType"] == "iscsi"]:
+            if iface["iscsi"]["interfaceData"]["type"] == "ethernet":
+                iscsi_interfaces.append(iface)
 
-        return ifaces
+        return iscsi_interfaces
 
     def get_controllers(self):
         """Retrieve a mapping of controller labels to their references
@@ -245,19 +239,27 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
 
         return controllers_dict
 
-    def fetch_target_interface(self):
-        interfaces = self.interfaces
+    def get_target_interface(self):
+        """Retrieve the specific controller iSCSI interface."""
+        if self.get_target_interface_cache is None:
+            ifaces = self.interfaces
 
-        for iface in interfaces:
-            if iface["channel"] == self.channel and self.controllers[self.controller] == iface["controllerId"]:
-                return iface
+            controller_ifaces = []
+            for iface in ifaces:
+                if self.controllers[self.controller] == iface["iscsi"]["controllerId"]:
+                    controller_ifaces.append([iface["iscsi"]["channel"], iface, iface["iscsi"]["interfaceData"]["ethernetData"]["linkStatus"]])
 
-        channels = sorted(set((str(iface["channel"])) for iface in interfaces
-                              if self.controllers[self.controller] == iface["controllerId"]))
+            sorted_controller_ifaces = sorted(controller_ifaces)
+            if self.channel < 1 or self.channel >= len(controller_ifaces):
+                status_msg = ", ".join(["%s (link %s)" % (index + 1, values[2]) for index, values in enumerate(sorted_controller_ifaces)])
+                self.module.fail_json(msg="Invalid controller %s iSCSI channel. Available channels: %s, Array Id [%s]."
+                                          % (self.controller, status_msg, self.ssid))
 
-        self.module.fail_json(msg="The requested channel of %s is not valid. Valid channels include: %s." % (self.channel, ", ".join(channels)))
+            self.get_target_interface_cache = sorted_controller_ifaces[self.channel - 1][1]
+        return self.get_target_interface_cache
 
     def make_update_body(self, target_iface):
+        target_iface = target_iface["iscsi"]
         body = dict(iscsiInterface=target_iface["id"])
         update_required = False
 
@@ -304,7 +306,7 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
         if self.controller not in self.controllers:
             self.module.fail_json(msg="The provided controller name is invalid. Valid controllers: %s." % ", ".join(self.controllers.keys()))
 
-        iface_before = self.fetch_target_interface()
+        iface_before = self.get_target_interface()
         update_required, body = self.make_update_body(iface_before)
         if update_required and not self.check_mode:
             try:
@@ -321,9 +323,7 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
             except Exception as err:
                 self.module.fail_json(msg="Connection failure: we failed to modify the interface! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
-        iface_after = self.fetch_target_interface()
-
-        self.module.exit_json(msg="The interface settings have been updated.", changed=update_required, enabled=iface_after["ipv4Enabled"])
+        self.module.exit_json(msg="The interface settings have been updated.", changed=update_required)
 
 
 if __name__ == "__main__":

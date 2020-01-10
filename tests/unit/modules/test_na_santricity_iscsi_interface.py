@@ -66,17 +66,12 @@ class IscsiInterfaceTest(ModuleTestCase):
     def test_interfaces(self):
         """Validate that we are processing the interface list properly"""
         self._set_args()
-
-        interfaces = [
-            dict(interfaceType='iscsi',
-                 iscsi=dict()),
-            dict(interfaceType='iscsi',
-                 iscsi=dict()),
-            dict(interfaceType='fc', )
-        ]
+        interfaces = [{"interfaceType": "iscsi", "iscsi": {"interfaceData": {"type": "ethernet"}}},
+                      {"interfaceType": "iscsi", "iscsi": {"interfaceData": {"type": "ethernet"}}},
+                      {"interfaceType": "fc", "iscsi": {"interfaceData": {"type": "ethernet"}}}]
 
         # Ensure we filter out anything without an interfaceType of iscsi
-        expected = [iface['iscsi'] for iface in interfaces if iface['interfaceType'] == 'iscsi']
+        expected = [iface for iface in interfaces if iface['interfaceType'] == 'iscsi']
 
         # We expect a single call to the API: retrieve the list of interfaces from the objectGraph.
         with mock.patch(self.REQ_FUNC, return_value=(200, interfaces)):
@@ -94,16 +89,16 @@ class IscsiInterfaceTest(ModuleTestCase):
                 iface = NetAppESeriesIscsiInterface()
                 interfaces = iface.interfaces
 
-    def test_fetch_target_interface_bad_channel(self):
+    def test_get_target_interface_bad_channel(self):
         """Ensure we fail correctly when a bad channel is provided"""
         self._set_args()
 
-        interfaces = list(dict(channel=1, controllerId='1'))
+        interfaces = [{"iscsi": {"channel": 1, "controllerId": "1"}}]
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r".*?channels include.*"):
+        with self.assertRaisesRegexp(AnsibleFailJson, r"Invalid controller.*?iSCSI channel."):
             with mock.patch.object(NetAppESeriesIscsiInterface, 'interfaces', return_value=interfaces):
                 iface = NetAppESeriesIscsiInterface()
-                interfaces = iface.fetch_target_interface()
+                interfaces = iface.get_target_interface()
 
     def test_make_update_body_dhcp(self):
         """Ensure the update body generates correctly for a transition from static to dhcp"""
@@ -111,14 +106,13 @@ class IscsiInterfaceTest(ModuleTestCase):
                             config_method='dhcp')
                        )
 
-        iface = dict(id='1',
-                     ipv4Enabled=False,
-                     ipv4Data=dict(ipv4AddressData=dict(ipv4Address="0.0.0.0",
-                                                        ipv4SubnetMask="0.0.0.0",
-                                                        ipv4GatewayAddress="0.0.0.0", ),
-                                   ipv4AddressConfigMethod='configStatic', ),
-                     interfaceData=dict(ethernetData=dict(maximumFramePayloadSize=1500, ), ),
-                     )
+        iface = {"iscsi": {"id": 1,
+                           "ipv4Enabled": False,
+                           "ipv4Data": {"ipv4AddressData": {"ipv4Address": "0.0.0.0",
+                                                            "ipv4SubnetMask": "0.0.0.0",
+                                                            "ipv4GatewayAddress": "0.0.0.0"},
+                                        "ipv4AddressConfigMethod": "configStatic"},
+                           "interfaceData": {"ethernetData": {"maximumFramePayloadSize": 1500}}}}
 
         # Test a transition from static to dhcp
         inst = NetAppESeriesIscsiInterface()
@@ -129,13 +123,13 @@ class IscsiInterfaceTest(ModuleTestCase):
 
     def test_make_update_body_static(self):
         """Ensure the update body generates correctly for a transition from dhcp to static"""
-        iface = dict(id='1',
-                     ipv4Enabled=False,
-                     ipv4Data=dict(ipv4AddressConfigMethod='configDhcp',
-                                   ipv4AddressData=dict(ipv4Address="0.0.0.0",
-                                                        ipv4SubnetMask="0.0.0.0",
-                                                        ipv4GatewayAddress="0.0.0.0", ), ),
-                     interfaceData=dict(ethernetData=dict(maximumFramePayloadSize=1500, ), ), )
+        iface = {"iscsi": {"id": 1,
+                           "ipv4Enabled": False,
+                           "ipv4Data": {"ipv4AddressData": {"ipv4Address": "0.0.0.0",
+                                                            "ipv4SubnetMask": "0.0.0.0",
+                                                            "ipv4GatewayAddress": "0.0.0.0"},
+                                        "ipv4AddressConfigMethod": "configDhcp"},
+                           "interfaceData": {"ethernetData": {"maximumFramePayloadSize": 1500}}}}
 
         self._set_args(dict(state='enabled',
                             config_method='static',
@@ -171,7 +165,7 @@ class IscsiInterfaceTest(ModuleTestCase):
         inst = NetAppESeriesIscsiInterface()
         with self.assertRaises(AnsibleExitJson):
             with mock.patch(self.REQ_FUNC, return_value=(200, "")) as request:
-                with mock.patch.object(inst, 'fetch_target_interface', side_effect=[{}, mock.MagicMock()]):
+                with mock.patch.object(inst, 'get_target_interface', side_effect=[{}, mock.MagicMock()]):
                     with mock.patch.object(inst, 'make_update_body', return_value=(True, {})):
                         inst.update()
         request.assert_called_once()
@@ -185,7 +179,7 @@ class IscsiInterfaceTest(ModuleTestCase):
         inst = NetAppESeriesIscsiInterface()
         with self.assertRaises(AnsibleExitJson) as result:
             with mock.patch(self.REQ_FUNC, return_value=(200, "")) as request:
-                with mock.patch.object(inst, 'fetch_target_interface', side_effect=[{}, mock.MagicMock()]):
+                with mock.patch.object(inst, 'get_target_interface', side_effect=[{}, mock.MagicMock()]):
                     with mock.patch.object(inst, 'make_update_body', return_value=(False, {})):
                         inst.update()
         request.assert_not_called()
@@ -197,7 +191,7 @@ class IscsiInterfaceTest(ModuleTestCase):
         inst.check_mode = True
         with self.assertRaises(AnsibleExitJson) as result:
             with mock.patch(self.REQ_FUNC, return_value=(200, "")) as request:
-                with mock.patch.object(inst, 'fetch_target_interface', side_effect=[{}, mock.MagicMock()]):
+                with mock.patch.object(inst, 'get_target_interface', side_effect=[{}, mock.MagicMock()]):
                     with mock.patch.object(inst, 'make_update_body', return_value=(True, {})):
                         inst.update()
         request.assert_not_called()
@@ -211,7 +205,7 @@ class IscsiInterfaceTest(ModuleTestCase):
         inst = NetAppESeriesIscsiInterface()
         with self.assertRaisesRegexp(AnsibleFailJson, r".*?busy.*") as result:
             with mock.patch(self.REQ_FUNC, return_value=(422, dict(retcode="3"))) as request:
-                with mock.patch.object(inst, 'fetch_target_interface', side_effect=[{}, mock.MagicMock()]):
+                with mock.patch.object(inst, 'get_target_interface', side_effect=[{}, mock.MagicMock()]):
                     with mock.patch.object(inst, 'make_update_body', return_value=(True, {})):
                         inst.update()
         request.assert_called_once()
@@ -226,20 +220,20 @@ class IscsiInterfaceTest(ModuleTestCase):
         # Test a 422 error with a non-busy status
         with self.assertRaisesRegexp(AnsibleFailJson, r".*?Failed to modify.*") as result:
             with mock.patch(self.REQ_FUNC, return_value=(422, mock.MagicMock())) as request:
-                with mock.patch.object(inst, 'fetch_target_interface', side_effect=[{}, mock.MagicMock()]):
+                with mock.patch.object(inst, 'get_target_interface', side_effect=[{}, mock.MagicMock()]):
                     inst.update()
         request.assert_called_once()
 
         # Test a 401 (authentication) error
         with self.assertRaisesRegexp(AnsibleFailJson, r".*?Failed to modify.*") as result:
             with mock.patch(self.REQ_FUNC, return_value=(401, mock.MagicMock())) as request:
-                with mock.patch.object(inst, 'fetch_target_interface', side_effect=[{}, mock.MagicMock()]):
+                with mock.patch.object(inst, 'get_target_interface', side_effect=[{}, mock.MagicMock()]):
                     inst.update()
         request.assert_called_once()
 
         # Test with a connection failure
         with self.assertRaisesRegexp(AnsibleFailJson, r".*?Connection failure.*") as result:
             with mock.patch(self.REQ_FUNC, side_effect=Exception()) as request:
-                with mock.patch.object(inst, 'fetch_target_interface', side_effect=[{}, mock.MagicMock()]):
+                with mock.patch.object(inst, 'get_target_interface', side_effect=[{}, mock.MagicMock()]):
                     inst.update()
         request.assert_called_once()
