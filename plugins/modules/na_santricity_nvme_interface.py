@@ -132,6 +132,8 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
         if self.gateway and not address_regex.match(self.gateway):
             self.module.fail_json(msg="An invalid ip address was provided for gateway.")
 
+        self.get_target_interface_cache = None
+
     def get_nvmeof_interfaces(self):
         """Retrieve all interfaces that are using nvmeof"""
         ifaces = list()
@@ -153,9 +155,8 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
                                           iface["ioInterfaceTypeData"]["interfaceType"]]["channel"],
                                       "interface_type": iface["ioInterfaceTypeData"][
                                           iface["ioInterfaceTypeData"]["interfaceType"]],
-                                      "controller_id": iface["controllerRef"]})
-                self.module.log("nvme_ifaces: %s" % nvmeof_ifaces[-1])
-
+                                      "controller_id": iface["controllerRef"],
+                                      "link_status": iface["ioInterfaceTypeData"]["ib"]["linkState"]})
         return nvmeof_ifaces
 
     def get_controllers(self):
@@ -179,15 +180,28 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
 
     def get_target_interface(self):
         """Retrieve the targeted controller interface"""
-        ifaces = self.get_nvmeof_interfaces()
-        controller_id = self.get_controllers()[self.controller]
+        if self.get_target_interface_cache is None:
+            ifaces = self.get_nvmeof_interfaces()
+            controller_id = self.get_controllers()[self.controller]
 
-        for iface in ifaces:
-            if iface["channel"] == self.channel and controller_id == iface["controller_id"]:
-                return iface
+            controller_ifaces = []
+            for iface in ifaces:
+                if iface["controller_id"] == controller_id:
+                    controller_ifaces.append(iface)
 
-        channels = sorted(set((str(iface['channel'])) for iface in ifaces if controller_id == iface['controller_id']))
-        self.module.fail_json(msg="Invalid channel. Valid channels include: %s." % ", ".join(channels))
+            self.module.log("before: %s" % controller_ifaces)
+            sorted_controller_ifaces = sorted(controller_ifaces, key=lambda x: x["channel"])
+            self.module.log("after: %s" % sorted_controller_ifaces)
+
+            if self.channel < 1 or self.channel >= len(controller_ifaces):
+                status_msg = ", ".join(["%s (link %s)" % (index + 1, iface["link_status"])
+                                        for index, iface in enumerate(sorted_controller_ifaces)])
+                self.module.fail_json(msg="Invalid controller %s NVMe channel. Available channels: %s, Array Id [%s]."
+                                          % (self.controller, status_msg, self.ssid))
+
+            self.get_target_interface_cache = sorted_controller_ifaces[self.channel - 1]
+
+        return self.get_target_interface_cache
 
     def update(self):
         """Update the storage system's controller nvme interface if needed."""
