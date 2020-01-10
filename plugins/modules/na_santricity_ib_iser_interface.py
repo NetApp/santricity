@@ -140,7 +140,8 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
         try:
             rc, controllers = self.request("storage-systems/%s/graph/xpath-filter?query=/controller/id" % self.ssid)
         except Exception as err:
-            self.module.fail_json(msg="Failed to retrieve controller list! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to retrieve controller list! Array Id [%s]. Error [%s]."
+                                      % (self.ssid, to_native(err)))
 
         controllers.sort()
 
@@ -153,30 +154,49 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
 
         return controllers_dict
 
+    def get_ib_link_status(self):
+        """Determine the infiniband link status. Returns dictionary keyed by interface reference number."""
+        link_statuses = {}
+        try:
+            rc, result = self.request("storage-systems/%s/hardware-inventory" % self.ssid)
+            for link in result["ibPorts"]:
+                link_statuses.update({link["channelPortRef"]: link["linkState"]})
+        except Exception as error:
+            self.module.fail_json(msg="Failed to retrieve ib link status information! Array Id [%s]. Error [%s]."
+                                  % (self.ssid, to_native(error)))
+
+        self.module.log("statuses: %s" % link_statuses)
+        return link_statuses
+
     def get_target_interface(self):
         """Search for the selected IB iSER interface"""
         if self.get_target_interface_cache is None:
             ifaces = self.get_interfaces()
+            ifaces_status = self.get_ib_link_status()
+            controller_id = self.controllers[self.controller]
 
             controller_ifaces = []
             for iface in ifaces:
-                if self.controllers[self.controller] == iface["iscsi"]["controllerId"]:
-                    controller_ifaces.append([iface["iscsi"]["channel"], iface])
-
-            if self.channel < 1 or self.channel >= len(controller_ifaces):
-                self.module.fail_json(msg="Invalid controller %s HCA channel. Available channels: %s, Array Id [%s]."
-                                      % (self.controller, str(list(range(1, len(controller_ifaces) + 1))), self.ssid))
+                if iface["iscsi"]["controllerId"] == controller_id:
+                    controller_ifaces.append([iface["iscsi"]["channel"], iface,
+                                              ifaces_status[iface["iscsi"]["channelPortRef"]]])
 
             sorted_controller_ifaces = sorted(controller_ifaces)
+            if self.channel < 1 or self.channel >= len(controller_ifaces):
+                status_msg = ", ".join(["%s (link %s)" % (index + 1, values[2])
+                                        for index, values in enumerate(sorted_controller_ifaces)])
+                self.module.fail_json(msg="Invalid controller %s HCA channel. Available channels: %s, Array Id [%s]."
+                                          % (self.controller, status_msg, self.ssid))
+
             self.get_target_interface_cache = sorted_controller_ifaces[self.channel - 1][1]
         return self.get_target_interface_cache
 
     def is_change_required(self):
         """Determine whether change is required."""
         iface = self.get_target_interface()
-
         if iface["iscsi"]["ipv4Data"]["ipv4AddressData"]["ipv4Address"] != self.address:
             return True
+
         return False
 
     def make_request_body(self):
