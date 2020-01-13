@@ -27,8 +27,9 @@ options:
   state:
     description:
       - Present will ensure the mapping exists, absent will remove the mapping.
-    required: True
+    required: False
     choices: ["present", "absent"]
+    default: "present"
   target:
     description:
       - The name of host or hostgroup you wish to assign to the mapping
@@ -87,7 +88,7 @@ from ansible.module_utils._text import to_native
 
 class NetAppESeriesLunMapping(NetAppESeriesModule):
     def __init__(self):
-        ansible_options = dict(state=dict(required=True, choices=["present", "absent"]),
+        ansible_options = dict(state=dict(required=False, choices=["present", "absent"], default="present"),
                                target=dict(required=False, default=None),
                                volume_name=dict(required=True, aliases=["volume"]),
                                lun=dict(type="int", required=False))
@@ -127,7 +128,7 @@ class NetAppESeriesLunMapping(NetAppESeriesModule):
 
         for cluster in response["storagePoolBundle"]["cluster"]:
 
-            # Verify there is no ambiguity between target's type (ie host and group has the same name)
+            # Verify there is no ambiguity between target's type (ie host and group have the same name)
             if cluster["name"] == self.target and self.target in target_name.keys():
                 self.module.fail_json(msg="Ambiguous target type: target name is used for both host and group targets! Id [%s]" % self.ssid)
 
