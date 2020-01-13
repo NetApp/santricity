@@ -187,7 +187,7 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
                                       " subnet_mask, and gateway options.")
 
         # A relatively primitive regex to validate that the input is formatted like a valid ip address
-        address_regex = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
+        address_regex = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
 
         if self.address and not address_regex.match(self.address):
             self.module.fail_json(msg="An invalid ip address was provided for address.")

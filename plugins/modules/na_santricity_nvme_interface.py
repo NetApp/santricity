@@ -82,6 +82,15 @@ options:
             - B
 """
 EXAMPLES = """
+- name:  Ensure NVMe over InfiniBand interfaces are set properly
+  na_santricity_nvme_interface:
+    api_url: "https://192.168.1.100:8443/devmgr/v2"
+    api_username: "admin"
+    api_password: "adminpass"
+    validate_certs: true
+    controller: A
+    channel: 1
+    address: 192.168.2.100
 """
 
 RETURN = """
@@ -124,7 +133,7 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
         self.channel = args["channel"]
         self.controller = args["controller"]
 
-        address_regex = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
+        address_regex = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
         if self.address and not address_regex.match(self.address):
             self.module.fail_json(msg="An invalid ip address was provided for address.")
         if self.subnet_mask and not address_regex.match(self.subnet_mask):
@@ -188,10 +197,7 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
             for iface in ifaces:
                 if iface["controller_id"] == controller_id:
                     controller_ifaces.append(iface)
-
-            self.module.log("before: %s" % controller_ifaces)
             sorted_controller_ifaces = sorted(controller_ifaces, key=lambda x: x["channel"])
-            self.module.log("after: %s" % sorted_controller_ifaces)
 
             if self.channel < 1 or self.channel >= len(controller_ifaces):
                 status_msg = ", ".join(["%s (link %s)" % (index + 1, iface["link_status"])

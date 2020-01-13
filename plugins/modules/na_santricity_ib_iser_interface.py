@@ -88,7 +88,7 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
     def __init__(self):
         ansible_options = dict(controller=dict(type="str", required=True, choices=["A", "B"]),
                                channel=dict(type="int"),
-                               address=dict(type="str", required=False))
+                               address=dict(type="str", required=True))
 
         super(NetAppESeriesIbIserInterface, self).__init__(ansible_options=ansible_options,
                                                            web_services_version="02.00.0000.0000",
@@ -103,7 +103,7 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
         self.get_target_interface_cache = None
 
         # A relatively primitive regex to validate that the input is formatted like a valid ip address
-        address_regex = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
+        address_regex = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
         if self.address and not address_regex.match(self.address):
             self.module.fail_json(msg="An invalid ip address was provided for address.")
 
@@ -127,8 +127,7 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
 
         return ib_iser_ifaces
 
-    @property
-    def controllers(self):
+    def get_controllers(self):
         """Retrieve a mapping of controller labels to their references
         {
             'A': '070000000000000000000001',
@@ -165,7 +164,6 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
             self.module.fail_json(msg="Failed to retrieve ib link status information! Array Id [%s]. Error [%s]."
                                   % (self.ssid, to_native(error)))
 
-        self.module.log("statuses: %s" % link_statuses)
         return link_statuses
 
     def get_target_interface(self):
@@ -173,7 +171,7 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
         if self.get_target_interface_cache is None:
             ifaces = self.get_interfaces()
             ifaces_status = self.get_ib_link_status()
-            controller_id = self.controllers[self.controller]
+            controller_id = self.get_controllers()[self.controller]
 
             controller_ifaces = []
             for iface in ifaces:
