@@ -30,7 +30,7 @@ options:
     systems:
         description:
             - List of storage system information which defines which systems should be added on SANtricity Web Services Proxy.
-            - This option will accept a simple serial number list or list of dictionary containing at minimum the serial key from the sub-option list.
+            - This option will accept a simple serial number list or list of dictionary containing at minimum the serial or addresses key from the sub-option list.
             - Note that the serial number will be used as the storage system identifier when an identifier is not specified.
             - When I(add_discovered_systems == False) and any system serial number not supplied that is discovered will be removed from the proxy.
         type: list
@@ -40,15 +40,22 @@ options:
             ssid:
                 description:
                     - This is the Web Services Proxy's identifier for a storage system.
+                    - When ssid is not specified then either the serial or first controller IPv4 address will be used instead.
                 type: str
                 required: false
             serial:
                 description:
                     - Storage system's serial number which can be located on the top of every NetApp E-Series enclosure.
                     - Include any leading zeros.
-                    - When ssid is not provided in the I(systems) sub-option, the serial will be used as the ssid.
+                    - Mutually exclusive with the sub-option address.
                 type: str
-                required: true
+                required: false
+            addresses:
+                description:
+                    - List of storage system's IPv4 addresses.
+                    - Mutually exclusive with the sub-option serial.
+                type: list
+                required: false
             password:
                 description:
                     - This is the storage system admin password.
@@ -61,19 +68,31 @@ options:
                     - Optional meta tags to associate to the storage system
                 type: dict
                 required: false
+            system_default_password:
+                description:
+                    - Default password for E-Series storage systems
+                type: str
+                default: ""
+                required: false
     subnet_mask:
         description:
             - This is the IPv4 search range for discovering E-Series storage arrays.
             - IPv4 subnet mask specified in CIDR form. Example 192.168.1.0/24 would search the range 192.168.1.0 to 192.168.1.255.
             - Be sure to include all management paths in the search range.
         type: str
-        required: true
+        required: false
     password:
         description:
             - Default storage system password which will be used anytime when password has not been provided in the I(systems) sub-options.
             - The storage system admin password will be set on the device itself with the provided admin password if it is not set.
         type: str
         required: true
+    system_default_password:
+        description:
+            - Default password for E-Series storage systems
+        type: str
+        default: ""
+        required: false
     tags:
         description:
             - Default meta tags to associate with all storage systems if not otherwise specified in I(systems) sub-options.
@@ -109,7 +128,9 @@ EXAMPLES = """
                 use: corporate
                 location: sunnyvale
           - ssid: "system2"
-            serial: "734574783794"
+            addresses:
+                - 192.168.1.100
+                - 192.168.2.100     # Second is not be required. It will be discovered
             password: "anothersecretpassword"
           - serial: "021324673799"
           - "021637323454"
@@ -146,6 +167,7 @@ msg:
     sample: "Storage systems [system1, system2, 1144FG123018, 721716500123, 123540006043, 112123001239] were added."
 """
 import ipaddress
+import json
 import threading
 
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
@@ -162,19 +184,22 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
     STORED_PASSWORD_VALIDATE_PROXY_VERISON = "04.10.0000.0000"
 
     def __init__(self):
-        version = "04.10.0000.0000"
         ansible_options = dict(add_discovered_systems=dict(type="bool", required=False, default=False),
-                               subnet_mask=dict(type="str", required=True),
+                               system_default_password=dict(type="str", required=False, default=""),
+                               subnet_mask=dict(type="str", required=False),
                                password=dict(type="str", required=False, default="", no_log=True),
                                tags=dict(type="dict", required=False),
                                accept_certificate=dict(type="bool", required=False, default=True),
                                systems=dict(type="list", required=False, default=[], suboptions=dict(ssid=dict(type="str", required=False),
-                                                                                                     serial=dict(type="str", required=True),
+                                                                                                     serial=dict(type="str", required=False),
+                                                                                                     addresses=dict(type="list", required=False),
+                                                                                                     system_default_password=dict(type="str", required=False,
+                                                                                                                                  default=""),
                                                                                                      password=dict(type="str", required=False, no_log=True),
                                                                                                      tags=dict(type="dict", required=False))))
 
         super(NetAppESeriesProxySystems, self).__init__(ansible_options=ansible_options,
-                                                        web_services_version=version,
+                                                        web_services_version="04.10.0000.0000",
                                                         supports_check_mode=True,
                                                         proxy_specific_task=True)
         args = self.module.params
@@ -213,17 +238,23 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
                                          "meta_tags": self.default_meta_tags,
                                          "controller_addresses": [],
                                          "embedded_available": None,
+                                         "accept_certificate": False,
                                          "current_info": {},
                                          "changes": {},
                                          "updated_required": False,
-                                         "failed": False})
+                                         "failed": False,
+                                         "discovered": False})
                 elif isinstance(system, dict):  # system is a dictionary of system details
                     if "ssid" not in system:
-                        system.update({"ssid": system["serial"]})
+                        if "serial" in system and system["serial"]:
+                            system.update({"ssid": system["serial"]})
+                        elif "addresses" in system and system["addresses"]:
+                            system.update({"ssid": system["addresses"][0]})
                     if "password" not in system:
                         system.update({"password": self.default_password})
 
-                    self.serial_numbers.append(system["ssid"])
+                    if "serial" in system and system["serial"]:
+                        self.serial_numbers.append(system["serial"])
 
                     # Structure meta tags for Web Services
                     meta_tags = self.default_meta_tags
@@ -233,22 +264,25 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
                                 meta_tags.append({"key": key, "valueList": system["meta_tags"][key]})
                             else:
                                 meta_tags.append({"key": key, "valueList": [system["meta_tags"][key]]})
+                        meta_tags = sorted(meta_tags, key=lambda x: x["key"])
 
                     self.systems.append({"ssid": str(system["ssid"]),
-                                         "serial": system["serial"],
+                                         "serial": system["serial"] if "serial" in system else "",
                                          "password": system["password"],
                                          "password_valid": None,
                                          "password_set": None,
                                          "stored_password_valid": None,
-                                         "meta_tags": sorted(meta_tags, key=lambda x: x["key"]),
-                                         "controller_addresses": [],
+                                         "meta_tags": meta_tags,
+                                         "controller_addresses": system["addresses"] if "addresses" in system else [],
                                          "embedded_available": None,
+                                         "accept_certificate": False,
                                          "current_info": {},
                                          "changes": {},
                                          "updated_required": False,
-                                         "failed": False})
+                                         "failed": False,
+                                         "discovered": False})
                 else:
-                    self.module.fail_json(msg="Invalid system! All systems must either be a simple serial numbers or a dictionary. Failed system: %s" % system)
+                    self.module.fail_json(msg="Invalid system! All systems must either be a simple serial number or a dictionary. Failed system: %s" % system)
 
         # Update default request headers
         self.DEFAULT_HEADERS.update({"x-netapp-password-validate-method": "none"})
@@ -275,37 +309,42 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
                 self.module.fail_json(msg="Failed to get the discovery results. Error [%s]." % to_native(error))
 
             if not discovered_systems:
-                self.module.fail_json(msg="Discovery found no systems. IP starting address [%s]. IP ending address: [%s]." % (str(subnet[0]), str(subnet[-1])))
+                self.module.warn("Discovery found no systems. IP starting address [%s]. IP ending address: [%s]." % (str(subnet[0]), str(subnet[-1])))
+            else:
+                # Add all newly discovered systems. This is ignore any supplied systems to prevent any duplicates.
+                if self.add_discovered_systems:
+                    for discovered_system in discovered_systems["storageSystems"]:
+                        if discovered_system["serialNumber"] not in self.serial_numbers:
+                            self.systems.append({"ssid": discovered_system["serialNumber"],
+                                                 "serial": discovered_system["serialNumber"],
+                                                 "password": self.default_password,
+                                                 "password_valid": None,
+                                                 "password_set": None,
+                                                 "stored_password_valid": None,
+                                                 "meta_tags": self.default_meta_tags,
+                                                 "controller_addresses": [],
+                                                 "embedded_available": None,
+                                                 "accept_certificate": False,
+                                                 "current_info": {},
+                                                 "changes": {},
+                                                 "updated_required": False,
+                                                 "failed": False,
+                                                 "discovered": False})
 
-            # Add all newly discovered systems. This is ignore any supplied systems to prevent any duplicates.
-            if self.add_discovered_systems:
-                for discovered_system in discovered_systems["storageSystems"]:
-                    if discovered_system["serialNumber"] not in self.serial_numbers:
-                        self.systems.append({"ssid": discovered_system["serialNumber"],
-                                             "serial": discovered_system["serialNumber"],
-                                             "password": self.default_password,
-                                             "password_valid": None,
-                                             "password_set": None,
-                                             "stored_password_valid": None,
-                                             "meta_tags": self.default_meta_tags,
-                                             "controller_addresses": [],
-                                             "embedded_available": None,
-                                             "current_info": {},
-                                             "changes": {},
-                                             "updated_required": False,
-                                             "failed": False})
-
-            # Update controller_addresses
-            for system in self.systems:
-                for discovered_system in discovered_systems["storageSystems"]:
-                    if system["serial"] == discovered_system["serialNumber"]:
-                        system["controller_addresses"] = sorted(discovered_system["ipAddresses"])
-                        system["embedded_available"] = "https" in discovered_system["supportedManagementPorts"]
-
-            for system in self.systems:
-                if not system["controller_addresses"]:
-                    self.undiscovered_systems.append(system["ssid"])
-                    self.systems.remove(system)
+                # Update controller_addresses
+                for system in self.systems:
+                    for discovered_system in discovered_systems["storageSystems"]:
+                        if (system["serial"] == discovered_system["serialNumber"] or
+                                (system["controller_addresses"] and
+                                 all([address in discovered_system["ipAddresses"] for address in system["controller_addresses"]]))):
+                            system["controller_addresses"] = sorted(discovered_system["ipAddresses"])
+                            system["embedded_available"] = "https" in discovered_system["supportedManagementPorts"]
+                            system["accept_certificate"] = system["embedded_available"] and self.accept_certificate
+                            system["discovered"] = True
+                            break
+                    else:  # Remove any undiscovered system from the systems list
+                        self.undiscovered_systems.append(system["ssid"])
+                        self.systems.remove(system)
 
         except Exception as error:
             self.module.fail_json(msg="Failed to initiate array discovery. Error [%s]." % to_native(error))
@@ -315,8 +354,7 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
         try:
             rc, existing_systems = self.request("storage-systems")
 
-            # Mark systems for adding or updating
-            expected_systems = []
+            # Mark systems for adding or removing
             for system in self.systems:
                 for existing_system in existing_systems:
                     if system["ssid"] == existing_system["id"]:
@@ -326,11 +364,8 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
                             system["failed"] = True
                             self.module.warn("Skipping storage system [%s] because of current password status [%s]"
                                              % (system["ssid"], system["current_info"]["passwordStatus"]))
-
                         if system["current_info"]["metaTags"]:
                             system["current_info"]["metaTags"] = sorted(system["current_info"]["metaTags"], key=lambda x: x["key"])
-
-                        expected_systems.append(system)
                         break
                 else:
                     self.systems_to_add.append(system)
@@ -345,158 +380,43 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
         except Exception as error:
             self.module.fail_json(msg="Failed to retrieve storage systems. Error [%s]." % to_native(error))
 
-    def is_supplied_array_password_valid(self, system):
-        """Whether the supplied array password matches the current device password."""
-        if system["embedded_available"]:
-            try:
-                rc, login = self.request("storage-systems/%s/forward/devmgr/utils/login" % system["ssid"], method="POST",
-                                         ignore_errors=True, data={"userId": "admin", "password": system["password"]})
-                if rc == 200:  # successful login
-                    return True
-                elif rc == 401:  # unauthorized
-                    return False
-                else:
-                    self.module.log(msg="Failed to determine supplied password validity. Array [%s]." % system["ssid"])
-                    system["failed"] = True
-            except Exception as error:
-                self.module.log(msg="Failed to determine supplied password validity. Array [%s]." % system["ssid"])
-                system["failed"] = True
-        else:
-            body = {"currentAdminPassword": system["password"], "adminPassword": True, "newPassword": system["password"]}
-            rc, response = self.request("storage-systems/%s/passwords" % system["ssid"], method="POST", ignore_errors=True, data=body)
-
-            if rc == 204:
-                return True
-            elif rc == 422:
-                return False
-            else:
-                self.module.fail_json(msg="Failed to validate password status. Array [%s]. Error [%s]." % (system["ssid"], to_native((rc, response))))
-
-    def is_current_stored_password_valid(self, system):
-        """Determine whether the current stored password is valid."""
-        self.request("storage-systems/%s/validatePassword" % system["ssid"], method="POST", ignore_errors=True) # This forces passwordStatus to be up-to-date
-        try:
-            rc, resp = self.request("storage-systems/%s" % system["ssid"])
-            if resp["passwordStatus"] not in ["valid", "invalid"]:
-                self.module.warn(msg="Failed to determine current stored password status. Array [%s]. Status [%s]." % (system["ssid"], resp["passwordStatus"]))
-                system["failed"] = True
-
-            return resp["passwordStatus"] == "valid"
-        except Exception as error:
-            self.module.warn(msg="Failed to validate current stored password. Array [%s]. Error [%s]." % (system["ssid"], to_native(error)))
-            system["failed"] = True
-
-    def has_stored_password_changed(self, system):
-        """Determine whether the store password has changed. Does not guarantee valid storage array password!!!"""
-        change_password = False
-        if (system["password"] and not system["password_set"]) or (not system["password"] and system["password_set"]):
-            change_password = True
-
-        elif self.is_supplied_array_password_valid(system):
-            if self.is_web_services_version_met(self.STORED_PASSWORD_VALIDATE_PROXY_VERISON):
+    def set_password(self, system):
+        """Determine whether password has been set and, if it hasn't been set, set it."""
+        if system["embedded_available"] and system["controller_addresses"]:
+            for url in ["https://%s:8443/devmgr" % system["controller_addresses"][0],
+                        "https://%s:443/devmgr" % system["controller_addresses"][0],
+                        "http://%s:8080/devmgr" % system["controller_addresses"][0]]:
                 try:
-                    rc, resp = self.request("storage-systems/%s/stored-password/validate" % system["ssid"], method="POST",
-                                            data={"password": system["password"]})
-                    change_password = not resp["isValidPassword"]
-                except Exception as error:
-                    self.module.warn(msg="Failed to validate stored password. Array [%s]. Error [%s]." % (system["ssid"], to_native(error)))
-                    system["failed"] = True
-            elif not self.is_current_stored_password_valid(system):
-                change_password = True
-        else:
-            self.module.warn(msg="The supplied password is not valid. Array [%s]." % system["ssid"])
-            system["failed"] = True
+                    rc, response = self._request("%s/utils/login?uid=admin&xsrf=false&onlycheck=true" % url, ignore_errors=True, url_username="admin",
+                                                 url_password="", validate_certs=False)
 
-        return change_password
-
-    def update_system_password_set(self, system):
-        """Determine whether password has been set."""
-        if system["current_info"]:
-
-            if system["embedded_available"]:
-                try:
-                    rc, response = self.request("storage-systems/%s/forward/devmgr/utils/login" % system["ssid"], method="POST",
-                                                ignore_errors=True, data={"userId": "admin", "password": ""})
-                    if rc == 200:  # successful login
+                    if rc == 200:  # successful login without password
                         system["password_set"] = False
+                        if system["password"]:
+                            for url in ["https://%s:8443/devmgr/v2" % system["controller_addresses"][0],
+                                        "https://%s:443/devmgr/v2" % system["controller_addresses"][0],
+                                        "http://%s:8080/devmgr/v2" % system["controller_addresses"][0]]:
+                                try:
+                                    rc, storage_system = self._request("%s/storage-systems/1/passwords" % url, method="POST", url_username="admin",
+                                                                       headers=self.DEFAULT_HEADERS, url_password="", validate_certs=False,
+                                                                       data=json.dumps({"currentAdminPassword": "", "adminPassword": True,
+                                                                                        "newPassword": system["password"]}))
+                                    break
+                                except Exception as error:
+                                    pass
+                            else:
+                                system["failed"] = True
+                                self.module.warn("Failed to set storage system password. Array [%s]." % system["ssid"])
+                        break
+
                     elif rc == 401:  # unauthorized
                         system["password_set"] = True
-                    else:
-                        self.module.log(msg="Failed to retrieve array password state. Array [%s]." % system["ssid"])
-                        system["failed"] = True
-                except Exception as error:
-                    self.module.log(msg="Failed to retrieve array password state. Array [%s]." % system["ssid"])
-                    system["failed"] = True
-
-            # legacy or symbol only systems
-            else:
-                try:
-                    if system["current_info"]["passwordSet"]:
-                        if system["current_info"]["passwordStatus"] == "valid":
-                            system["password_set"] = True
-
-                        elif system["current_info"]["passwordStatus"] == "invalid":
-                            self.request("storage-systems/%s" % system["ssid"], method="POST", data={"storedPassword": ""})
-                            self.request("storage-systems/%s/validatePassword" % system["ssid"], method="POST", ignore_errors=True)
-                            rc, system["current_info"] = self.request("storage-systems/%s" % system["ssid"])
-
-                            if system["current_info"]["passwordStatus"] == "valid":
-                                system["password_set"] = False
-                            elif system["current_info"]["passwordStatus"] == "invalid":
-                                system["password_set"] = True
-                            else:
-                                self.module.log(msg="Failed to retrieve array password state. Array [%s]." % system["ssid"])
-                                system["failed"] = True
-
-                    else:
-                        if system["current_info"]["passwordStatus"] == "valid":
-                            system["password_set"] = False
-                        elif system["current_info"]["passwordStatus"] == "invalid":
-                            system["password_set"] = True
-                        else:
-                            self.module.log(msg="Failed to retrieve array password state. Array [%s]." % system["ssid"])
-                            system["failed"] = True
-
-                except Exception as error:
-                    self.module.log(msg="Failed to retrieve array password state. Array [%s]. Error [%s]." % (system["ssid"], to_native(error)))
-                    system["failed"] = True
-
-        # Determine whether an un-added system has a set password
-        else:
-            temporary_system_id = None
-            try:
-                rc, response = self.request("storage-systems", method="POST", data={"controllerAddresses": system["controller_addresses"]})
-                temporary_system_id = response["id"]
-                sleep(1)
-
-                try:
-                    self.request("storage-systems/%s" % temporary_system_id, method="POST", data={"acceptCertificate": self.accept_certificate}, timeout=1)
+                        break
                 except Exception as error:
                     pass
-                self.request("storage-systems/%s/validatePassword" % temporary_system_id, method="POST", ignore_errors=True)
-
-                for retries in range(self.DEFAULT_PASSWORD_STATE_TIMEOUT):
-                    rc, system_info = self.request("storage-systems/%s" % temporary_system_id)
-                    if system_info["passwordStatus"] == "invalid":
-                        system["password_set"] = True
-                        break
-                    elif system_info["passwordStatus"] == "valid":
-                        system["password_set"] = False
-                        break
-                    else:
-                        sleep(1)
-                else:
-                    self.module.warn("Failed to determine password state. Array Id [%s]." % system["ssid"])
-                    system["failed"] = True
-
-            except Exception as error:
-                self.module.warn("Failed to add temporary storage system. Array Id [%s]." % system["ssid"])
+            else:
+                self.module.warn("Failed to retrieve array password state. Array [%s]." % system["ssid"])
                 system["failed"] = True
-            finally:
-                    try:
-                        rc, response = self.request("storage-systems/%s" % temporary_system_id, method="DELETE")
-                    except Exception as error:
-                        self.module.warn("Failed to remove temporary storage system. Array Id [%s]." % temporary_system_id)
 
     def update_system_changes(self, system):
         """Determine whether storage system configuration changes are required """
@@ -529,63 +449,43 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
                         break
 
             # Check whether CA certificate should be accepted
-            if (self.accept_certificate and
-                    "https" in system["current_info"]["supportedManagementPorts"] and
-                    system["current_info"]["certificateStatus"] != "trusted"):
+            if system["accept_certificate"] and not all([controller["certificateStatus"] == "trusted" for controller in system["current_info"]["controllers"]]):
                 system["changes"].update({"acceptCertificate": True})
 
         if system["changes"]:
             self.systems_to_update.append(system)
 
-    def set_system_password(self, system):
-        """Set the array password with it has not been set."""
-        try:
-            rc, storage_system = self.request("storage-systems/%s/passwords" % system["ssid"], method="POST",
-                                              data={"currentAdminPassword": "", "adminPassword": True, "newPassword": system["password"]})
-        except Exception as error:
-            self.module.fail_json(msg="Failed to set storage system password. Array [%s]. Error [%s]." % (system["ssid"], to_native(error)))
-
     def add_system(self, system):
         """Add basic storage system definition to the web services proxy."""
-        set_password = False
+        self.set_password(system)
+
         body = {"id": system["ssid"],
                 "controllerAddresses": system["controller_addresses"],
-                "password": system["password"],
-                "acceptCertificate": self.accept_certificate}
-
-        if not system["password_set"] and system["password"]:
-            set_password = True
-            body.update({"password": ""})
+                "password": system["password"]}
+        if system["accept_certificate"]:    # Set only if embedded is available and accept_certificates==True
+            body.update({"acceptCertificate": system["accept_certificate"]})
         if system["meta_tags"]:
             body.update({"metaTags": system["meta_tags"]})
 
         try:
             rc, storage_system = self.request("storage-systems", method="POST", data=body)
         except Exception as error:
-            self.module.fail_json(msg="Failed to add storage system. Array [%s]. Error [%s]" % (system["ssid"], to_native(error)))
+            self.module.warn(msg="Failed to add storage system. Array [%s]. Error [%s]" % (system["ssid"], to_native(error)))
+            return  # Skip the password validation.
 
-        if set_password:
-            self.set_system_password(system)
-
+        # Ensure the password is validated
+        sleep(1)
         try:
-            rc, response = self.request("storage-systems/%s/validatePassword" % system["ssid"], method="POST", data=body)
+            rc, storage_system = self.request("storage-systems/%s/validatePassword" % system["ssid"], method="POST")
         except Exception as error:
-            self.module.warn("Password failed to be validated. Array [%s]." % system["ssid"])
+            self.module.warn(msg="Failed to validate password status. Array [%s]. Error [%s]" % (system["ssid"], to_native(error)))
 
     def update_system(self, system):
         """Update storage system configuration."""
-        if not system["password_set"] and system["password"]:
-            self.set_system_password(system)
-
-        if not self.is_web_services_version_met(self.MANAGEMENT_PATH_FIX_PROXY_VERSION) and "controllerAddresses" in system["changes"]:
-            self.module.warn("Storage system will be removed and then re-added due to known issue in your Web Services Proxy version. See documentation note.")
-            self.remove_system(system["ssid"])
-            self.add_system(system)
-        else:
-            try:
-                rc, storage_system = self.request("storage-systems/%s" % system["ssid"], method="POST", data=system["changes"])
-            except Exception as error:
-                self.module.fail_json(msg="Failed to update storage system. Array [%s]. Error [%s]" % (system["ssid"], to_native(error)))
+        try:
+            rc, storage_system = self.request("storage-systems/%s" % system["ssid"], method="POST", data=system["changes"])
+        except Exception as error:
+            self.module.fail_json(msg="Failed to update storage system. Array [%s]. Error [%s]" % (system["ssid"], to_native(error)))
 
     def remove_system(self, ssid):
         """Remove storage system."""
@@ -597,29 +497,23 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
     def apply(self):
         """Determine whether changes are required and, if necessary, apply them."""
         if self.is_embedded():
-            self.module.fail_json(msg="Cannot add storage systems to SANtricity Web Services Embedded instance.")
+            self.module.fail_json(msg="Cannot add/remove storage systems to SANtricity Web Services Embedded instance.")
 
-        self.discover_array()
-        self.update_storage_systems_info()
+        if self.add_discovered_systems or self.systems:
+            self.discover_array()
+            self.update_storage_systems_info()
 
-        # Determine whether the password has been set
-        thread_pool = []
-        for system in self.systems:
-            thread = threading.Thread(target=self.update_system_password_set, args=(system,))
-            thread_pool.append(thread)
-            thread.start()
-        for thread in thread_pool:
-            thread.join()
-
-        # Determine whether the storage system requires updating
-        thread_pool = []
-        for system in self.systems:
-            if not system["failed"]:
-                thread = threading.Thread(target=self.update_system_changes, args=(system,))
-                thread_pool.append(thread)
-                thread.start()
-        for thread in thread_pool:
-            thread.join()
+            # Determine whether the storage system requires updating
+            thread_pool = []
+            for system in self.systems:
+                if not system["failed"]:
+                    thread = threading.Thread(target=self.update_system_changes, args=(system,))
+                    thread_pool.append(thread)
+                    thread.start()
+            for thread in thread_pool:
+                thread.join()
+        else:
+            self.update_storage_systems_info()
 
         changes_required = False
         if self.systems_to_add or self.systems_to_update or self.systems_to_remove:
