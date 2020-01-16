@@ -2,6 +2,8 @@
 # (c) 2018, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
+# NOTE: Running this test back-to-back can result in a 10 minute lock-out
+
 - name: Test na_santricity_proxy_firmware_upload module
   set_fact:
     credentials: &creds
@@ -9,15 +11,15 @@
       api_username: "{{ proxy_username }}"
       api_password: "{{ proxy_password }}"
       validate_certs: "{{ proxy_validate_cert }}"
-    subnet: 10.113.1.0/24
-    small_subnet: 10.113.1.192/30   # Be sure to know the systems included in this subnet since they will be discovered and not specified.
+    subnet: 192.168.1.10/24
+    small_subnet: 192.168.1.10/31   # Be sure to know the systems included in this subnet since they will be discovered and not specified.
     systems:
       - ssid: "10"
         serial: "021633035190"
-        password: "infiniti"
+        password: "password"
       - ssid: "20"
         serial: "711214000794"
-        password: "infiniti"
+        password: "password"
 
 - name: Ensure no systems have been added.
   na_santricity_proxy_systems:

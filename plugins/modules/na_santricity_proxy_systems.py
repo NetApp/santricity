@@ -68,12 +68,6 @@ options:
                     - Optional meta tags to associate to the storage system
                 type: dict
                 required: false
-            system_default_password:
-                description:
-                    - Default password for E-Series storage systems
-                type: str
-                default: ""
-                required: false
     subnet_mask:
         description:
             - This is the IPv4 search range for discovering E-Series storage arrays.
@@ -87,12 +81,6 @@ options:
             - The storage system admin password will be set on the device itself with the provided admin password if it is not set.
         type: str
         required: true
-    system_default_password:
-        description:
-            - Default password for E-Series storage systems
-        type: str
-        default: ""
-        required: false
     tags:
         description:
             - Default meta tags to associate with all storage systems if not otherwise specified in I(systems) sub-options.
@@ -180,12 +168,9 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
     DEFAULT_GRAPH_DISCOVERY_TIMEOUT = 30
     DEFAULT_PASSWORD_STATE_TIMEOUT = 30
     DEFAULT_DISCOVERY_TIMEOUT_SEC = 300
-    MANAGEMENT_PATH_FIX_PROXY_VERSION = "04.10.0000.0000"
-    STORED_PASSWORD_VALIDATE_PROXY_VERISON = "04.10.0000.0000"
 
     def __init__(self):
         ansible_options = dict(add_discovered_systems=dict(type="bool", required=False, default=False),
-                               system_default_password=dict(type="str", required=False, default=""),
                                subnet_mask=dict(type="str", required=False),
                                password=dict(type="str", required=False, default="", no_log=True),
                                tags=dict(type="dict", required=False),
@@ -193,8 +178,6 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
                                systems=dict(type="list", required=False, default=[], suboptions=dict(ssid=dict(type="str", required=False),
                                                                                                      serial=dict(type="str", required=False),
                                                                                                      addresses=dict(type="list", required=False),
-                                                                                                     system_default_password=dict(type="str", required=False,
-                                                                                                                                  default=""),
                                                                                                      password=dict(type="str", required=False, no_log=True),
                                                                                                      tags=dict(type="dict", required=False))))
 
@@ -401,6 +384,7 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
                                                                        headers=self.DEFAULT_HEADERS, url_password="", validate_certs=False,
                                                                        data=json.dumps({"currentAdminPassword": "", "adminPassword": True,
                                                                                         "newPassword": system["password"]}))
+                                    sleep(4)
                                     break
                                 except Exception as error:
                                     pass
@@ -422,10 +406,6 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
         """Determine whether storage system configuration changes are required """
         if system["current_info"]:
             system["changes"] = dict()
-
-            # Check if password should be updated
-            if self.has_stored_password_changed(system):
-                system["changes"].update({"storedPassword": system["password"]})
 
             # Check if management paths should be updated
             if (sorted(system["controller_addresses"]) != sorted(system["current_info"]["managementPaths"]) or
@@ -470,7 +450,7 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
         try:
             rc, storage_system = self.request("storage-systems", method="POST", data=body)
         except Exception as error:
-            self.module.warn(msg="Failed to add storage system. Array [%s]. Error [%s]" % (system["ssid"], to_native(error)))
+            self.module.warn("Failed to add storage system. Array [%s]. Error [%s]" % (system["ssid"], to_native(error)))
             return  # Skip the password validation.
 
         # Ensure the password is validated
@@ -478,21 +458,21 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
         try:
             rc, storage_system = self.request("storage-systems/%s/validatePassword" % system["ssid"], method="POST")
         except Exception as error:
-            self.module.warn(msg="Failed to validate password status. Array [%s]. Error [%s]" % (system["ssid"], to_native(error)))
+            self.module.warn("Failed to validate password status. Array [%s]. Error [%s]" % (system["ssid"], to_native(error)))
 
     def update_system(self, system):
         """Update storage system configuration."""
         try:
             rc, storage_system = self.request("storage-systems/%s" % system["ssid"], method="POST", data=system["changes"])
         except Exception as error:
-            self.module.fail_json(msg="Failed to update storage system. Array [%s]. Error [%s]" % (system["ssid"], to_native(error)))
+            self.module.warn("Failed to update storage system. Array [%s]. Error [%s]" % (system["ssid"], to_native(error)))
 
     def remove_system(self, ssid):
         """Remove storage system."""
         try:
             rc, storage_system = self.request("storage-systems/%s" % ssid, method="DELETE")
         except Exception as error:
-            self.module.fail_json(msg="Failed to remove storage system. Array [%s]. Error [%s]." % (ssid, to_native(error)))
+            self.module.warn("Failed to remove storage system. Array [%s]. Error [%s]." % (ssid, to_native(error)))
 
     def apply(self):
         """Determine whether changes are required and, if necessary, apply them."""
@@ -577,7 +557,7 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
 
         # Report no changes
         if self.undiscovered_systems:
-            self.module.fail_json(msg="No changes were made; however the following system(s) failed to be discovered: [%s]."
+            self.module.fail_json(msg="No changes were made; however the following system(s) failed to be discovered: %s."
                                       % self.undiscovered_systems, changed=changes_required)
         self.module.exit_json(msg="No changes were made.", changed=changes_required)
 
