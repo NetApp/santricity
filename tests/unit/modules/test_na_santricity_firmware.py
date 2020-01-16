@@ -249,6 +249,7 @@ class FirmwareTest(ModuleTestCase):
         firmware = NetAppESeriesFirmware()
         firmware.firmware_version = lambda: b"08.42.30.05"
         firmware.nvsram_version = lambda: b"N280X-842834-D02"
+        firmware.is_firmware_bundled = lambda: False
         with patch(self.SLEEP_FUNC, return_value=None):
             with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.30.05"]), (200, ["N280X-842834-D02"]), (200, {"status": "optimal"})]):
                 firmware.wait_for_web_services()

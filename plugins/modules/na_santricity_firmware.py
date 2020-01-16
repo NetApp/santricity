@@ -92,6 +92,7 @@ from ansible.module_utils._text import to_native
 class NetAppESeriesFirmware(NetAppESeriesModule):
     COMPATIBILITY_CHECK_TIMEOUT_SEC = 60
     REBOOT_TIMEOUT_SEC = 30 * 60
+    MINIMUM_PROXY_VERSION = "04.10.00.0000"
 
     def __init__(self):
         ansible_options = dict(
@@ -587,6 +588,8 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
         if self.is_embedded():
             self.embedded_check_compatibility()
         else:
+            if not self.is_web_services_version_met(self.MINIMUM_PROXY_VERSION):
+                self.module.fail_json(msg="Minimum proxy version %s required!")
             self.proxy_check_upgrade_required()
 
             # This will upload the firmware files to the web services proxy but not to the controller
