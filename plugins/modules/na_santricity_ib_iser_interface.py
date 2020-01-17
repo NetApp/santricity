@@ -180,7 +180,7 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
                                               ifaces_status[iface["iscsi"]["channelPortRef"]]])
 
             sorted_controller_ifaces = sorted(controller_ifaces)
-            if self.channel < 1 or self.channel >= len(controller_ifaces):
+            if self.channel < 1 or self.channel > len(controller_ifaces):
                 status_msg = ", ".join(["%s (link %s)" % (index + 1, values[2])
                                         for index, values in enumerate(sorted_controller_ifaces)])
                 self.module.fail_json(msg="Invalid controller %s HCA channel. Available channels: %s, Array Id [%s]."
