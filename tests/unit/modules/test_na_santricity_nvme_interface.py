@@ -1,6 +1,7 @@
 # (c) 2018, NetApp Inc.
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import (absolute_import, division, print_function)
+
 __metaclass__ = type
 
 from units.compat import mock
@@ -50,7 +51,6 @@ class NvmeInterfaceTest(ModuleTestCase):
 
         for option in invalid_option_list:
             self._set_args(option)
-            print(option)
             with self.assertRaises(AnsibleFailJson):
                 nvme = NetAppESeriesNvmeInterface()
 
@@ -69,9 +69,9 @@ class NvmeInterfaceTest(ModuleTestCase):
         with mock.patch(self.REQ_FUNC, return_value=(200, response)):
             self.assertEquals(nvme.get_nvmeof_interfaces(), [{"properties": {"provider": "providerInfiniband", "ibProperties": {
                 "ipAddressData": {"addressType": "ipv4", "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
-                                                              "reference": "2201020000000000000000000000000000000000", "channel": 1,
-                                                              "interface_type": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 1,
-                                                                                 "linkState": "up"}, "controller_id": "070000000000000000000001",
+                                                              "reference": "2201020000000000000000000000000000000000", "channel": 1, "interface_type": "ib",
+                                                              "interface": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 1,
+                                                                            "linkState": "up"}, "controller_id": "070000000000000000000001",
                                                               "link_status": "up"}])
 
     def test_get_nvmeof_interfaces_fail(self):
@@ -91,8 +91,8 @@ class NvmeInterfaceTest(ModuleTestCase):
         self._set_args(options)
         nvme = NetAppESeriesNvmeInterface()
         nvme.get_nvmeof_interfaces = lambda: [{"properties": {"provider": "providerInfiniband", "ibProperties": {
-                                                  "ipAddressData": {"addressType": "ipv4",
-                                                                    "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
+            "ipAddressData": {"addressType": "ipv4",
+                              "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
                                                "reference": "2201020000000000000000000000000000000000", "channel": 5,
                                                "interface_type": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 5,
                                                                   "linkState": "up"}, "controller_id": "070000000000000000000001",
@@ -126,8 +126,8 @@ class NvmeInterfaceTest(ModuleTestCase):
         self._set_args(options)
         nvme = NetAppESeriesNvmeInterface()
         nvme.get_nvmeof_interfaces = lambda: [{"properties": {"provider": "providerInfiniband", "ibProperties": {
-                                                  "ipAddressData": {"addressType": "ipv4",
-                                                                    "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
+            "ipAddressData": {"addressType": "ipv4",
+                              "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
                                                "reference": "2201020000000000000000000000000000000000", "channel": 5,
                                                "interface_type": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 5,
                                                                   "linkState": "up"}, "controller_id": "070000000000000000000001",
@@ -141,8 +141,8 @@ class NvmeInterfaceTest(ModuleTestCase):
         self._set_args(options)
         nvme = NetAppESeriesNvmeInterface()
         nvme.get_nvmeof_interfaces = lambda: [{"properties": {"provider": "providerInfiniband", "ibProperties": {
-                                                  "ipAddressData": {"addressType": "ipv4",
-                                                                    "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
+            "ipAddressData": {"addressType": "ipv4",
+                              "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
                                                "reference": "2201020000000000000000000000000000000000", "channel": 5,
                                                "interface_type": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 5,
                                                                   "linkState": "up"}, "controller_id": "070000000000000000000001",

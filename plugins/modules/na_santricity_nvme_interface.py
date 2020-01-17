@@ -55,6 +55,15 @@ options:
         default: 1500
         aliases:
             - max_frame_size
+    speed:
+        description:
+            - This is the ethernet port speed measured in Gb/s.
+            - Value must be a supported speed or auto for automatically negotiating the speed with the port. 
+            - Only applicable when configuring RoCE
+            - The configured ethernet port speed should match the speed capability of the SFP on the selected port.
+        type: str
+        required: false
+        default: auto
     state:
         description:
             - Whether or not the specified RoCE interface should be enabled.
@@ -77,20 +86,9 @@ options:
             - The controller that owns the port you want to configure.
             - Controller names are presented alphabetically, with the first controller as A and the second as B.
         required: false
-        choices:
-            - A
-            - B
+        choices: [A, B]
 """
 EXAMPLES = """
-- name:  Ensure NVMe over InfiniBand interfaces are set properly
-  na_santricity_nvme_interface:
-    api_url: "https://192.168.1.100:8443/devmgr/v2"
-    api_username: "admin"
-    api_password: "adminpass"
-    validate_certs: true
-    controller: A
-    channel: 1
-    address: 192.168.2.100
 """
 
 RETURN = """
@@ -113,6 +111,7 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
                                gateway=dict(type="str", required=False),
                                config_method=dict(type="str", required=False, default="dhcp", choices=["dhcp", "static"]),
                                mtu=dict(type="int", default=1500, required=False, aliases=["max_frame_size"]),
+                               speed=dict(type="str", default="auto", required=False),
                                state=dict(type="str", default="enabled", required=False, choices=["enabled", "disabled"]),
                                channel=dict(type="int", required=True),
                                controller=dict(type="str", required=True, choices=["A", "B"]))
@@ -129,6 +128,7 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
         self.gateway = args["gateway"]
         self.config_method = "configDhcp" if args["config_method"] == "dhcp" else "configStatic"
         self.mtu = args["mtu"]
+        self.speed = args["speed"]
         self.enabled = args["state"] == "enabled"
         self.channel = args["channel"]
         self.controller = args["controller"]
@@ -155,17 +155,24 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
         # Filter out all not nvme-nvmeof hostside interfaces.
         nvmeof_ifaces = []
         for iface in ifaces:
+            interface_type = iface["ioInterfaceTypeData"]["interfaceType"]
             properties = iface["commandProtocolPropertiesList"]["commandProtocolProperties"]
+
+            try:
+                link_status = iface["ioInterfaceTypeData"]["ib"]["linkState"]
+            except:
+                link_status = iface["ioInterfaceTypeData"]["ethernet"]["interfaceData"]["ethernetData"]["linkStatus"]
+
             if (properties and properties[0]["commandProtocol"] == "nvme" and
                     properties[0]["nvmeProperties"]["commandSet"] == "nvmeof"):
                 nvmeof_ifaces.append({"properties": properties[0]["nvmeProperties"]["nvmeofProperties"],
                                       "reference": iface["interfaceRef"],
-                                      "channel": iface["ioInterfaceTypeData"][
-                                          iface["ioInterfaceTypeData"]["interfaceType"]]["channel"],
-                                      "interface_type": iface["ioInterfaceTypeData"][
-                                          iface["ioInterfaceTypeData"]["interfaceType"]],
+                                      "channel": iface["ioInterfaceTypeData"][iface["ioInterfaceTypeData"]["interfaceType"]]["channel"],
+                                      "interface_type": interface_type,
+                                      "interface": iface["ioInterfaceTypeData"][interface_type],
                                       "controller_id": iface["controllerRef"],
-                                      "link_status": iface["ioInterfaceTypeData"]["ib"]["linkState"]})
+                                      "interface_type": interface_type,
+                                      "link_status": link_status})
         return nvmeof_ifaces
 
     def get_controllers(self):
@@ -197,9 +204,9 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
             for iface in ifaces:
                 if iface["controller_id"] == controller_id:
                     controller_ifaces.append(iface)
-            sorted_controller_ifaces = sorted(controller_ifaces, key=lambda x: x["channel"])
 
-            if self.channel < 1 or self.channel >= len(controller_ifaces):
+            sorted_controller_ifaces = sorted(controller_ifaces, key=lambda x: x["channel"])
+            if self.channel < 1 or self.channel > len(controller_ifaces):
                 status_msg = ", ".join(["%s (link %s)" % (index + 1, iface["link_status"])
                                         for index, iface in enumerate(sorted_controller_ifaces)])
                 self.module.fail_json(msg="Invalid controller %s NVMe channel. Available channels: %s, Array Id [%s]."
@@ -213,8 +220,8 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
         """Update the storage system's controller nvme interface if needed."""
         update_required = False
         body = {}
-        iface = self.get_target_interface()
 
+        iface = self.get_target_interface()
         if iface["properties"]["provider"] == "providerInfiniband":
             if (iface["properties"]["ibProperties"]["ipAddressData"]["addressType"] != "ipv4" or
                     iface["properties"]["ibProperties"]["ipAddressData"]["ipv4Data"]["ipv4Address"] != self.address):
@@ -222,30 +229,52 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
                 body = {"settings": {"ibSettings": {"networkSettings": {"ipv4Address": self.address}}}}
 
         elif iface["properties"]["provider"] == "providerRocev2":
+            interface_data = iface["interface"]["interfaceData"]["ethernetData"]
+            current_speed = interface_data["currentInterfaceSpeed"].lower().replace("speed", "").replace("gig", "")
+            interface_supported_speeds = [str(speed).lower().replace("speed", "").replace("gig", "")
+                                          for speed in interface_data["supportedInterfaceSpeeds"]]
+            if self.speed not in interface_supported_speeds:
+                self.module.fail_json(msg="Unsupported interface speed! Options %s. Array [%s]."
+                                          % (interface_supported_speeds, self.ssid))
+
             roce_properties = iface["properties"]["roceV2Properties"]
             if self.enabled != roce_properties["ipv4Enabled"]:
                 update_required = True
             if self.address and roce_properties["ipv4Data"]["ipv4AddressConfigMethod"] != self.config_method:
                 update_required = True
-            if self.address and roce_properties["ipv4Data"]["ipv4Address"] != self.address:
+            if self.address and roce_properties["ipv4Data"]["ipv4AddressData"]["ipv4Address"] != self.address:
                 update_required = True
-            if self.subnet_mask and roce_properties["ipv4Data"]["ipv4SubnetMask"] != self.subnet_mask:
+            if self.subnet_mask and roce_properties["ipv4Data"]["ipv4AddressData"]["ipv4SubnetMask"] != self.subnet_mask:
                 update_required = True
-            if self.gateway and roce_properties["ipv4Data"]["ipv4GatewayAddress"] != self.gateway:
+            if self.gateway and roce_properties["ipv4Data"]["ipv4AddressData"]["ipv4GatewayAddress"] != self.gateway:
                 update_required = True
-            if (self.mtu and iface["interface_type"]["interfaceData"]["ethernetData"][
+            if self.speed and self.speed != current_speed:
+                update_required = True
+            if (self.mtu and iface["interface"]["interfaceData"]["ethernetData"][
                     "maximumFramePayloadSize"] != self.mtu):
                 update_required = True
 
             if update_required:
-                body = {"settings": {"roceV2Settings": {
+                body = {"id": iface["reference"], "settings": {"roceV2Settings": {
                     "networkSettings": {"ipv4Enabled": self.enabled,
-                                        "ipv4Settings": {"configurationMethod": self.config_method,
-                                                         "address": self.address,
-                                                         "subnetMask": self.subnet_mask}}}}}
-                if self.gateway:
-                    body["settings"]["roceV2Settings"]["networkSettings"]["ipv4Settings"].update(
-                        {"gatewayAddress": self.gateway})
+                                        "ipv4Settings": {"configurationMethod": self.config_method}}}}}
+
+                if self.config_method == "configStatic":
+                    if self.address:
+                        body["settings"]["roceV2Settings"]["networkSettings"]["ipv4Settings"].update(
+                            {"address": self.address})
+                    if self.subnet_mask:
+                        body["settings"]["roceV2Settings"]["networkSettings"]["ipv4Settings"].update(
+                            {"subnetMask": self.subnet_mask})
+                    if self.gateway:
+                        body["settings"]["roceV2Settings"]["networkSettings"]["ipv4Settings"].update(
+                            {"gatewayAddress": self.gateway})
+                if self.speed:
+                    if self.speed == "auto":
+                        body["settings"]["roceV2Settings"]["networkSettings"].update({"interfaceSpeed": "speedAuto"})
+                    else:
+                        body["settings"]["roceV2Settings"]["networkSettings"].update(
+                            {"interfaceSpeed": "speed%sgig" % self.speed})
                 if self.mtu:
                     body["settings"]["roceV2Settings"]["networkSettings"].update({"interfaceMtu": self.mtu})
 
