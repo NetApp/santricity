@@ -2,6 +2,7 @@
 # (c) 2018, NetApp Inc.
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import (absolute_import, division, print_function)
+
 __metaclass__ = type
 
 from units.compat import mock
@@ -48,6 +49,7 @@ class MgmtInterfaceTest(ModuleTestCase):
          "channel": 2,
          "alias": "creG1g-AP-a",
          "ipv4Enabled": True,
+         "linkStatus": "down",
          "ipv4Address": "0.0.0.0",
          "ipv4SubnetMask": "0.0.0.0",
          "ipv4AddressConfigMethod": "configDhcp",
@@ -73,6 +75,7 @@ class MgmtInterfaceTest(ModuleTestCase):
          "alias": "creG1g-AP-b",
          "ipv4Enabled": True,
          "ipv4Address": "0.0.0.0",
+         "linkStatus": "down",
          "ipv4SubnetMask": "0.0.0.0",
          "ipv4AddressConfigMethod": "configDhcp",
          "ipv4GatewayAddress": "10.1.1.1",
@@ -103,6 +106,7 @@ class MgmtInterfaceTest(ModuleTestCase):
          "alias": "creG1g-AP-b",
          "ipv4Enabled": True,
          "ipv4Address": "0.0.0.0",
+         "linkStatus": "down",
          "ipv4SubnetMask": "0.0.0.0",
          "ipv4AddressConfigMethod": "configDhcp",
          "ipv4GatewayAddress": "10.1.1.1",
@@ -127,6 +131,7 @@ class MgmtInterfaceTest(ModuleTestCase):
                            "dhcpAcquiredNtpServers": []}}]
 
     REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_mgmt_interface.NetAppESeriesMgmtInterface.request'
+    TIME_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_mgmt_interface.sleep'
 
     def _set_args(self, args=None):
         module_args = self.REQUIRED_PARAMS.copy()
@@ -134,12 +139,12 @@ class MgmtInterfaceTest(ModuleTestCase):
             module_args.update(args)
         set_module_args(module_args)
 
-    def test_controller_property_pass(self):
-        """Verify dictionary return from controller property."""
+    def test_get_controllers_pass(self):
+        """Verify dictionary return from get_controllers."""
         initial = {
-            "state": "enable",
+            "state": "enabled",
             "controller": "A",
-            "channel": "1",
+            "port": "1",
             "address": "192.168.1.1",
             "subnet_mask": "255.255.255.1",
             "config_method": "static"}
@@ -160,15 +165,15 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
 
         with mock.patch(self.REQ_FUNC, return_value=(200, controller_request)):
-            response = mgmt_interface.controllers
+            response = mgmt_interface.get_controllers()
             self.assertTrue(response == expected)
 
     def test_controller_property_fail(self):
         """Verify controllers endpoint request failure causes AnsibleFailJson exception."""
         initial = {
-            "state": "enable",
+            "state": "enabled",
             "controller": "A",
-            "channel": "1",
+            "port": "1",
             "address": "192.168.1.1",
             "subnet_mask": "255.255.255.1",
             "config_method": "static"}
@@ -189,331 +194,351 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
         with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to retrieve the controller settings."):
             with mock.patch(self.REQ_FUNC, return_value=Exception):
-                response = mgmt_interface.controllers
+                response = mgmt_interface.get_controllers()
 
-    def test_interface_property_match_pass(self):
+    def test_update_target_interface_info_pass(self):
         """Verify return value from interface property."""
         initial = {
-            "state": "enable",
+            "state": "enabled",
             "controller": "A",
-            "channel": "1",
+            "port": "1",
             "address": "192.168.1.1",
             "subnet_mask": "255.255.255.0",
             "config_method": "static"}
-        controller_request = [
-            {"physicalLocation": {"slot": 2},
-             "controllerRef": "070000000000000000000002",
-             "networkSettings": {"remoteAccessEnabled": True}},
-            {"physicalLocation": {"slot": 1},
-             "controllerRef": "070000000000000000000001",
-             "networkSettings": {"remoteAccessEnabled": False}}]
-        expected = {
-            "dns_servers": [{"ipv4Address": "10.1.0.250", "addressType": "ipv4"},
-                            {"ipv4Address": "10.10.0.20", "addressType": "ipv4"}],
-            "subnet_mask": "255.255.255.0",
-            "link_status": "up",
-            "ntp_servers": None,
-            "ntp_config_method": "disabled",
-            "controllerRef": "070000000000000000000001",
-            "config_method": "configStatic",
-            "enabled": True,
-            "gateway": "10.1.1.1",
-            "alias": "creG1g-AP-a",
-            "controllerSlot": 1,
-            "dns_config_method": "stat",
-            "id": "2800070000000000000000000001000000000000",
-            "address": "10.1.1.10",
-            "ipv6Enabled": False,
-            "channel": 1}
+        get_controller = {"A": {"controllerSlot": 1, "controllerRef": "070000000000000000000001", "ssh": False},
+                          "B": {"controllerSlot": 2, "controllerRef": "070000000000000000000002", "ssh": True}}
+        expected = {"channel": 1, "link_status": "up", "enabled": True, "address": "10.1.1.10", "gateway": "10.1.1.1", "subnet_mask": "255.255.255.0",
+                    "dns_config_method": "stat",
+                    "dns_servers": [{"addressType": "ipv4", "ipv4Address": "10.1.0.250"}, {"addressType": "ipv4", "ipv4Address": "10.10.0.20"}],
+                    "ntp_config_method": "disabled", "ntp_servers": None, "config_method": "configStatic", "controllerRef": "070000000000000000000001",
+                    "controllerSlot": 1, "ipv6_enabled": False, "id": "2800070000000000000000000001000000000000", "ssh": False}
 
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.get_controllers = lambda: get_controller
 
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TEST_DATA), (200, controller_request)]):
-            iface = mgmt_interface.interface
-            self.assertTrue(iface == expected)
+        with mock.patch(self.REQ_FUNC, return_value=(200, self.TEST_DATA)):
+            mgmt_interface.update_target_interface_info()
+            self.assertEquals(mgmt_interface.interface_info, expected)
 
     def test_interface_property_request_exception_fail(self):
         """Verify ethernet-interfaces endpoint request failure results in AnsibleFailJson exception."""
         initial = {
-            "state": "enable",
+            "state": "enabled",
             "controller": "A",
-            "channel": "1",
+            "port": "1",
             "address": "192.168.1.1",
-            "subnet_mask": "255.255.255.1",
+            "subnet_mask": "255.255.255.0",
             "config_method": "static"}
-        controller_request = [
-            {"physicalLocation": {"slot": 2},
-             "controllerRef": "070000000000000000000002",
-             "networkSettings": {"remoteAccessEnabled": True}},
-            {"physicalLocation": {"slot": 1},
-             "controllerRef": "070000000000000000000001",
-             "networkSettings": {"remoteAccessEnabled": False}}]
+        get_controller = {"A": {"controllerSlot": 1, "controllerRef": "070000000000000000000001", "ssh": False},
+                          "B": {"controllerSlot": 2, "controllerRef": "070000000000000000000002", "ssh": True}}
 
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.get_controllers = lambda: get_controller
 
         with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to retrieve defined management interfaces."):
-            with mock.patch(self.REQ_FUNC, side_effect=[Exception, (200, controller_request)]):
-                iface = mgmt_interface.interface
+            with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                mgmt_interface.update_target_interface_info()
 
-    def test_interface_property_no_match_fail(self):
-        """Verify return value from interface property."""
+    def test_update_target_interface_info_fail(self):
+        """Verify return value from update_target_interface_info method."""
         initial = {
-            "state": "enable",
+            "state": "enabled",
             "controller": "A",
-            "name": "wrong_name",
+            "port": "3",
             "address": "192.168.1.1",
             "subnet_mask": "255.255.255.1",
             "config_method": "static"}
-        controller_request = [
-            {"physicalLocation": {"slot": 2},
-             "controllerRef": "070000000000000000000002",
-             "networkSettings": {"remoteAccessEnabled": True}},
-            {"physicalLocation": {"slot": 1},
-             "controllerRef": "070000000000000000000001",
-             "networkSettings": {"remoteAccessEnabled": False}}]
-        expected = {
-            "dns_servers": [{"ipv4Address": "10.1.0.20", "addressType": "ipv4"},
-                            {"ipv4Address": "10.1.0.50", "addressType": "ipv4"}],
-            "subnet_mask": "255.255.255.0",
-            "ntp_servers": None,
-            "ntp_config_method": "disabled",
-            "controllerRef": "070000000000000000000001",
-            "config_method": "configStatic",
-            "enabled": True,
-            "gateway": "10.1.1.1",
-            "alias": "creG1g-AP-a",
-            "controllerSlot": 1,
-            "dns_config_method": "stat",
-            "id": "2800070000000000000000000001000000000000",
-            "address": "10.1.1.111",
-            "ipv6Enabled": False,
-            "channel": 1}
+        get_controller = {"A": {"controllerSlot": 1, "controllerRef": "070000000000000000000001", "ssh": False},
+                          "B": {"controllerSlot": 2, "controllerRef": "070000000000000000000002", "ssh": True}}
 
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
-        with self.assertRaisesRegexp(AnsibleFailJson, r"We could not find an interface matching"):
-            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TEST_DATA), (200, controller_request)]):
-                iface = mgmt_interface.interface
+        mgmt_interface.get_controllers = lambda: get_controller
 
-    def test_get_enable_interface_settings_enabled_pass(self):
-        """Validate get_enable_interface_settings updates properly."""
-        initial = {
-            "state": "enable",
-            "controller": "A",
-            "name": "wrong_name",
-            "address": "192.168.1.1",
-            "subnet_mask": "255.255.255.1",
-            "config_method": "static"}
-        iface = {"enabled": False}
-        expected_iface = {}
+        with self.assertRaisesRegexp(AnsibleFailJson, "Invalid port number! Controller .*? ports:"):
+            with mock.patch(self.REQ_FUNC, return_value=(200, self.TEST_DATA)):
+                mgmt_interface.update_target_interface_info()
+
+    def test_update_body_enable_interface_setting_pass(self):
+        """Validate update_body_enable_interface_setting updates properly."""
+        initial = {"state": "enabled", "controller": "A", "port": "1", "address": "192.168.1.1", "subnet_mask": "255.255.255.1", "config_method": "static"}
+        interface_info = {"channel": 1, "link_status": "up", "enabled": True, "address": "10.1.1.10", "gateway": "10.1.1.1",
+                          "subnet_mask": "255.255.255.0",
+                          "dns_config_method": "stat",
+                          "dns_servers": [{"addressType": "ipv4", "ipv4Address": "10.1.0.250"},
+                                          {"addressType": "ipv4", "ipv4Address": "10.10.0.20"}],
+                          "ntp_config_method": "disabled", "ntp_servers": None, "config_method": "configStatic",
+                          "controllerRef": "070000000000000000000001",
+                          "controllerSlot": 1, "ipv6_enabled": True, "id": "2800070000000000000000000001000000000000", "ssh": False}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        change_required = mgmt_interface.update_body_enable_interface_setting()
+        self.assertFalse(change_required)
+        self.assertTrue("ipv4Enabled" in mgmt_interface.body and mgmt_interface.body["ipv4Enabled"])
+
+        initial = {"state": "disabled", "controller": "A", "port": "1", "address": "192.168.1.1", "subnet_mask": "255.255.255.1", "config_method": "static"}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        change_required = mgmt_interface.update_body_enable_interface_setting()
+        self.assertTrue(change_required)
+        self.assertTrue("ipv4Enabled" in mgmt_interface.body and not mgmt_interface.body["ipv4Enabled"])
+
+    def test_update_body_enable_interface_setting_fail(self):
+        """Validate update_body_enable_interface_setting throws expected exception"""
+        initial = {"state": "disabled", "controller": "A", "port": "1", "address": "192.168.1.1", "subnet_mask": "255.255.255.1", "config_method": "static"}
+        interface_info = {"channel": 1, "link_status": "up", "enabled": True, "address": "10.1.1.10", "gateway": "10.1.1.1",
+                          "subnet_mask": "255.255.255.0",
+                          "dns_config_method": "stat",
+                          "dns_servers": [{"addressType": "ipv4", "ipv4Address": "10.1.0.250"},
+                                          {"addressType": "ipv4", "ipv4Address": "10.10.0.20"}],
+                          "ntp_config_method": "disabled", "ntp_servers": None, "config_method": "configStatic",
+                          "controllerRef": "070000000000000000000001",
+                          "controllerSlot": 1, "ipv6_enabled": False, "id": "2800070000000000000000000001000000000000", "ssh": False}
 
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        with self.assertRaisesRegexp(AnsibleFailJson, "Either IPv4 or IPv6 must be enabled."):
+            mgmt_interface.update_body_enable_interface_setting()
 
-        update, expected_iface, body = mgmt_interface.get_enable_interface_settings(iface, expected_iface, False, {})
-        self.assertTrue(update and expected_iface["enabled"] and body["ipv4Enabled"])
-
-    def test_get_enable_interface_settings_disabled_pass(self):
-        """Validate get_enable_interface_settings updates properly."""
-        initial = {
-            "state": "disable",
-            "controller": "A",
-            "name": "wan0",
-            "address": "192.168.1.1",
-            "subnet_mask": "255.255.255.1",
-            "config_method": "static"}
-        iface = {"enabled": True}
-        expected_iface = {}
-
-        self._set_args(initial)
-        mgmt_interface = NetAppESeriesMgmtInterface()
-
-        update, expected_iface, body = mgmt_interface.get_enable_interface_settings(iface, expected_iface, False, {})
-        self.assertTrue(update and not expected_iface["enabled"] and not body["ipv4Enabled"])
-
-    def test_update_array_interface_ssh_pass(self):
-        """Verify get_interface_settings gives the right static configuration response."""
-        initial = {
-            "state": "enable",
-            "controller": "A",
-            "name": "wan0",
-            "address": "192.168.1.1",
-            "subnet_mask": "255.255.255.1",
-            "config_method": "static",
-            "ssh": True}
-        iface = {"dns_servers": [{"ipv4Address": "10.1.0.20", "addressType": "ipv4"},
-                                 {"ipv4Address": "10.1.0.50", "addressType": "ipv4"}],
-                 "subnet_mask": "255.255.255.0",
-                 "link_status": "up",
-                 "ntp_servers": None,
-                 "ntp_config_method": "disabled",
-                 "controllerRef": "070000000000000000000001",
-                 "config_method": "configStatic",
-                 "enabled": True,
-                 "gateway": "10.1.1.1",
-                 "alias": "creG1g-AP-a",
-                 "controllerSlot": 1,
-                 "dns_config_method": "stat",
-                 "id": "2800070000000000000000000001000000000000",
-                 "address": "10.1.1.111",
-                 "ipv6Enabled": False,
-                 "channel": 1}
-        settings = {"controllerRef": "070000000000000000000001",
-                    "ssh": False}
+    def test_update_body_interface_settings_fail(self):
+        """Validate update_body_interface_settings throws expected exception"""
+        initial = {"state": "enabled", "controller": "A", "port": "1", "address": "192.168.1.1", "subnet_mask": "255.255.255.1", "config_method": "static"}
+        interface_info = {"channel": 1, "link_status": "up", "enabled": True, "address": "10.1.1.10", "gateway": "10.1.1.1",
+                          "subnet_mask": "255.255.255.0",
+                          "dns_config_method": "stat",
+                          "dns_servers": [{"addressType": "ipv4", "ipv4Address": "10.1.0.250"},
+                                          {"addressType": "ipv4", "ipv4Address": "10.10.0.20"}],
+                          "ntp_config_method": "disabled", "ntp_servers": None, "config_method": "configStatic",
+                          "controllerRef": "070000000000000000000001",
+                          "controllerSlot": 1, "ipv6_enabled": False, "id": "2800070000000000000000000001000000000000", "ssh": False}
 
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertTrue(mgmt_interface.update_body_interface_settings())
+        self.assertEquals(mgmt_interface.body, {"ipv4AddressConfigMethod": "configStatic", "ipv4Address": "192.168.1.1", "ipv4SubnetMask": "255.255.255.1"})
 
-        with mock.patch(self.REQ_FUNC, return_value=(200, None)):
-            update = mgmt_interface.update_array(settings, iface)
-            self.assertTrue(update)
-
-    def test_update_array_dns_static_ntp_disable_pass(self):
-        """Verify get_interface_settings gives the right static configuration response."""
-        initial = {
-            "controller": "A",
-            "name": "wan0",
-            "dns_config_method": "static",
-            "dns_address": "192.168.1.1",
-            "dns_address_backup": "192.168.1.100",
-            "ntp_config_method": "disable"}
-        iface = {"dns_servers": [{"ipv4Address": "10.1.0.20", "addressType": "ipv4"},
-                                 {"ipv4Address": "10.1.0.50", "addressType": "ipv4"}],
-                 "subnet_mask": "255.255.255.0",
-                 "link_status": "up",
-                 "ntp_servers": None,
-                 "ntp_config_method": "disabled",
-                 "controllerRef": "070000000000000000000001",
-                 "config_method": "configStatic",
-                 "enabled": True,
-                 "gateway": "10.1.1.1",
-                 "alias": "creG1g-AP-a",
-                 "controllerSlot": 1,
-                 "dns_config_method": "configDhcp",
-                 "id": "2800070000000000000000000001000000000000",
-                 "address": "10.1.1.111",
-                 "ipv6Enabled": False,
-                 "channel": 1}
-        settings = {"controllerRef": "070000000000000000000001",
-                    "ssh": False}
+        initial = {"state": "enabled", "controller": "A", "port": "1", "address": "192.168.1.100", "subnet_mask": "255.255.255.1", "gateway": "192.168.1.1",
+                   "config_method": "static"}
+        interface_info = {"channel": 1, "link_status": "up", "enabled": True, "address": "10.1.1.10", "gateway": "10.1.1.1",
+                          "subnet_mask": "255.255.255.0",
+                          "dns_config_method": "stat",
+                          "dns_servers": [{"addressType": "ipv4", "ipv4Address": "10.1.0.250"},
+                                          {"addressType": "ipv4", "ipv4Address": "10.10.0.20"}],
+                          "ntp_config_method": "disabled", "ntp_servers": None, "config_method": "configStatic",
+                          "controllerRef": "070000000000000000000001",
+                          "controllerSlot": 1, "ipv6_enabled": False, "id": "2800070000000000000000000001000000000000", "ssh": False}
 
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertTrue(mgmt_interface.update_body_interface_settings())
+        self.assertEquals(mgmt_interface.body, {"ipv4AddressConfigMethod": "configStatic", "ipv4Address": "192.168.1.100", "ipv4SubnetMask": "255.255.255.1",
+                                                "ipv4GatewayAddress": "192.168.1.1"})
 
-        with mock.patch(self.REQ_FUNC, return_value=(200, None)):
-            update = mgmt_interface.update_array(settings, iface)
-            self.assertTrue(update)
-
-    def test_update_array_dns_dhcp_ntp_static_pass(self):
-        """Verify get_interface_settings gives the right static configuration response."""
-        initial = {
-            "controller": "A",
-            "name": "wan0",
-            "ntp_config_method": "static",
-            "ntp_address": "192.168.1.1",
-            "ntp_address_backup": "192.168.1.100",
-            "dns_config_method": "dhcp"}
-        iface = {"dns_servers": [{"ipv4Address": "10.1.0.20", "addressType": "ipv4"},
-                                 {"ipv4Address": "10.1.0.50", "addressType": "ipv4"}],
-                 "subnet_mask": "255.255.255.0",
-                 "link_status": "up",
-                 "ntp_servers": None,
-                 "ntp_config_method": "disabled",
-                 "controllerRef": "070000000000000000000001",
-                 "config_method": "configStatic",
-                 "enabled": True,
-                 "gateway": "10.1.1.1",
-                 "alias": "creG1g-AP-a",
-                 "controllerSlot": 1,
-                 "dns_config_method": "configStatic",
-                 "id": "2800070000000000000000000001000000000000",
-                 "address": "10.1.1.111",
-                 "ipv6Enabled": False,
-                 "channel": 1}
-        settings = {"controllerRef": "070000000000000000000001",
-                    "ssh": False}
+        initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp"}
+        interface_info = {"channel": 1, "link_status": "up", "enabled": True, "address": "10.1.1.10", "gateway": "10.1.1.1",
+                          "subnet_mask": "255.255.255.0",
+                          "dns_config_method": "stat",
+                          "dns_servers": [{"addressType": "ipv4", "ipv4Address": "10.1.0.250"},
+                                          {"addressType": "ipv4", "ipv4Address": "10.10.0.20"}],
+                          "ntp_config_method": "disabled", "ntp_servers": None, "config_method": "configStatic",
+                          "controllerRef": "070000000000000000000001",
+                          "controllerSlot": 1, "ipv6_enabled": False, "id": "2800070000000000000000000001000000000000", "ssh": False}
 
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertTrue(mgmt_interface.update_body_interface_settings())
+        self.assertEquals(mgmt_interface.body, {"ipv4AddressConfigMethod": "configDhcp"})
 
-        with mock.patch(self.REQ_FUNC, return_value=(200, None)):
-            update = mgmt_interface.update_array(settings, iface)
-            self.assertTrue(update)
-
-    def test_update_array_dns_dhcp_ntp_static_no_change_pass(self):
-        """Verify get_interface_settings gives the right static configuration response."""
-        initial = {
-            "controller": "A",
-            "name": "wan0",
-            "ntp_config_method": "dhcp",
-            "dns_config_method": "dhcp"}
-        iface = {"dns_servers": [{"ipv4Address": "10.1.0.20", "addressType": "ipv4"},
-                                 {"ipv4Address": "10.1.0.50", "addressType": "ipv4"}],
-                 "subnet_mask": "255.255.255.0",
-                 "ntp_servers": None,
-                 "ntp_config_method": "dhcp",
-                 "controllerRef": "070000000000000000000001",
-                 "config_method": "static",
-                 "enabled": True,
-                 "gateway": "10.1.1.1",
-                 "alias": "creG1g-AP-a",
-                 "controllerSlot": 1,
-                 "dns_config_method": "dhcp",
-                 "id": "2800070000000000000000000001000000000000",
-                 "address": "10.1.1.11",
-                 "ipv6Enabled": False,
-                 "channel": 1}
-        settings = {"controllerRef": "070000000000000000000001",
-                    "ssh": False}
+        initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp"}
+        interface_info = {"channel": 1, "link_status": "up", "enabled": True, "address": "10.1.1.10", "gateway": "10.1.1.1",
+                          "subnet_mask": "255.255.255.0",
+                          "dns_config_method": "stat",
+                          "dns_servers": [{"addressType": "ipv4", "ipv4Address": "10.1.0.250"},
+                                          {"addressType": "ipv4", "ipv4Address": "10.10.0.20"}],
+                          "ntp_config_method": "disabled", "ntp_servers": None, "config_method": "configDhcp",
+                          "controllerRef": "070000000000000000000001",
+                          "controllerSlot": 1, "ipv6_enabled": False, "id": "2800070000000000000000000001000000000000", "ssh": False}
 
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertFalse(mgmt_interface.update_body_interface_settings())
+        self.assertEquals(mgmt_interface.body, {"ipv4AddressConfigMethod": "configDhcp"})
 
-        with mock.patch(self.REQ_FUNC, return_value=(200, None)):
-            update = mgmt_interface.update_array(settings, iface)
-            self.assertFalse(update)
+    def test_update_body_dns_server_settings_pass(self):
+        """Validate update_body_dns_server_settings throws expected exception"""
+        interface_info = {"channel": 1, "link_status": "up", "enabled": True, "address": "10.1.1.10", "gateway": "10.1.1.1",
+                          "subnet_mask": "255.255.255.0",
+                          "dns_config_method": "stat",
+                          "dns_servers": [{"addressType": "ipv4", "ipv4Address": "10.1.0.250"},
+                                          {"addressType": "ipv4", "ipv4Address": "10.10.0.20"}],
+                          "ntp_config_method": "disabled", "ntp_servers": None, "config_method": "configStatic",
+                          "controllerRef": "070000000000000000000001",
+                          "controllerSlot": 1, "ipv6_enabled": False, "id": "2800070000000000000000000001000000000000", "ssh": False}
+
+        initial = {"state": "enabled", "controller": "A", "port": "1", "dns_config_method": "dhcp"}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertTrue(mgmt_interface.update_body_dns_server_settings())
+        self.assertEquals(mgmt_interface.body, {"dnsAcquisitionDescriptor": {"dnsAcquisitionType": "dhcp"}})
+
+        initial = {"state": "enabled", "controller": "A", "port": "1", "dns_config_method": "static", "dns_address": "192.168.1.100"}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertTrue(mgmt_interface.update_body_dns_server_settings())
+        self.assertEquals(mgmt_interface.body, {"dnsAcquisitionDescriptor": {"dnsAcquisitionType": "stat",
+                                                                             "dnsServers": [{"addressType": "ipv4", "ipv4Address": "192.168.1.100"}]}})
+
+        initial = {"state": "enabled", "controller": "A", "port": "1", "dns_config_method": "static", "dns_address": "192.168.1.100",
+                   "dns_address_backup": "192.168.1.102"}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertTrue(mgmt_interface.update_body_dns_server_settings())
+        self.assertEquals(mgmt_interface.body, {"dnsAcquisitionDescriptor": {"dnsAcquisitionType": "stat",
+                                                                             "dnsServers": [{"addressType": "ipv4", "ipv4Address": "192.168.1.100"},
+                                                                                            {"addressType": "ipv4", "ipv4Address": "192.168.1.102"}]}})
+
+    def test_update_body_ntp_server_settings_pass(self):
+        """Validate update_body_ntp_server_settings throws expected exception"""
+        interface_info = {"channel": 1, "link_status": "up", "enabled": True, "address": "10.1.1.10", "gateway": "10.1.1.1",
+                          "subnet_mask": "255.255.255.0",
+                          "dns_config_method": "stat",
+                          "dns_servers": [{"addressType": "ipv4", "ipv4Address": "10.1.0.250"},
+                                          {"addressType": "ipv4", "ipv4Address": "10.10.0.20"}],
+                          "ntp_config_method": "dhcp", "ntp_servers": None, "config_method": "configStatic",
+                          "controllerRef": "070000000000000000000001",
+                          "controllerSlot": 1, "ipv6_enabled": False, "id": "2800070000000000000000000001000000000000", "ssh": False}
+
+        initial = {"state": "enabled", "controller": "A", "port": "1", "ntp_config_method": "disabled"}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertTrue(mgmt_interface.update_body_ntp_server_settings())
+        self.assertEquals(mgmt_interface.body, {"ntpAcquisitionDescriptor": {"ntpAcquisitionType": "disabled"}})
+
+        initial = {"state": "enabled", "controller": "A", "port": "1", "ntp_config_method": "dhcp"}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertFalse(mgmt_interface.update_body_ntp_server_settings())
+        self.assertEquals(mgmt_interface.body, {"ntpAcquisitionDescriptor": {"ntpAcquisitionType": "dhcp"}})
+
+        initial = {"state": "enabled", "controller": "A", "port": "1", "ntp_config_method": "static", "ntp_address": "192.168.1.200"}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertTrue(mgmt_interface.update_body_ntp_server_settings())
+        self.assertEquals(mgmt_interface.body, {"ntpAcquisitionDescriptor": {
+            "ntpAcquisitionType": "stat", "ntpServers": [{"addrType": "ipvx", "ipvxAddress": {"addressType": "ipv4", "ipv4Address": "192.168.1.200"}}]}})
+
+        initial = {"state": "enabled", "controller": "A", "port": "1", "ntp_config_method": "static", "ntp_address": "192.168.1.200",
+                   "ntp_address_backup": "192.168.1.202"}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertTrue(mgmt_interface.update_body_ntp_server_settings())
+        self.assertEquals(mgmt_interface.body, {"ntpAcquisitionDescriptor": {
+            "ntpAcquisitionType": "stat", "ntpServers": [{"addrType": "ipvx", "ipvxAddress": {"addressType": "ipv4", "ipv4Address": "192.168.1.200"}},
+                                                         {"addrType": "ipvx", "ipvxAddress": {"addressType": "ipv4", "ipv4Address": "192.168.1.202"}}]}})
+
+    def test_update_body_ssh_setting_pass(self):
+        """Validate update_body_ssh_setting throws expected exception"""
+        interface_info = {"channel": 1, "link_status": "up", "enabled": True, "address": "10.1.1.10", "gateway": "10.1.1.1",
+                          "subnet_mask": "255.255.255.0",
+                          "dns_config_method": "stat",
+                          "dns_servers": [{"addressType": "ipv4", "ipv4Address": "10.1.0.250"},
+                                          {"addressType": "ipv4", "ipv4Address": "10.10.0.20"}],
+                          "ntp_config_method": "disabled", "ntp_servers": None, "config_method": "configStatic",
+                          "controllerRef": "070000000000000000000001",
+                          "controllerSlot": 1, "ipv6_enabled": False, "id": "2800070000000000000000000001000000000000", "ssh": False}
+
+        initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp", "ssh": True}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertTrue(mgmt_interface.update_body_ssh_setting())
+        self.assertEquals(mgmt_interface.body, {"enableRemoteAccess": True})
+
+        initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp", "ssh": False}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.interface_info = interface_info
+        self.assertFalse(mgmt_interface.update_body_ssh_setting())
+        self.assertEquals(mgmt_interface.body, {"enableRemoteAccess": False})
+
+    def test_update_url_pass(self):
+        """Verify update_url returns expected url."""
+        initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp", "ssh": False}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.url = "https://192.168.1.100:8443/devmgr/v2/"
+        mgmt_interface.alt_interface_addresses = []
+        mgmt_interface.update_url()
+        self.assertTrue(mgmt_interface.url, "https://192.168.1.100:8443/devmgr/v2/")
+
+        initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp", "ssh": False}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.url = "https://192.168.1.100:8443/devmgr/v2/"
+        mgmt_interface.alt_interface_addresses = ["192.168.1.102"]
+        mgmt_interface.update_url()
+        self.assertTrue(mgmt_interface.url, "https://192.168.1.102:8443/devmgr/v2/")
 
     def test_update_pass(self):
-        """Validate update method completes."""
-        initial = {
-            "state": "enable",
-            "controller": "A",
-            "channel": "1",
-            "address": "192.168.1.1",
-            "subnet_mask": "255.255.255.1",
-            "config_method": "static",
-            "ssh": "yes"}
-        controller_request = [
-            {"physicalLocation": {"slot": 2},
-             "controllerRef": "070000000000000000000002",
-             "networkSettings": {"remoteAccessEnabled": True}},
-            {"physicalLocation": {"slot": 1},
-             "controllerRef": "070000000000000000000001",
-             "networkSettings": {"remoteAccessEnabled": False}}]
-        expected = {
-            "dns_servers": [{"ipv4Address": "10.1.0.20", "addressType": "ipv4"},
-                            {"ipv4Address": "10.1.0.50", "addressType": "ipv4"}],
-            "subnet_mask": "255.255.255.0",
-            "ntp_servers": None,
-            "ntp_config_method": "disabled",
-            "controllerRef": "070000000000000000000001",
-            "config_method": "configStatic",
-            "enabled": True,
-            "gateway": "10.1.1.1",
-            "alias": "creG1g-AP-a",
-            "controllerSlot": 1,
-            "dns_config_method": "stat",
-            "id": "2800070000000000000000000001000000000000",
-            "address": "10.1.1.111",
-            "ipv6Enabled": False,
-            "channel": 1}
-
+        """Verify update successfully completes."""
+        initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp", "ssh": False}
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
-
-        with self.assertRaisesRegexp(AnsibleExitJson, r"The interface settings have been updated."):
-            with mock.patch(self.REQ_FUNC, side_effect=[(200, None), (200, controller_request), (200, self.TEST_DATA),
-                                                        (200, controller_request), (200, self.TEST_DATA)]):
+        mgmt_interface.update_request_body = lambda: False
+        mgmt_interface.is_embedded = lambda: False
+        mgmt_interface.use_alternate_address = False
+        with self.assertRaisesRegexp(AnsibleExitJson, "No changes are required."):
+            with mock.patch(self.REQ_FUNC, return_value=(200, None)):
                 mgmt_interface.update()
+
+        def update_request_body():
+            update_request_body.value = not update_request_body.value
+            return update_request_body.value
+        update_request_body.value = False
+
+        initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp", "ssh": False}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.update_request_body = update_request_body
+        mgmt_interface.is_embedded = lambda: True
+        mgmt_interface.use_alternate_address = False
+        with self.assertRaisesRegexp(AnsibleExitJson, "The interface settings have been updated."):
+            with mock.patch(self.REQ_FUNC, return_value=(200, None)):
+                mgmt_interface.update()
+
+    def test_update_fail(self):
+        """Verify update method throws expected exception."""
+        def update_request_body():
+            if update_request_body.value:
+                update_request_body.value = False
+                return True
+            return False
+
+        update_request_body.value = True
+
+        initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp", "ssh": False}
+        self._set_args(initial)
+        mgmt_interface = NetAppESeriesMgmtInterface()
+        mgmt_interface.update_request_body = lambda: update_request_body
+        mgmt_interface.is_embedded = lambda: False
+        mgmt_interface.use_alternate_address = False
+        with mock.patch(self.TIME_FUNC, return_value=None):
+            with self.assertRaisesRegexp(AnsibleFailJson, "Changes failed to complete! Timeout waiting for management interface to update."):
+                with mock.patch(self.REQ_FUNC, return_value=(200, None)):
+                    mgmt_interface.update()
