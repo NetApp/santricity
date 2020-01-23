@@ -1,0 +1,87 @@
+# Test code for the nac_sancticity_ldap module found in the SANtricity collection.
+# (c) 2018, NetApp, Inc
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+
+- include_vars: "../../integration_config.yml"
+
+- set_fact:
+    credentials: &creds
+      ssid: "{{ ssid }}"
+      api_url: "{{ base_url }}"
+      api_username: "{{ username }}"
+      api_password: "{{ password }}"
+      validate_certs: "{{ validate_cert }}"
+    role_mappings:
+      - ".*":
+          - storage.admin
+          - security.admin
+          - support.admin
+          - storage.monitor
+      - ".*":
+          - storage.monitor
+
+
+- name: Delete default LDAP domain
+  na_santricity_ldap:
+    <<: *creds
+    state: disabled
+
+- name: Define a default LDAP domain, utilizing defaults where possible (changed, check_mode)
+  na_santricity_ldap:
+    <<: *creds
+    state: present
+    identifier: test1
+    bind_user: "CN=prnldap,OU=SecuredSvcAccounts,OU=SystemAccounts,DC=hq,DC=netapp,DC=com"
+    bind_password: "LDAPlookup!"
+    server_url: "ldap://hq.netapp.com:389"
+    search_base: "OU=SystemAccounts,DC=hq,DC=netapp,DC=com"
+    role_mappings: "{{ role_mappings[0] }}"
+  check_mode: true
+  register: results
+- name: Verify LDAP changes
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Define a default LDAP domain, utilizing defaults where possible (changed)
+  na_santricity_ldap:
+    <<: *creds
+    state: present
+    identifier: test1
+    bind_user: "CN=prnldap,OU=SecuredSvcAccounts,OU=SystemAccounts,DC=hq,DC=netapp,DC=com"
+    bind_password: "LDAPlookup!"
+    server_url: "ldap://hq.netapp.com:389"
+    search_base: "OU=SystemAccounts,DC=hq,DC=netapp,DC=com"
+    role_mappings: "{{ role_mappings[0] }}"
+  register: results
+- name: Verify LDAP changes
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Define a default LDAP domain, utilizing defaults where possible (no change)
+  na_santricity_ldap:
+    <<: *creds
+    state: present
+    identifier: test1
+    bind_user: "CN=prnldap,OU=SecuredSvcAccounts,OU=SystemAccounts,DC=hq,DC=netapp,DC=com"
+    bind_password: "LDAPlookup!"
+    server_url: "ldap://hq.netapp.com:389"
+    search_base: "OU=SystemAccounts,DC=hq,DC=netapp,DC=com"
+    role_mappings: "{{ role_mappings[0] }}"
+  register: results
+- name: Verify LDAP changes
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Delete default LDAP domain
+  na_santricity_ldap:
+    <<: *creds
+    state: absent
+    identifier: test1
+  register: results
+- name: Verify LDAP changes
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
