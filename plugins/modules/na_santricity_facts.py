@@ -468,7 +468,7 @@ class Facts(NetAppESeriesModule):
                                                                              ['supportedInterfaceSpeeds']))
                        for controller in array_facts['controller']
                        for iface in controller['hostInterfaces']
-                       if iface['interfaceType'] == 'iscsi'],
+                       if iface['interfaceType'] == 'iscsi' and iface['iscsi']['interfaceData']['type'] == 'ethernet'],
                 sas=[dict(controller=controller_reference_label[controller['controllerRef']],
                           channel=iface['sas']['channel'],
                           current_interface_speed=strip_interface_speed(iface['sas']['currentInterfaceSpeed']),
