@@ -83,16 +83,23 @@ class LookupModule(LookupBase):
             # Add SAS ports
             for interface in host_interface_ports:
                 if interface["item"] == host and "stdout_lines" in interface.keys():
-
                     if protocol == "sas":
                         for index, address in enumerate([base[:-1] + str(index) for base in interface["stdout_lines"] for index in range(8)]):
                             label = "%s_%s" % (sanitized_hostname, index)
                             hosts["expected_hosts"][host]["ports"].append({"type": "sas", "label": label, "port": address})
-                    elif protocol == "ib_iser" or protocol == "ib_srp":
+                    elif protocol == "ib_iser":
+                        for index, address in enumerate(interface["stdout_lines"]):
+                            label = "%s_%s" % (sanitized_hostname, index)
+                            hosts["expected_hosts"][host]["ports"].append({"type": "iscsi", "label": label, "port": address})
+                    elif protocol == "ib_srp":
                         for index, address in enumerate(interface["stdout_lines"]):
                             label = "%s_%s" % (sanitized_hostname, index)
                             hosts["expected_hosts"][host]["ports"].append({"type": "ib", "label": label, "port": address})
-                    elif protocol == "nvme_ib" or protocol == "nvme_roce":
+                    elif protocol == "nvme_ib":
+                        for index, address in enumerate(interface["stdout_lines"]):
+                            label = "%s_%s" % (sanitized_hostname, index)
+                            hosts["expected_hosts"][host]["ports"].append({"type": "nvme", "label": label, "port": address})
+                    elif protocol == "nvme_roce":
                         for index, address in enumerate(interface["stdout_lines"]):
                             label = "%s_%s" % (sanitized_hostname, index)
                             hosts["expected_hosts"][host]["ports"].append({"type": "nvme", "label": label, "port": address})
