@@ -11,6 +11,11 @@
       api_username: "{{ username }}"
       api_password: "{{ password }}"
       validate_certs: "{{ validate_cert }}"
+    ldap_info: &info
+      bind_user: "CN=bind_user,OU=accounts,,DC=test,DC=example,DC=com"
+      bind_password: "bind_password"
+      server_url: "ldap://test.example.com:389"
+      search_base: "OU=users,DC=test,DC=example,DC=com"
     role_mappings:
       - ".*":
           - storage.admin
@@ -20,21 +25,27 @@
       - ".*":
           - storage.monitor
 
-
 - name: Delete default LDAP domain
   na_santricity_ldap:
     <<: *creds
     state: disabled
 
+- name: Delete default LDAP domain
+  na_santricity_ldap:
+    <<: *creds
+    state: disabled
+  register: results
+- name: Verify LDAP changes
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
 - name: Define a default LDAP domain, utilizing defaults where possible (changed, check_mode)
   na_santricity_ldap:
     <<: *creds
+    <<: *info
     state: present
     identifier: test1
-    bind_user: "CN=prnldap,OU=SecuredSvcAccounts,OU=SystemAccounts,DC=hq,DC=netapp,DC=com"
-    bind_password: "LDAPlookup!"
-    server_url: "ldap://hq.netapp.com:389"
-    search_base: "OU=SystemAccounts,DC=hq,DC=netapp,DC=com"
     role_mappings: "{{ role_mappings[0] }}"
   check_mode: true
   register: results
@@ -46,12 +57,9 @@
 - name: Define a default LDAP domain, utilizing defaults where possible (changed)
   na_santricity_ldap:
     <<: *creds
+    <<: *info
     state: present
     identifier: test1
-    bind_user: "CN=prnldap,OU=SecuredSvcAccounts,OU=SystemAccounts,DC=hq,DC=netapp,DC=com"
-    bind_password: "LDAPlookup!"
-    server_url: "ldap://hq.netapp.com:389"
-    search_base: "OU=SystemAccounts,DC=hq,DC=netapp,DC=com"
     role_mappings: "{{ role_mappings[0] }}"
   register: results
 - name: Verify LDAP changes
@@ -62,17 +70,27 @@
 - name: (Repeat) Define a default LDAP domain, utilizing defaults where possible (no change)
   na_santricity_ldap:
     <<: *creds
+    <<: *info
     state: present
     identifier: test1
-    bind_user: "CN=prnldap,OU=SecuredSvcAccounts,OU=SystemAccounts,DC=hq,DC=netapp,DC=com"
-    bind_password: "LDAPlookup!"
-    server_url: "ldap://hq.netapp.com:389"
-    search_base: "OU=SystemAccounts,DC=hq,DC=netapp,DC=com"
     role_mappings: "{{ role_mappings[0] }}"
   register: results
 - name: Verify LDAP changes
   assert:
     that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Define a default LDAP domain, utilizing defaults where possible (change)
+  na_santricity_ldap:
+    <<: *creds
+    <<: *info
+    state: present
+    identifier: test1
+    role_mappings: "{{ role_mappings[1] }}"
+  register: results
+- name: Verify LDAP changes
+  assert:
+    that: "{{ results['changed'] }}"
     msg: "Unexpected results!"
 
 - name: Delete default LDAP domain

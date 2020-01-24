@@ -157,7 +157,6 @@ msg:
     type: str
     sample: The ldap settings have been updated.
 """
-from time import sleep
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 
@@ -244,9 +243,8 @@ class NetAppESeriesLdap(NetAppESeriesModule):
     def are_changes_required(self):
         """Determine whether any changes are required and build request body."""
         change_required = False
-        self.build_request_body()
-
         domains = self.get_domains()
+
         if self.state == "disabled" and domains:
             self.existing_domain_ids = [domain["id"] for domain in domains]
             change_required = True
@@ -331,7 +329,7 @@ class NetAppESeriesLdap(NetAppESeriesModule):
         try:
             rc, response = self.request(self.url_path_prefix + "storage-systems/1/ldap/%s" % self.domain["id"], method="POST", data=self.body)
         except Exception as error:
-            self.module.fail_json(msg="Failed to create LDAP domain. Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to update LDAP domain. Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
     def delete_domain(self, domain_id):
         """Delete specific domain on the storage system."""
@@ -347,6 +345,7 @@ class NetAppESeriesLdap(NetAppESeriesModule):
 
     def apply(self):
         """Apply any necessary changes to the LDAP configuration."""
+        self.build_request_body()
         change_required = self.are_changes_required()
 
         if change_required and not self.module.check_mode:

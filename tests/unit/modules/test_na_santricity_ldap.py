@@ -10,230 +10,362 @@ from units.compat import mock
 
 class LdapTest(ModuleTestCase):
     REQUIRED_PARAMS = {
-        'api_username': 'admin',
-        'api_password': 'password',
-        'api_url': 'http://localhost',
-        'ssid': '1',
-        'state': 'absent',
-    }
-    REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_ldap.NetAppESeriesLdap.request'
+        "api_username": "admin",
+        "api_password": "password",
+        "api_url": "http://localhost",
+        "ssid": "1"}
+    REQ_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_ldap.NetAppESeriesLdap.request"
+    BASE_REQ_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity.request"
 
-    # def _make_ldap_instance(self):
-    #     self._set_args()
-    #     ldap = NetAppESeriesLdap()
-    #     ldap.base_path = '/'
-    #     return ldap
-    #
-    # def _set_args(self, **kwargs):
-    #     module_args = self.REQUIRED_PARAMS.copy()
-    #     module_args.update(kwargs)
-    #     set_module_args(module_args)
-    #
-    # def test_init_defaults(self):
-    #     """Validate a basic run with required arguments set."""
-    #     self._set_args(state='present',
-    #                    username='myBindAcct',
-    #                    password='myBindPass',
-    #                    server='ldap://example.com:384',
-    #                    search_base='OU=Users,DC=example,DC=com',
-    #                    role_mappings={'.*': ['storage.monitor']})
-    #
-    #     ldap = NetAppESeriesLdap()
-    #
-    # def test_init(self):
-    #     """Validate a basic run with required arguments set."""
-    #     self._set_args()
-    #     ldap = NetAppESeriesLdap()
-    #
-    # def test_get_full_configuration(self):
-    #     self._set_args()
-    #
-    #     resp = dict(result=None)
-    #
-    #     with mock.patch(self.REQ_FUNC, return_value=(200, resp)):
-    #         ldap = self._make_ldap_instance()
-    #         result = ldap.get_full_configuration()
-    #         self.assertEqual(resp, result)
-    #
-    # def test_get_full_configuration_failure(self):
-    #     self._set_args()
-    #
-    #     resp = dict(result=None)
-    #     with self.assertRaises(AnsibleFailJson):
-    #         with mock.patch(self.REQ_FUNC, side_effect=Exception):
-    #             ldap = self._make_ldap_instance()
-    #             ldap.get_full_configuration()
-    #
-    # def test_get_configuration(self):
-    #     self._set_args()
-    #
-    #     resp = dict(result=None)
-    #
-    #     with mock.patch(self.REQ_FUNC, return_value=(200, resp)):
-    #         ldap = self._make_ldap_instance()
-    #         result = ldap.get_configuration('')
-    #         self.assertEqual(resp, result)
-    #
-    #     with mock.patch(self.REQ_FUNC, return_value=(404, resp)):
-    #         ldap = self._make_ldap_instance()
-    #         result = ldap.get_configuration('')
-    #         self.assertIsNone(result)
-    #
-    # def test_clear_configuration(self):
-    #     self._set_args()
-    #
-    #     # No changes are required if the domains are empty
-    #     config = dict(ldapDomains=[])
-    #
-    #     ldap = self._make_ldap_instance()
-    #     with mock.patch.object(ldap, 'get_full_configuration', return_value=config):
-    #         with mock.patch(self.REQ_FUNC, return_value=(204, None)):
-    #             msg, result = ldap.clear_configuration()
-    #             self.assertFalse(result)
-    #
-    #     config = dict(ldapDomains=['abc'])
-    #
-    #     # When domains exist, we need to clear
-    #     ldap = self._make_ldap_instance()
-    #     with mock.patch.object(ldap, 'get_full_configuration', return_value=config):
-    #         with mock.patch(self.REQ_FUNC, return_value=(204, None)) as req:
-    #             msg, result = ldap.clear_configuration()
-    #             self.assertTrue(result)
-    #             self.assertTrue(req.called)
-    #
-    #             # Valid check_mode makes no changes
-    #             req.reset_mock()
-    #             ldap.check_mode = True
-    #             msg, result = ldap.clear_configuration()
-    #             self.assertTrue(result)
-    #             self.assertFalse(req.called)
-    #
-    # def test_clear_single_configuration(self):
-    #     self._set_args()
-    #
-    #     # No changes are required if the domains are empty
-    #     config = 'abc'
-    #
-    #     ldap = self._make_ldap_instance()
-    #     with mock.patch.object(ldap, 'get_configuration', return_value=config):
-    #         with mock.patch(self.REQ_FUNC, return_value=(204, None)) as req:
-    #             msg, result = ldap.clear_single_configuration()
-    #             self.assertTrue(result)
-    #
-    #             # Valid check_mode makes no changes
-    #             req.reset_mock()
-    #             ldap.check_mode = True
-    #             msg, result = ldap.clear_single_configuration()
-    #             self.assertTrue(result)
-    #             self.assertFalse(req.called)
-    #
-    #     # When domains exist, we need to clear
-    #     ldap = self._make_ldap_instance()
-    #     with mock.patch.object(ldap, 'get_configuration', return_value=None):
-    #         with mock.patch(self.REQ_FUNC, return_value=(204, None)) as req:
-    #             msg, result = ldap.clear_single_configuration()
-    #             self.assertFalse(result)
-    #             self.assertFalse(req.called)
-    #
-    # def test_update_configuration(self):
-    #     self._set_args()
-    #
-    #     config = dict(id='abc')
-    #     body = dict(id='xyz')
-    #
-    #     ldap = self._make_ldap_instance()
-    #     with mock.patch.object(ldap, 'make_configuration', return_value=body):
-    #         with mock.patch.object(ldap, 'get_configuration', return_value=config):
-    #             with mock.patch(self.REQ_FUNC, return_value=(200, None)) as req:
-    #                 msg, result = ldap.update_configuration()
-    #                 self.assertTrue(result)
-    #
-    #                 # Valid check_mode makes no changes
-    #                 req.reset_mock()
-    #                 ldap.check_mode = True
-    #                 msg, result = ldap.update_configuration()
-    #                 self.assertTrue(result)
-    #                 self.assertFalse(req.called)
-    #
-    # def test_update(self):
-    #     self._set_args()
-    #
-    #     ldap = self._make_ldap_instance()
-    #     with self.assertRaises(AnsibleExitJson):
-    #         with mock.patch.object(ldap, 'get_base_path', return_value='/'):
-    #             with mock.patch.object(ldap, 'update_configuration', return_value=('', True)) as update:
-    #                 ldap.ldap = True
-    #                 msg, result = ldap.update()
-    #                 self.assertTrue(result)
-    #                 self.assertTrue(update.called)
-    #
-    # def test_update_disable(self):
-    #     self._set_args()
-    #
-    #     ldap = self._make_ldap_instance()
-    #     with self.assertRaises(AnsibleExitJson):
-    #         with mock.patch.object(ldap, 'get_base_path', return_value='/'):
-    #             with mock.patch.object(ldap, 'clear_single_configuration', return_value=('', True)) as update:
-    #                 ldap.ldap = False
-    #                 ldap.identifier = 'abc'
-    #                 msg, result = ldap.update()
-    #                 self.assertTrue(result)
-    #                 self.assertTrue(update.called)
-    #
-    # def test_update_disable_all(self):
-    #     self._set_args()
-    #
-    #     ldap = self._make_ldap_instance()
-    #     with self.assertRaises(AnsibleExitJson):
-    #         with mock.patch.object(ldap, 'get_base_path', return_value='/'):
-    #             with mock.patch.object(ldap, 'clear_configuration', return_value=('', True)) as update:
-    #                 ldap.ldap = False
-    #                 msg, result = ldap.update()
-    #                 self.assertTrue(result)
-    #                 self.assertTrue(update.called)
-    #
-    # def test_get_configuration_failure(self):
-    #     self._set_args()
-    #
-    #     with self.assertRaises(AnsibleFailJson):
-    #         with mock.patch(self.REQ_FUNC, side_effect=Exception):
-    #             ldap = self._make_ldap_instance()
-    #             ldap.get_configuration('')
-    #
-    #     # We expect this for any code not in [200, 404]
-    #     with self.assertRaises(AnsibleFailJson):
-    #         with mock.patch(self.REQ_FUNC, return_value=(401, '')):
-    #             ldap = self._make_ldap_instance()
-    #             result = ldap.get_configuration('')
-    #             self.assertIsNone(result)
-    #
-    # def test_make_configuration(self):
-    #     """Validate the make_configuration method that translates Ansible params to the input body"""
-    #     data = dict(state='present',
-    #                 username='myBindAcct',
-    #                 password='myBindPass',
-    #                 server='ldap://example.com:384',
-    #                 search_base='OU=Users,DC=example,DC=com',
-    #                 role_mappings={'.*': ['storage.monitor']},
-    #                 )
-    #
-    #     self._set_args(**data)
-    #     ldap = NetAppESeriesLdap()
-    #     expected = dict(id='default',
-    #                     bindLookupUser=dict(user=data['username'],
-    #                                         password=data['password'], ),
-    #                     groupAttributes=['memberOf'],
-    #                     ldapUrl=data['server'],
-    #                     names=['example.com'],
-    #                     searchBase=data['search_base'],
-    #                     roleMapCollection=[{"groupRegex": ".*",
-    #                                         "ignoreCase": True,
-    #                                         "name": "storage.monitor"
-    #                                         }
-    #                                        ],
-    #                     userAttribute='sAMAccountName'
-    #                     )
-    #
-    #     actual = ldap.make_configuration()
-    #     self.maxDiff = None
-    #     self.assertEqual(expected, actual)
+    GET_DOMAINS = {"version": "3",
+                   "ldapDomains": [{"id": "test1",
+                                    "bindLookupUser": {"password": "***", "user": "CN=cn,OU=accounts,DC=test1,DC=example,DC=com"},
+                                    "groupAttributes": ["memberOf"],
+                                    "ldapUrl": "ldap://test.example.com:389",
+                                    "names": ["test.example.com"],
+                                    "roleMapCollection": [{"groupRegex": ".*", "ignoreCase": False, "name": "storage.monitor"}],
+                                    "searchBase": "OU=accounts,DC=test,DC=example,DC=com",
+                                    "userAttribute": "sAMAccountName"},
+                                   {"id": "test2",
+                                    "bindLookupUser": {"password": "***", "user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com"},
+                                    "groupAttributes": ["memberOf"],
+                                    "ldapUrl": "ldap://test2.example.com:389",
+                                    "names": ["test2.example.com"],
+                                    "roleMapCollection": [{"groupRegex": ".*", "ignoreCase": False, "name": "storage.admin"},
+                                                          {"groupRegex": ".*", "ignoreCase": False, "name": "support.admin"},
+                                                          {"groupRegex": ".*", "ignoreCase": False, "name": "security.admin"},
+                                                          {"groupRegex": ".*", "ignoreCase": False, "name": "storage.monitor"}],
+                                    "searchBase": "OU=accounts,DC=test2,DC=example,DC=com",
+                                    "userAttribute": "sAMAccountName"}]}
+
+    def _set_args(self, args=None):
+        module_args = self.REQUIRED_PARAMS.copy()
+        if args is not None:
+            module_args.update(args)
+        set_module_args(module_args)
+
+    def test_valid_options_pass(self):
+        """Verify valid options."""
+        options_list = [{"state": "disabled"},
+                        {"state": "absent", "identifier": "test_domain"},
+                        {"state": "present", "identifier": "test_domain", "server_url": "ldap://test.example.com:389",
+                         "search_base": "ou=accounts,DC=test,DC=example,DC=com"},
+                        {"state": "present", "identifier": "test_domain", "server_url": "ldap://test.example.com:389",
+                         "search_base": "ou=accounts,DC=test,DC=example,DC=com", "bind_user": "admin", "bind_password": "adminpass"},
+                        {"state": "present", "identifier": "test_domain", "server_url": "ldap://test.example.com:389",
+                         "search_base": "ou=accounts,DC=test,DC=example,DC=com", "bind_user": "admin", "bind_password": "adminpass",
+                         "names": ["name1", "name2"], "group_attributes": ["group_attr1", "group_attr1"], "user_attribute": "user_attr"}]
+
+        for options in options_list:
+            with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+                self._set_args(options)
+                ldap = NetAppESeriesLdap()
+        for options in options_list:
+            with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": False})]):
+                self._set_args(options)
+                ldap = NetAppESeriesLdap()
+
+    def test_get_domain_pass(self):
+        """Verify get_domain returns expected data structure."""
+        options = {"state": "present", "identifier": "test_domain", "server_url": "ldap://test.example.com:389",
+                   "search_base": "ou=accounts,DC=test,DC=example,DC=com", "bind_user": "admin", "bind_password": "adminpass",
+                   "names": ["name1", "name2"], "group_attributes": ["group_attr1", "group_attr1"], "user_attribute": "user_attr"}
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            with mock.patch(self.REQ_FUNC, return_value=(200, self.GET_DOMAINS)):
+                self._set_args(options)
+                ldap = NetAppESeriesLdap()
+                self.assertEquals(ldap.get_domains(), self.GET_DOMAINS["ldapDomains"])
+
+    def test_get_domain_fail(self):
+        """Verify get_domain throws expected exceptions."""
+        options = {"state": "present", "identifier": "test_domain", "server_url": "ldap://test.example.com:389",
+                   "search_base": "ou=accounts,DC=test,DC=example,DC=com", "bind_user": "admin", "bind_password": "adminpass",
+                   "names": ["name1", "name2"], "group_attributes": ["group_attr1", "group_attr1"], "user_attribute": "user_attr"}
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve current LDAP configuration."):
+                    self._set_args(options)
+                    ldap = NetAppESeriesLdap()
+                    ldap.get_domains()
+
+    def test_build_request_body_pass(self):
+        """Verify build_request_body builds expected data structure."""
+        options_list = [{"state": "present", "identifier": "test_domain", "server_url": "ldap://test.example.com:389",
+                         "search_base": "ou=accounts,DC=test,DC=example,DC=com"},
+                        {"state": "present", "identifier": "test_domain", "server_url": "ldap://test.example.com:389",
+                         "search_base": "ou=accounts,DC=test,DC=example,DC=com", "bind_user": "admin", "bind_password": "adminpass"},
+                        {"state": "present", "identifier": "test_domain", "server_url": "ldap://test.example.com:389",
+                         "search_base": "ou=accounts,DC=test,DC=example,DC=com", "bind_user": "admin", "bind_password": "adminpass",
+                         "names": ["name1", "name2"], "group_attributes": ["group_attr1", "group_attr1"], "user_attribute": "user_attr"}]
+        expectation_list = [{'id': 'test_domain', 'groupAttributes': ['memberOf'], 'ldapUrl': 'ldap://test.example.com:389', 'names': ['test.example.com'],
+                             'roleMapCollection': [], 'searchBase': 'ou=accounts,DC=test,DC=example,DC=com', 'userAttribute': 'sAMAccountName'},
+                            {'id': 'test_domain', 'groupAttributes': ['memberOf'], 'ldapUrl': 'ldap://test.example.com:389', 'names': ['test.example.com'],
+                             'roleMapCollection': [], 'searchBase': 'ou=accounts,DC=test,DC=example,DC=com', 'userAttribute': 'sAMAccountName',
+                             'bindLookupUser': {'password': 'adminpass', 'user': 'admin'}},
+                            {'id': 'test_domain', 'groupAttributes': ['group_attr1', 'group_attr1'], 'ldapUrl': 'ldap://test.example.com:389',
+                             'names': ['name1', 'name2'], 'roleMapCollection': [], 'searchBase': 'ou=accounts,DC=test,DC=example,DC=com',
+                             'userAttribute': 'user_attr', 'bindLookupUser': {'password': 'adminpass', 'user': 'admin'}}]
+        for index in range(len(options_list)):
+            with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+                self._set_args(options_list[index])
+                ldap = NetAppESeriesLdap()
+                ldap.build_request_body()
+                self.assertEquals(ldap.body, expectation_list[index])
+
+    def test_are_changes_required_pass(self):
+        """Verify build_request_body builds expected data structure."""
+        options_list = [{"state": "present", "identifier": "test_domain", "server_url": "ldap://test.example.com:389",
+                         "search_base": "ou=accounts,DC=test,DC=example,DC=com"},
+                        {"state": "present", "identifier": "test_domain", "server_url": "ldap://test.example.com:389",
+                         "search_base": "ou=accounts,DC=test,DC=example,DC=com", "bind_user": "admin", "bind_password": "adminpass"},
+                        {"state": "present", "identifier": "test_domain", "server_url": "ldap://test.example.com:389",
+                         "search_base": "ou=accounts,DC=test,DC=example,DC=com", "bind_user": "admin", "bind_password": "adminpass",
+                         "names": ["name1", "name2"], "group_attributes": ["group_attr1", "group_attr1"], "user_attribute": "user_attr"}]
+
+        for index in range(len(options_list)):
+            with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+                self._set_args(options_list[index])
+                ldap = NetAppESeriesLdap()
+                ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
+                self.assertTrue(ldap.are_changes_required())
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            self._set_args({"state": "disabled"})
+            ldap = NetAppESeriesLdap()
+            ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
+            self.assertTrue(ldap.are_changes_required())
+            self.assertEquals(ldap.existing_domain_ids, ["test1", "test2"])
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            self._set_args({"state": "absent", "identifier": "test_domain"})
+            ldap = NetAppESeriesLdap()
+            ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
+            self.assertFalse(ldap.are_changes_required())
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                            "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                            "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                            "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                            "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body()
+            ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
+            ldap.add_domain = lambda temporary, skip_test: {"id": "temporary"}
+
+            with mock.patch(self.REQ_FUNC, return_value=(200, [{"id": "test2", "result": {"authenticationTestResult": "ok"}},
+                                                               {"id": "temporary", "result": {"authenticationTestResult": "ok"}}])):
+                self.assertFalse(ldap.are_changes_required())
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                            "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                            "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                            "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                            "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body()
+            ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
+            ldap.add_domain = lambda temporary, skip_test: {"id": "temporary"}
+
+            with mock.patch(self.REQ_FUNC, return_value=(200, [{"id": "test2", "result": {"authenticationTestResult": "fail"}},
+                                                               {"id": "temporary", "result": {"authenticationTestResult": "ok"}}])):
+                self.assertTrue(ldap.are_changes_required())
+
+    def test_are_changes_required_fail(self):
+        """Verify are_changes_required throws expected exception."""
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                            "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                            "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                            "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                            "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body()
+            ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
+            ldap.add_domain = lambda temporary, skip_test: {"id": "temporary"}
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to authenticate bind credentials!"):
+                with mock.patch(self.REQ_FUNC, return_value=(200, [{"id": "test2", "result": {"authenticationTestResult": "fail"}},
+                                                                   {"id": "temporary", "result": {"authenticationTestResult": "fail"}}])):
+                    ldap.are_changes_required()
+                
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                            "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                            "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                            "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                            "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body()
+            ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
+            ldap.add_domain = lambda temporary, skip_test: {"id": "temporary"}
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to authenticate bind credentials!"):
+                with mock.patch(self.REQ_FUNC, return_value=(200, [{"id": "test2", "result": {"authenticationTestResult": "ok"}},
+                                                                   {"id": "temporary", "result": {"authenticationTestResult": "fail"}}])):
+                    ldap.are_changes_required()
+
+    def test_add_domain_pass(self):
+        """Verify add_domain returns expected data."""
+        self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                        "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                        "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                        "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                        "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body()
+            with mock.patch(self.REQ_FUNC, return_value=(200, {"ldapDomains": [{"id": "test2"}]})):
+                self.assertEquals(ldap.add_domain(), {"id": "test2"})
+
+    def test_add_domain_fail(self):
+        """Verify add_domain returns expected data."""
+        self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                        "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                        "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                        "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                        "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body()
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to create LDAP domain."):
+                with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                    ldap.add_domain()
+
+    def test_update_domain_pass(self):
+        """Verify update_domain returns expected data."""
+        self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                        "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                        "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                        "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                        "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body()
+            ldap.domain = {"id": "test2"}
+            with mock.patch(self.REQ_FUNC, return_value=(200, None)):
+                ldap.update_domain()
+
+    def test_update_domain_fail(self):
+        """Verify update_domain returns expected data."""
+        self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                        "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                        "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                        "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                        "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body()
+            ldap.domain = {"id": "test2"}
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to update LDAP domain."):
+                with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                    ldap.update_domain()
+
+    def test_delete_domain_pass(self):
+        """Verify delete_domain returns expected data."""
+        self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                        "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                        "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                        "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                        "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            ldap = NetAppESeriesLdap()
+            with mock.patch(self.REQ_FUNC, return_value=(200, None)):
+                ldap.delete_domain("test2")
+
+    def test_delete_domain_fail(self):
+        """Verify delete_domain returns expected data."""
+        self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                        "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                        "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                        "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                        "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            ldap = NetAppESeriesLdap()
+            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to delete LDAP domain."):
+                with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                    ldap.delete_domain("test2")
+
+    def test_disable_domains_pass(self):
+        """Verify disable_domains completes successfully."""
+        self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                        "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                        "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                        "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                        "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            ldap = NetAppESeriesLdap()
+            ldap.delete_domain = lambda x: None
+            ldap.existing_domain_ids = ["id1", "id2", "id3"]
+            ldap.disable_domains()
+
+    def test_apply_pass(self):
+        """Verify apply exits as expected."""
+        self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                        "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                        "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                        "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                        "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body = lambda: None
+            ldap.are_changes_required = lambda: False
+            with self.assertRaisesRegexp(AnsibleExitJson, "No changes have been made to the LDAP configuration."):
+                ldap.apply()
+
+        self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                        "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                        "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                        "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                        "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body = lambda: None
+            ldap.are_changes_required = lambda: True
+            ldap.add_domain = lambda: None
+            ldap.domain = {}
+            with self.assertRaisesRegexp(AnsibleExitJson, "LDAP domain has been added."):
+                ldap.apply()
+
+        self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
+                        "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                        "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
+                        "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
+                        "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
+
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body = lambda: None
+            ldap.are_changes_required = lambda: True
+            ldap.update_domain = lambda: None
+            ldap.domain = {"id": "test"}
+            with self.assertRaisesRegexp(AnsibleExitJson, "LDAP domain has been updated."):
+                ldap.apply()
+
+        self._set_args({"state": "absent", "identifier": "test2"})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body = lambda: None
+            ldap.are_changes_required = lambda: True
+            ldap.delete_domain = lambda x: None
+            ldap.domain = {"id": "test"}
+            with self.assertRaisesRegexp(AnsibleExitJson, "LDAP domain has been removed."):
+                ldap.apply()
+
+        self._set_args({"state": "disabled"})
+        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
+            ldap = NetAppESeriesLdap()
+            ldap.build_request_body = lambda: None
+            ldap.are_changes_required = lambda: True
+            ldap.disable_domain = lambda: None
+            ldap.domain = {"id": "test"}
+            with self.assertRaisesRegexp(AnsibleExitJson, "All LDAP domains have been removed."):
+                ldap.apply()
