@@ -21,22 +21,22 @@
       loop: "{{ lookup('list', (hosts['expected_hosts'].keys()|list)) }}"
 
     - name: Collect host and host group interface information for Linux
-      shell: "{{ eseries_initiator_configuration[eseries_initiator_protocol]['eseries_initiator_command']['linux'] }}"
+      shell: "{{ eseries_initiator_command[eseries_initiator_protocol]['linux'] }}"
       register: host_interface_linux
       delegate_to: "{{ item }}"
       become: True
       changed_when: False
       failed_when: "host_interface_linux.rc != 0"
-      when: hostvars[item]['ansible_facts']['system'] == "Linux" and eseries_initiator_configuration[eseries_initiator_protocol]['eseries_initiator_command']['linux']
+      when: hostvars[item]['ansible_facts']['system'] == "Linux" and eseries_initiator_command[eseries_initiator_protocol]['linux']
       loop: "{{ lookup('list', (hosts['expected_hosts'].keys()|list)) }}"
 
     - name: Collect host and host group interface information for Windows
-      win_shell: "{{ eseries_initiator_configuration[eseries_initiator_protocol]['eseries_initiator_command']['windows'] }}"
+      win_shell: "{{ eseries_initiator_command[eseries_initiator_protocol]['windows'] }}"
       register: host_interface_windows
       delegate_to: "{{ item }}"
       changed_when: False
       failed_when: "host_interface_windows.rc != 0"
-      when: hostvars[item]['ansible_facts']['os_family'] == "Windows" and eseries_initiator_configuration[eseries_initiator_protocol]['eseries_initiator_command']['windows']
+      when: hostvars[item]['ansible_facts']['os_family'] == "Windows" and eseries_initiator_command[eseries_initiator_protocol]['windows']
       loop: "{{ lookup('list', (hosts['expected_hosts'].keys()|list)) }}"
 
     - name: Aggregate host/host group interface isnformation

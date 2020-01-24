@@ -30,7 +30,7 @@ DOCUMENTATION = """
             type: list
         protocol:
             description:
-                - Storage system interface protocol (iscsi, sas, fc, ib-iser, ib-srp, or nvme)
+                - Storage system interface protocol (iscsi, sas, fc, ib-iser, ib-srp, nvme_ib, or nvme_roce)
             required: True
             type: str
             
@@ -53,8 +53,8 @@ class LookupModule(LookupBase):
         if not isinstance(host_interface_ports, list):
             raise AnsibleError("Invalid argument: host_interface_ports must contain list of dictionaries containing 'stdout_lines' key"
                                " which is a list of iqns, nqns, or wwpns for each expected_hosts from the results of the santricity_host lookup plugin")
-        if protocol not in ["iscsi", "sas", "fc", "ib_iser", "ib_srp", "nvme"]:
-            raise AnsibleError("Invalid argument: protocol must be a protocol from the following: iscsi, sas, fc, ib_iser, ib_srp, nvme.")
+        if protocol not in ["iscsi", "sas", "fc", "ib_iser", "ib_srp", "nvme_ib", "nvme_roce"]:
+            raise AnsibleError("Invalid argument: protocol must be a protocol from the following: iscsi, sas, fc, ib_iser, ib_srp, nvme_ib, nvme_roce.")
 
         for host in hosts["expected_hosts"].keys():
             sanitized_hostname = re.sub("[.:-]", "_", host)[:20]
@@ -86,15 +86,19 @@ class LookupModule(LookupBase):
 
                     if protocol == "sas":
                         for index, address in enumerate([base[:-1] + str(index) for base in interface["stdout_lines"] for index in range(8)]):
-                            label = "%s_%s_%s" % (sanitized_hostname, protocol, index)
+                            label = "%s_%s" % (sanitized_hostname, index)
                             hosts["expected_hosts"][host]["ports"].append({"type": "sas", "label": label, "port": address})
                     elif protocol == "ib_iser" or protocol == "ib_srp":
                         for index, address in enumerate(interface["stdout_lines"]):
-                            label = "%s_%s_%s" % (sanitized_hostname, protocol, index)
+                            label = "%s_%s" % (sanitized_hostname, index)
                             hosts["expected_hosts"][host]["ports"].append({"type": "ib", "label": label, "port": address})
+                    elif protocol == "nvme_ib" or protocol == "nvme_roce":
+                        for index, address in enumerate(interface["stdout_lines"]):
+                            label = "%s_%s" % (sanitized_hostname, index)
+                            hosts["expected_hosts"][host]["ports"].append({"type": "nvme", "label": label, "port": address})
                     else:
                         for index, address in enumerate(interface["stdout_lines"]):
-                            label = "%s_%s_%s" % (sanitized_hostname, protocol, index)
+                            label = "%s_%s" % (sanitized_hostname, index)
                             hosts["expected_hosts"][host]["ports"].append({"type": protocol, "label": label, "port": address})
 
         return [hosts]

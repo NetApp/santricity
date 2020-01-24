@@ -67,14 +67,14 @@ eseries_lun_mapping_state: present       # Generally specifies whether a LUN map
                                          #    eseries_storage_pool_configuration.
 
 
-# Controller Interface Port Default Policy Specifications
+# Controller iSCSI Interface Port Default Policy Specifications
 # -------------------------------------------------------
-eseries_controller_port_state: enabled              # Generally specifies whether a controller port definition should be applied Choices: enabled, disabled
-eseries_controller_port_config_method: dhcp         # General port configuration method definition for both controllers. Choices: static, dhcp
-#eseries_controller_port_gateway:                   # General port IPv4 gateway for both controllers.
-#eseries_controller_port_subnet_mask:               # General port IPv4 subnet mask for both controllers.
-eseries_controller_port_mtu: 9000                   # General port maximum transfer units (MTU) for both controllers. Any value greater than 1500 (bytes).
-#eseries_controller_port:
+eseries_controller_iscsi_port_state: enabled              # Generally specifies whether a controller port definition should be applied Choices: enabled, disabled
+eseries_controller_iscsi_port_config_method: dhcp         # General port configuration method definition for both controllers. Choices: static, dhcp
+#eseries_controller_iscsi_port_gateway:                   # General port IPv4 gateway for both controllers.
+#eseries_controller_iscsi_port_subnet_mask:               # General port IPv4 subnet mask for both controllers.
+eseries_controller_iscsi_port_mtu: 9000                   # General port maximum transfer units (MTU) for both controllers. Any value greater than 1500 (bytes).
+#eseries_controller_iscsi_port:
 #  controller_a:                                    # Controller A port definition.
 #    state:                                         # General definitions for all ports on controller A. Any option specified in the ports definition can be
                                                     #     specified here to generalize for all controller A ports.
@@ -82,6 +82,7 @@ eseries_controller_port_mtu: 9000                   # General port maximum trans
 #    address:                                       # Port IPv4 address
 #    gateway:                                       # Port IPv4 gateway
 #    subnet_mask:                                   # Port IPv4 subnet_mask
+#    mtu:                                           # Port IPv4 mtu
 #    ports:                                         # List containing ports definitions
 #      - channel:                                   # Channel of the port to modify. This will be a numerical value that represents the port; typically read
                                                     #     left to right on the HIC.
@@ -97,6 +98,77 @@ eseries_controller_port_mtu: 9000                   # General port maximum trans
 #    address:                                       # Port IPv4 address
 #    gateway:                                       # Port IPv4 gateway
 #    subnet_mask:                                   # Port IPv4 subnet_mask
+#    mtu:                                           # Port IPv4 mtu
+#    ports:                                         # List containing ports definitions
+#      - channel:                                   # Channel of the port to modify. This will be a numerical value that represents the port; typically read
+                                                    #     left to right on the HIC.
+#        state:                                     # Whether the port should be enabled.
+#        config_method:                             # Port configuration method Choices: static, dhcp
+#        address:                                   # Port IPv4 address
+#        gateway:                                   # Port IPv4 gateway
+#        subnet_mask:                               # Port IPv4 subnet_mask
+
+
+# Controller InfiniBand iSER Interface Channel
+# --------------------------------------------
+#eseries_controller_ib_iser_port:
+#  controller_a:                                        # Controller A port definition.
+#    channel:
+#      - address1:                                       # Port IPv4 address for channel 1
+#      - address2:                                       # Port IPv4 address for channel 2
+#  controller_b:                                        # Controller B port definition.
+#    channel:
+#      - address1:                                       # Port IPv4 address for channel 1
+#      - address2:                                       # Port IPv4 address for channel 2
+
+
+# Controller NVMe over InfiniBand Interface Channel
+# -------------------------------------------------
+#eseries_controller_nvme_ib_port:
+#  controller_a:                                        # Controller A port definition.
+#    channel:
+#      - address1:                                       # Port IPv4 address for channel 1
+#      - address2:                                       # Port IPv4 address for channel 2
+#  controller_b:                                        # Controller B port definition.
+#    channel:
+#      - address1:                                       # Port IPv4 address for channel 1
+#      - address2:                                       # Port IPv4 address for channel 2
+
+# Controller NVMe RoCE Interface Port Default Policy Specifications
+# -------------------------------------------------------
+eseries_controller_nvme_roce_port_state: enabled              # Generally specifies whether a controller port definition should be applied Choices: enabled, disabled
+eseries_controller_nvme_roce_port_config_method: dhcp         # General port configuration method definition for both controllers. Choices: static, dhcp
+#eseries_controller_nvme_roce_port_gateway:                   # General port IPv4 gateway for both controllers.
+#eseries_controller_nvme_roce_port_subnet_mask:               # General port IPv4 subnet mask for both controllers.
+eseries_controller_nvme_roce_port_mtu: 9000                  # General port maximum transfer units (MTU). Any value greater than 1500 (bytes).
+eseries_controller_nvme_roce_port_speed: auto                # General interface speed. Value must be a supported speed or auto for automatically negotiating the speed with the port.
+#eseries_controller_nvme_roce_port:
+#  controller_a:                                    # Controller A port definition.
+#    state:                                         # General definitions for all ports on controller A. Any option specified in the ports definition can be
+                                                    #     specified here to generalize for all controller A ports.
+#    config_method:                                 # Port configuration method Choices: static, dhcp
+#    address:                                       # Port IPv4 address
+#    gateway:                                       # Port IPv4 gateway
+#    subnet_mask:                                   # Port IPv4 subnet_mask
+#    mtu:                                           # Port IPv4 mtu
+#    speed:                                         # Port IPv4 speed
+#    ports:                                         # List containing ports definitions
+#      - channel:                                   # Channel of the port to modify. This will be a numerical value that represents the port; typically read
+                                                    #     left to right on the HIC.
+#        state:                                     # Whether the port should be enabled.
+#        config_method:                             # Port configuration method Choices: static, dhcp
+#        address:                                   # Port IPv4 address
+#        gateway:                                   # Port IPv4 gateway
+#        subnet_mask:                               # Port IPv4 subnet_mask
+#  controller_b:                                    # Controller B port definition.
+#    state:                                         # General definitions for all ports on controller B. Any option specified in the ports definition can be
+                                                    #     specified here to generalize for all controller A ports.
+#    config_method:                                 # Port configuration method Choices: static, dhcp
+#    address:                                       # Port IPv4 address
+#    gateway:                                       # Port IPv4 gateway
+#    subnet_mask:                                   # Port IPv4 subnet_mask
+#    mtu:                                           # Port IPv4 mtu
+#    speed:                                         # Port IPv4 speed
 #    ports:                                         # List containing ports definitions
 #      - channel:                                   # Channel of the port to modify. This will be a numerical value that represents the port; typically read
                                                     #     left to right on the HIC.
@@ -204,40 +276,32 @@ eseries_host_remove_unused_hostgroup: True    # Forces any unused groups to be r
 # -------------------------------------------
 #   Note that the following commands produce a unique list of IQNs or WWNs of the interfaces used, line separated.
 eseries_initiator_protocol: iscsi     # This variable defines which protocol the storage array will use. Choices: iscsi, fc, sas
-eseries_initiator_configuration:
+eseries_initiator_command:
   fc:
-    eseries_skip_port_task: True
-    eseries_initiator_command:
-      linux: "systool -c fc_host -v | grep port_name | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"
-      windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'Fibre Channel' | Select-Object -Property PortAddress |
-                 Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
+    linux: "systool -c fc_host -v | grep port_name | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"
+    windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'Fibre Channel' | Select-Object -Property PortAddress |
+               Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
   iscsi:
-    eseries_skip_port_task: False
-    eseries_initiator_command:
-      linux: "cat /etc/iscsi/initiatorname.iscsi | grep iqn. | cut -d'=' -f 2 && iscsiadm -m iface | grep iqn. | cut -d',' -f 5 | sort | uniq"
-      windows: "(get-initiatorPort | select-object -property nodeaddress | sort-object | get-unique | ft -autoSize | out-string -stream |
-                 select-string iqn | out-string).trim()"
+    linux: "cat /etc/iscsi/initiatorname.iscsi | grep iqn. | cut -d'=' -f 2 && iscsiadm -m iface | grep iqn. | cut -d',' -f 5 | sort | uniq"
+    windows: "(get-initiatorPort | select-object -property nodeaddress | sort-object | get-unique | ft -autoSize | out-string -stream |
+               select-string iqn | out-string).trim()"
   sas:
     # NetApp IMT for SAS attached E-Series SAN hosts recommends adding all possible SAS addresses with the base address
     # starting at 0, and the last address ending in 3 for single port HBAs, or 7 for dual port HBAs. Since determining
     # single vs . dual port HBAs adds complexity, we always add all 8 possible permutations of the SAS address.
-    eseries_skip_port_task: True
-    eseries_initiator_command:
-      linux: "systool -c scsi_host -v | grep host_sas_address | cut -d '\"' -f 2 | cut -d 'x' -f 2"
-      windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'SAS' | Select-Object -Property PortAddress |
-                 Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
+    linux: "systool -c scsi_host -v | grep host_sas_address | cut -d '\"' -f 2 | cut -d 'x' -f 2"
+    windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'SAS' | Select-Object -Property PortAddress |
+               Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
   ib_iser:
-    eseries_skip_port_task: False
-    eseries_initiator_command:
-      linux: "cat /etc/iscsi/initiatorname.iscsi | grep iqn. | cut -d'=' -f 2 && iscsiadm -m iface | grep iqn. | cut -d',' -f 5 | sort | uniq"
-      windows: ""   # add windows command for determining host iqn address(es)
+    linux: "cat /etc/iscsi/initiatorname.iscsi | grep iqn. | cut -d'=' -f 2 && iscsiadm -m iface | grep iqn. | cut -d',' -f 5 | sort | uniq"
+    windows: ""   # add windows command for determining host iqn address(es)
   ib_srp:
-    eseries_skip_port_task: True
-    eseries_initiator_command:
-      linux: "ibstat -p"
-      windows: ""   # add windows command for determining host guid
-  nvme:
-    eseries_skip_port_task: False
-    eseries_initiator_command:
-      linux: ""
-      windows: ""   # add windows command for determining host nqn address(es)
+    linux: "ibstat -p"
+    windows: ""   # add windows command for determining host guid
+  nvme_ib:
+    linux: ""
+    windows: ""   # add windows command for determining host nqn address(es)
+  nvme_roce:
+    linux: ""
+    windows: ""   # add windows command for determining host nqn address(es)
+

@@ -29,8 +29,7 @@
     - lun_mappings
 
 - name: Configure controllers iSCSI interface ports
-  import_tasks: port.yml
+  import_tasks: interface.yml
   delegate_to: localhost
   tags:
-    - ports
-  when: not eseries_initiator_configuration[eseries_initiator_protocol]["eseries_skip_port_task"]
+    - interface
