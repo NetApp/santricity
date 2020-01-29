@@ -282,7 +282,7 @@ eseries_initiator_command:
     windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'Fibre Channel' | Select-Object -Property PortAddress |
                Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
   iscsi:
-    linux: "cat /etc/iscsi/initiatorname.iscsi | grep iqn. | cut -d'=' -f 2 && iscsiadm -m iface | grep iqn. | cut -d',' -f 5 | sort | uniq"
+    linux: "grep -o iqn.* /etc/iscsi/initiatorname.iscsi"
     windows: "(get-initiatorPort | select-object -property nodeaddress | sort-object | get-unique | ft -autoSize | out-string -stream |
                select-string iqn | out-string).trim()"
   sas:
@@ -293,7 +293,7 @@ eseries_initiator_command:
     windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'SAS' | Select-Object -Property PortAddress |
                Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
   ib_iser:
-    linux: "cat /etc/iscsi/initiatorname.iscsi | grep iqn. | cut -d'=' -f 2 && iscsiadm -m iface | grep iqn. | cut -d',' -f 5 | sort | uniq"
+    linux: "grep -o iqn.* /etc/iscsi/initiatorname.iscsi"
     windows: ""   # add windows command for determining host iqn address(es)
   ib_srp:
     linux: "ibstat -p"
@@ -304,4 +304,3 @@ eseries_initiator_command:
   nvme_roce:
     linux: ""
     windows: ""   # add windows command for determining host nqn address(es)
-
