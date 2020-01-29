@@ -1,15 +1,10 @@
 #!/usr/bin/python
 
-# (c) 2018, NetApp, Inc
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
-
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import absolute_import, division, print_function
-
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
 
 DOCUMENTATION = """
 ---
@@ -17,7 +12,6 @@ module: na_santricity_global
 short_description: NetApp E-Series manage global settings configuration
 description:
     - Allow the user to configure several of the global settings associated with an E-Series storage-system
-version_added: '2.7'
 author:
     - Michael Price (@lmprice)
     - Nathan Swartz (@ndswartz)

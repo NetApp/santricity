@@ -1,15 +1,10 @@
 #!/usr/bin/python
 
-# (c) 2016, NetApp, Inc
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
-
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import absolute_import, division, print_function
-
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
 
 DOCUMENTATION = '''
 ---
@@ -20,7 +15,6 @@ author:
 short_description: NetApp E-Series manage lun mappings
 description:
      - Create, delete, or modify mappings between a volume and a targeted host/host+ group.
-version_added: "2.2"
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:

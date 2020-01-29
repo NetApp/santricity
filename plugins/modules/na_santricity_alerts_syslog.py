@@ -1,22 +1,17 @@
 #!/usr/bin/python
 
-# (c) 2018, NetApp, Inc
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
-
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import absolute_import, division, print_function
-
 __metaclass__ = type
 
-ANSIBLE_METADATA = {"metadata_version": "1.1",
-                    "status": ["preview"],
-                    "supported_by": "community"}
 
 DOCUMENTATION = """
 ---
-module: na_santricity_alert_syslog
-short_description: NetApp E-Series manage syslog servers 
+module: na_santricity_alerts_syslog
+short_description: NetApp E-Series manage syslog servers receiving storage system alerts. 
 description:
-    - Manage the list of syslog servers that will receive alertable events when they occur.
+    - Manage the list of syslog servers that will notifications on potentially critical events.
 author: Nathan Swartz (@ndswartz)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
@@ -52,7 +47,7 @@ notes:
 
 EXAMPLES = """
     - name: Add two syslog server configurations to NetApp E-Series storage array.
-      na_santricity_alert_syslog:
+      na_santricity_alerts_syslog:
         ssid: "1"
         api_url: "https://192.168.1.100:8443/devmgr/v2"
         api_username: "admin"
@@ -77,14 +72,14 @@ from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santrici
 from ansible.module_utils._text import to_native
 
 
-class NetAppESeriesAlertSyslog(NetAppESeriesModule):
+class NetAppESeriesAlertsSyslog(NetAppESeriesModule):
     def __init__(self):
         ansible_options = dict(servers=dict(type="list", required=False),
                                test=dict(type="bool", default=False, require=False))
 
         required_if = [["state", "present", ["address"]]]
         mutually_exclusive = [["test", "absent"]]
-        super(NetAppESeriesAlertSyslog, self).__init__(ansible_options=ansible_options,
+        super(NetAppESeriesAlertsSyslog, self).__init__(ansible_options=ansible_options,
                                                        web_services_version="02.00.0000.0000",
                                                        mutually_exclusive=mutually_exclusive,
                                                        required_if=required_if,
@@ -175,5 +170,5 @@ class NetAppESeriesAlertSyslog(NetAppESeriesModule):
 
 
 if __name__ == "__main__":
-    settings = NetAppESeriesAlertSyslog()
+    settings = NetAppESeriesAlertsSyslog()
     settings.update()

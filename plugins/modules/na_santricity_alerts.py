@@ -1,15 +1,10 @@
 #!/usr/bin/python
 
-# (c) 2018, NetApp, Inc
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
-
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import absolute_import, division, print_function
-
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
 
 DOCUMENTATION = """
 ---
@@ -18,7 +13,6 @@ short_description: NetApp E-Series manage email notification settings
 description:
     - Certain E-Series systems have the capability to send email notifications on potentially critical events.
     - This module will allow the owner of the system to specify email recipients for these messages.
-version_added: '2.7'
 author: Michael Price (@lmprice)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
