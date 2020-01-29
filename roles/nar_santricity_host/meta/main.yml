@@ -1,10 +1,10 @@
 galaxy_info:
-  author: NetApp
-  description: Configures storage pools, volumes, hosts, host groups, LUN mappings, and port interfaces on NetApp E-Series storage systems.
-  company: NetApp
-  license: BSD
+  author: Nathan Swartz (@ndswartz)
+  description: Manages NetApp E-Series storage system's interfaces, storage pools, volumes, hosts, hostgroups, and volume mappings.
+  company: NetApp, Inc
+  license: BSD-3 Clause
   platforms:
-  min_ansible_version: 2.8
+  min_ansible_version: 2.9
   galaxy_tags:
     - netapp
     - eseries
@@ -12,5 +12,8 @@ galaxy_info:
     - iscsi
     - sas
     - fc
+    - infiniband
+    - ib
+    - nvme
 
 dependencies: []
