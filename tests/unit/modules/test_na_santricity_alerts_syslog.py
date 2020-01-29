@@ -4,7 +4,7 @@ from __future__ import (absolute_import, division, print_function)
 
 __metaclass__ = type
 
-from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_alert_syslog import NetAppESeriesAlertSyslog
+from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_alerts_syslog import NetAppESeriesAlertsSyslog
 from units.modules.utils import AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
 
 __metaclass__ = type
@@ -17,7 +17,7 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
         "api_password": "password",
         "api_url": "http://localhost",
     }
-    REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_alert_syslog.NetAppESeriesAlertSyslog.request'
+    REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_alert_syslog.NetAppESeriesAlertsSyslog.request'
     BASE_REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity.request'
 
     def _set_args(self, args=None):
@@ -38,11 +38,11 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
         for options in options_list:
             self._set_args(options)
             with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-                syslog = NetAppESeriesAlertSyslog()
+                syslog = NetAppESeriesAlertsSyslog()
         for options in options_list:
             self._set_args(options)
             with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": True})]):
-                syslog = NetAppESeriesAlertSyslog()
+                syslog = NetAppESeriesAlertsSyslog()
 
     def test_invalid_options_fail(self):
         """Validate exceptions are thrown when invalid options are provided."""
@@ -53,7 +53,7 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
             self._set_args(options)
             with self.assertRaisesRegexp(AnsibleFailJson, "Maximum number of syslog servers is 5!"):
                 with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-                    syslog = NetAppESeriesAlertSyslog()
+                    syslog = NetAppESeriesAlertsSyslog()
 
     def test_change_required_pass(self):
         """Validate is_change_required properly reports true."""
@@ -72,7 +72,7 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
         for index in range(5):
             self._set_args(options_list[index])
             with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-                syslog = NetAppESeriesAlertSyslog()
+                syslog = NetAppESeriesAlertsSyslog()
                 syslog.get_current_configuration = lambda: current_config_list[index]
                 self.assertTrue(syslog.is_change_required())
 
@@ -80,7 +80,7 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
         """Verify get_current_configuration throws expected exception."""
         self._set_args({"servers": []})
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-            syslog = NetAppESeriesAlertSyslog()
+            syslog = NetAppESeriesAlertsSyslog()
 
             with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve syslog configuration!"):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
@@ -98,7 +98,7 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
         for index in range(3):
             self._set_args(options_list[index])
             with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-                syslog = NetAppESeriesAlertSyslog()
+                syslog = NetAppESeriesAlertsSyslog()
                 syslog.get_current_configuration = lambda: current_config_list[index]
                 self.assertFalse(syslog.is_change_required())
 
@@ -115,14 +115,14 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
         for index in range(3):
             self._set_args(options_list[index])
             with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-                syslog = NetAppESeriesAlertSyslog()
+                syslog = NetAppESeriesAlertsSyslog()
                 self.assertEqual(syslog.make_request_body(), expected_config_list[index])
 
     def test_test_configuration_fail(self):
         """Verify get_current_configuration throws expected exception."""
         self._set_args({"servers": []})
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-            syslog = NetAppESeriesAlertSyslog()
+            syslog = NetAppESeriesAlertsSyslog()
 
             with self.assertRaisesRegexp(AnsibleFailJson, "Failed to send test message!"):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
@@ -132,7 +132,7 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
         """Verify update method successfully completes."""
         self._set_args({"test": True, "servers": [{"address": "192.168.1.100"}]})
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-            syslog = NetAppESeriesAlertSyslog()
+            syslog = NetAppESeriesAlertsSyslog()
             syslog.is_change_required = lambda: True
             syslog.make_request_body = lambda: {}
             self.test_configuration = lambda: None
@@ -145,7 +145,7 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
         """Verify update method throws expected exceptions."""
         self._set_args({"servers": []})
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-            syslog = NetAppESeriesAlertSyslog()
+            syslog = NetAppESeriesAlertsSyslog()
             syslog.is_change_required = lambda: True
             syslog.make_request_body = lambda: {}
 

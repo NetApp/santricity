@@ -1,14 +1,28 @@
 ---
-# defaults file for nar_santricity_management
+# Storage System Credentials for Interacting with Web Services REST API (Embedded or Proxy)
+# -----------------------------------------------------------------------------------------
+#eseries_ssid: 1                                         # Storage array identifier. This value will be 1 when interacting with the embedded web services,
+#eseries_api_url: https://192.168.10.100:8443/devmgr/v2  # Url for the web services api. Example: https://192.168.10.100:8443/devmgr/v2
+#eseries_api_username: admin                             # Username for the web services api.
+#eseries_api_password: password                          # Password for the web services api.
+#eseries_validate_certs: false                           # Whether the SSL certificates should be verified. (boolean)
 
-# Variables specific to SANtricity WebServices Proxy
-# --------------------------------------------------
-#eseries_proxy_set_initial_password: false               # Change the storage system's admin password when it is not set.
-#eseries_proxy_systems:                                  # List of dictionaries containing information for E-Series storage systems to added to the proxy
-#  - state:                                              # (optional) Whether the storage system should be added. Choices: present, absent
-#    ssid:                                               # Storage system identifier
-#    password:                                           # Storage system password
-#    addresses:                                          # List of controller addresses
+# Storage system specific credentials
+# -----------------------------------
+#eseries_serial:                                         # Storage system chassis serial number. This is used to automatically discover the system.
+#eseries_tags:                                           # Meta tags to associate to the storage system. Only applicable for proxy web services.
+#eseries_addresses:                                      # (list) Controller address(es) for the storage system. Only applicable for proxy web services.
+#eseries_password:                                       # Required when adding storage systems to SANtricity Web Services Proxy.
+
+# SANtricity Web Services Proxy specific variables
+# ------------------------------------------------
+#eseries_proxy_discovery_subnet:                 # IPv4 search range for discovering E-Series storage. Must be in CIDR form.
+#eseries_proxy_accept_certifications:            # Force automatic acceptance of all storage system's certificate
+#eseries_proxy_default_system_password:          # Default storage system password
+#eseries_proxy_default_system_tags:              # Default meta tags to associate with all storage systems
+#eseries_proxy_systems:                          # List of storage system information which defines which systems should be added to proxy web services.
+                                                 #   Automatically populated from storage system's inventory when not defined.
+                                                 # See na_santricity_proxy_systems for more details.
 
 # Storage system user authentication defaults
 # -------------------------------------------
@@ -19,16 +33,6 @@ eseries_proxy_default_admin_pass: admin       # The current proxy admin users. W
 #  security: securityPass                     # Proxy security user password
 #  storage: storagePass                       # Proxy storage user password
 #  support: supportPass                       # Proxy support user password
-
-# Storage System Credentials for Interacting with Web Services REST API
-# ---------------------------------------------------------------------
-eseries_ssid: 1                                          # Storage array identifier. This value will be 1 when interacting with the embedded web services,
-                                                         #     otherwise the identifier will be defined on the web services proxy.
-#eseries_api_url: https://192.168.10.100:8443/devmgr/v2  # Url for the web services api. Example: https://192.168.10.100:8443/devmgr/v2
-#eseries_api_username: admin                             # Username for the web services api.
-#eseries_api_password: password                          # Password for the web services api.
-#eseries_validate_certs: false                           # Whether the SSL certificates should be verified. (boolean)
-#eseries_array_password:                                 # Required when adding storage systems to SANtricity Web Services Proxy.
 
 # Storage system user authentication defaults
 # -------------------------------------------
@@ -113,7 +117,6 @@ eseries_system_default_admin_pass: ""         # The current system admin users. 
 #    - (...)
 #    - (...)
 
-
 # Alerts configuration defaults
 # -----------------------------
 #eseries_alerts_state:        # Whether to enable storage system alerts. Choices: enabled, disabled
@@ -121,7 +124,9 @@ eseries_system_default_admin_pass: ""         # The current system admin users. 
 #eseries_alerts_recipients:   # List containing e-mails that should be sent notifications when alerts are issued.
 #eseries_alerts_sender:       # Sender email. This does not necessarily need to be a valid e-mail.
 #eseries_alerts_server:       # Fully qualified domain name, IPv4 address, or IPv6 address of the mail server.
+#eseries_alert_syslog_servers:
 eseries_alerts_test: false    # When changes are made to the storage system alert configuration a test e-mail will be sent. Choices: true, false
+eseries_alert_syslog_test: false
 
 # LDAP configuration defaults
 # ---------------------------

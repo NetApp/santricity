@@ -13,7 +13,7 @@ ANSIBLE_METADATA = {"metadata_version": "1.1",
 
 DOCUMENTATION = """
 ---
-module: na_santricity_syslog
+module: na_santricity_alert_syslog
 short_description: NetApp E-Series manage syslog servers 
 description:
     - Manage the list of syslog servers that will receive alertable events when they occur.

@@ -2,24 +2,17 @@
   set_fact:
     eseries_proxy_systems: |-
       {%- set systems = [] %}
-        {%- for host in ansible_play_hosts_all %}
-          {%- set system = {} %}
-          {%- if "eseries_serial" in hostvars[host] %}
-            {%- if system.update({"serial": hostvars[host]["eseries_serial"]}) %}{%- endif %}
-            {%- if "eseries_ssid" in hostvars[host] %}
-              {%- if system.update({"ssid": hostvars[host]["eseries_ssid"]}) %}{%- endif %}
-            {%- else %}
-              {%- if system.update({"ssid": hostvars[host]["eseries_serial"]}) %}{%- endif %}
-            {%- endif %}
-            {%- if "eseries_password" in hostvars[host] %}
-              {%- if system.update({"password": hostvars[host]["eseries_password"]}) %}{%- endif %}
-            {%- endif %}
-            {%- if "eseries_tags" in hostvars[host] %}
-              {%- if system.update({"tags": hostvars[host]["eseries_tags"]}) %}{%- endif %}
-            {%- endif %}
-            {%- if systems.append(system) %}{%- endif %}
-          {%- endif %}
-        {%- endfor %}
+      {%- for host in ansible_play_hosts_all %}
+        {%- set system = {} %}
+        {%- if "eseries_serial" in hostvars[host] or "eseries_addresses" in hostvars[host] %}
+          {%- if "eseries_serial" in hostvars[host] and system.update({"serial": hostvars[host]["eseries_serial"]}) %}{%- endif %}
+          {%- if "eseries_ssid" in hostvars[host] and system.update({"ssid": hostvars[host]["eseries_ssid"]}) %}{%- endif %}
+          {%- if "eseries_addresses" in hostvars[host] and system.update({"addresses": hostvars[host]["eseries_addresses"]}) %}{%- endif %}
+          {%- if "eseries_password" in hostvars[host] and system.update({"password": hostvars[host]["eseries_password"]}) %}{%- endif %}
+          {%- if "eseries_tags" in hostvars[host] and system.update({"tags": hostvars[host]["eseries_tags"]}) %}{%- endif %}
+        {%- endif %}
+        {%- if system and systems.append(system) %}{%- endif %}
+      {%- endfor %}
       {{ systems | list }}
   when: eseries_proxy_systems is not defined
 
@@ -34,4 +27,4 @@
     password: "{{ eseries_proxy_default_system_password | default(omit) }}"
     tags: "{{ eseries_proxy_default_system_tags | default(omit) }}"
     systems: "{{ eseries_proxy_systems }}"
-  when: eseries_proxy_systems is defined and eseries_proxy_systems and eseries_proxy_discovery_subnet is defined
+  when: eseries_proxy_systems is defined and eseries_proxy_discovery_subnet is defined and eseries_proxy_systems and eseries_proxy_discovery_subnet

@@ -1,0 +1,32 @@
+- name: Ensure client-side certificates are installed
+  na_santricity_client_certificate:
+    ssid: "{{ eseries_ssid }}"
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    certificates: "{{ eseries_client_certificate_certificates }}"
+  when: eseries_client_certificate_certificates is defined
+  tags:
+    - security
+    - certificates
+
+- name: Ensure LDAP has been configured
+  na_santricity_ldap:
+    ssid: "{{ eseries_ssid }}"
+    api_url: "{{ eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    state: "{{ eseries_ldap_state }}"
+    identifier: "{{ eseries_ldap_identifier | default(omit) }}"
+    user_attribute: "{{ eseries_ldap_user_attribute | default(omit) }}"
+    bind_username: "{{ eseries_ldap_bind_username | default(omit) }}"
+    bind_password: "{{ eseries_ldap_bind_password | default(omit) }}"
+    server: "{{ eseries_ldap_server | default(omit) }}"
+    search_base: "{{ eseries_ldap_search_base | default(omit) }}"
+    role_mappings: "{{ eseries_ldap_role_mappings | default(omit) }}"
+  when: eseries_ldap_state is defined
+  tags:
+    - security
+    - ldap

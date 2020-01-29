@@ -1,8 +1,8 @@
-# Test code for the na_santricity_alert_syslog module
+# Test code for the na_santricity_alerts_syslog module
 # (c) 2018, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
-- name: Set facts for na_santricity_alert_syslog module's intergration test.
+- name: Set facts for na_santricity_alerts_syslog module's intergration test.
   set_fact:
     vars:
       credentials: &creds
@@ -13,11 +13,11 @@
         validate_certs: "{{ validate_cert }}"
 
 - name: Delete all alert syslog servers
-  na_santricity_alert_syslog:
+  na_santricity_alerts_syslog:
     <<: *creds
 
 - name: Add alert syslog servers (change, check_mode)
-  na_santricity_alert_syslog:
+  na_santricity_alerts_syslog:
     <<: *creds
     servers:
       - address: "192.168.1.100"
@@ -33,7 +33,7 @@
     msg: "Unexpected results!"
 
 - name: (Repeat) Add alert syslog servers (change)
-  na_santricity_alert_syslog:
+  na_santricity_alerts_syslog:
     <<: *creds
     servers:
       - address: "192.168.1.100"
@@ -48,7 +48,7 @@
     msg: "Unexpected results!"
 
 - name: (Repeat) Add alert syslog servers (no change)
-  na_santricity_alert_syslog:
+  na_santricity_alerts_syslog:
     <<: *creds
     test: true
     servers:
@@ -64,7 +64,7 @@
     msg: "Unexpected results!"
 
 - name: Remove one alert syslog server (change)
-  na_santricity_alert_syslog:
+  na_santricity_alerts_syslog:
     <<: *creds
     test: true
     servers:
@@ -79,7 +79,7 @@
     msg: "Unexpected results!"
 
 - name: Add one alert syslog server (change)
-  na_santricity_alert_syslog:
+  na_santricity_alerts_syslog:
     <<: *creds
     test: true
     servers:
@@ -95,7 +95,7 @@
     msg: "Unexpected results!"
 
 - name: Delete all alert syslog servers (change)
-  na_santricity_alert_syslog:
+  na_santricity_alerts_syslog:
     <<: *creds
   register: results
 - name: Verify results
@@ -104,7 +104,7 @@
     msg: "Unexpected results!"
 
 - name: Delete all alert syslog servers (no change)
-  na_santricity_alert_syslog:
+  na_santricity_alerts_syslog:
     <<: *creds
   register: results
 - name: Verify results
