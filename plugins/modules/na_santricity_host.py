@@ -94,6 +94,8 @@ options:
             - Allow ports that are already assigned to be re-assigned to your current host
         required: false
         type: bool
+note:
+    - The host type for IB iSER before SANtricity 11.52 should be iscsi and not ib; ib was reserved for IB SRP prior to 11.52.
 """
 
 EXAMPLES = """
