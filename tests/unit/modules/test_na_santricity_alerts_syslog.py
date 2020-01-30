@@ -17,7 +17,7 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
         "api_password": "password",
         "api_url": "http://localhost",
     }
-    REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_alert_syslog.NetAppESeriesAlertsSyslog.request'
+    REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_alerts_syslog.NetAppESeriesAlertsSyslog.request'
     BASE_REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity.request'
 
     def _set_args(self, args=None):
