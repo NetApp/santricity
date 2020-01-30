@@ -1,4 +1,11 @@
-- name: Ensure the management interface (controller A, channel 1) have been configure.
+- name: Determine individual management interface information.
+  set_fact:
+    interface_a1: "{{ eseries_management_interfaces['controller_a'][0] | default(omit) }}"
+    interface_a2: "{{ eseries_management_interfaces['controller_a'][1] | default(omit) }}"
+    interface_b1: "{{ eseries_management_interfaces['controller_b'][0] | default(omit) }}"
+    interface_b2: "{{ eseries_management_interfaces['controller_b'][1] | default(omit) }}"
+
+- name: Ensure the management interface (controller A, port 1) have been configure.
   na_santricity_mgmt_interface:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
@@ -6,28 +13,26 @@
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
     controller: A
-    channel: 1
-    address: "{{ interface['address'] | default(omit) }}"
-    config_method: "{{ interface['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
-    subnet_mask: "{{ interface['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-    gateway: "{{ interface['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
-    dns_config_method: "{{ interface['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
-    dns_address: "{{ interface['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
-    dns_address_backup: "{{ interface['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
-    ntp_config_method: "{{ interface['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
-    ntp_address: "{{ interface['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
-    ntp_address_backup: "{{ interface['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
-    ssh: "{{ interface['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-  vars:
-    interface: eseries_management_interfaces['controller_a'][0]
-  when: eseries_management_interfaces['controller_a'] is defined and (eseries_management_interfaces['controller_a'] | length >= 1)
+    port: 1
+    address: "{{ interface_a1['address'] | default(omit) }}"
+    config_method: "{{ interface_a1['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
+    subnet_mask: "{{ interface_a1['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
+    gateway: "{{ interface_a1['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+    dns_config_method: "{{ interface_a1['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
+    dns_address: "{{ interface_a1['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
+    dns_address_backup: "{{ interface_a1['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
+    ntp_config_method: "{{ interface_a1['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
+    ntp_address: "{{ interface_a1['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
+    ntp_address_backup: "{{ interface_a1['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
+    ssh: "{{ interface_a1['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+  when: interface_a1 is defined and interface_a1
   tags:
     - interface
     - ntp
     - dns
     - ssh
 
-- name: Ensure the management interface (controller A, channel 2) have been configure.
+- name: Ensure the management interface (controller A, port 2) have been configure.
   na_santricity_mgmt_interface:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
@@ -35,28 +40,26 @@
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
     controller: A
-    channel: 2
-    address: "{{ interface['address'] | default(omit) }}"
-    config_method: "{{ interface['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
-    subnet_mask: "{{ interface['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-    gateway: "{{ interface['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
-    dns_config_method: "{{ interface['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
-    dns_address: "{{ interface['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
-    dns_address_backup: "{{ interface['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
-    ntp_config_method: "{{ interface['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
-    ntp_address: "{{ interface['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
-    ntp_address_backup: "{{ interface['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
-    ssh: "{{ interface['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-  vars:
-    interface: eseries_management_interfaces['controller_a'][1]
-  when: eseries_management_interfaces['controller_a'] is defined and (eseries_management_interfaces['controller_a'] | length >= 2)
+    port: 2
+    address: "{{ interface_a2['address'] | default(omit) }}"
+    config_method: "{{ interface_a2['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
+    subnet_mask: "{{ interface_a2['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
+    gateway: "{{ interface_a2['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+    dns_config_method: "{{ interface_a2['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
+    dns_address: "{{ interface_a2['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
+    dns_address_backup: "{{ interface_a2['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
+    ntp_config_method: "{{ interface_a2['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
+    ntp_address: "{{ interface_a2['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
+    ntp_address_backup: "{{ interface_a2['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
+    ssh: "{{ interface_a2['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+  when: interface_a2 is defined and interface_a2
   tags:
     - interface
     - ntp
     - dns
     - ssh
 
-- name: Ensure the management interface (controller B, channel 1) have been configure.
+- name: Ensure the management interface (controller B, port 1) have been configure.
   na_santricity_mgmt_interface:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
@@ -64,28 +67,26 @@
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
     controller: B
-    channel: 1
-    address: "{{ interface['address'] | default(omit) }}"
-    config_method: "{{ interface['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
-    subnet_mask: "{{ interface['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-    gateway: "{{ interface['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
-    dns_config_method: "{{ interface['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
-    dns_address: "{{ interface['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
-    dns_address_backup: "{{ interface['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
-    ntp_config_method: "{{ interface['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
-    ntp_address: "{{ interface['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
-    ntp_address_backup: "{{ interface['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
-    ssh: "{{ interface['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-  vars:
-    interface: eseries_management_interfaces['controller_b'][0]
-  when: eseries_management_interfaces['controller_b'] is defined and (eseries_management_interfaces['controller_b'] | length >= 1)
+    port: 1
+    address: "{{ interface_b1['address'] | default(omit) }}"
+    config_method: "{{ interface_b1['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
+    subnet_mask: "{{ interface_b1['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
+    gateway: "{{ interface_b1['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+    dns_config_method: "{{ interface_b1['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
+    dns_address: "{{ interface_b1['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
+    dns_address_backup: "{{ interface_b1['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
+    ntp_config_method: "{{ interface_b1['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
+    ntp_address: "{{ interface_b1['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
+    ntp_address_backup: "{{ interface_b1['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
+    ssh: "{{ interface_b1['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+  when: interface_b1 is defined and interface_b1
   tags:
     - interface
     - ntp
     - dns
     - ssh
 
-- name: Ensure the management interface (controller B, channel 2) have been configure.
+- name: Ensure the management interface (controller B, port 2) have been configure.
   na_santricity_mgmt_interface:
     ssid: "{{ eseries_ssid }}"
     api_url: "{{ eseries_api_url }}"
@@ -93,21 +94,19 @@
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
     controller: B
-    channel: 2
-    address: "{{ interface['address'] | default(omit) }}"
-    config_method: "{{ interface['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
-    subnet_mask: "{{ interface['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-    gateway: "{{ interface['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
-    dns_config_method: "{{ interface['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
-    dns_address: "{{ interface['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
-    dns_address_backup: "{{ interface['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
-    ntp_config_method: "{{ interface['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
-    ntp_address: "{{ interface['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
-    ntp_address_backup: "{{ interface['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
-    ssh: "{{ interface['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-  vars:
-    interface: eseries_management_interfaces['controller_b'][1]
-  when: eseries_management_interfaces['controller_b'] is defined and (eseries_management_interfaces['controller_b'] | length >= 2)
+    port: 2
+    address: "{{ interface_b2['address'] | default(omit) }}"
+    config_method: "{{ interface_b2['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
+    subnet_mask: "{{ interface_b2['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
+    gateway: "{{ interface_b2['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+    dns_config_method: "{{ interface_b2['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
+    dns_address: "{{ interface_b2['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
+    dns_address_backup: "{{ interface_b2['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
+    ntp_config_method: "{{ interface_b2['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
+    ntp_address: "{{ interface_b2['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
+    ntp_address_backup: "{{ interface_b2['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
+    ssh: "{{ interface_b2['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+  when: interface_b2 is defined and interface_b2
   tags:
     - interface
     - ntp

@@ -14,6 +14,8 @@
     routing_type: "{{ eseries_asup_routing_type | default(omit) }}"
     proxy: "{{ eseries_asup_proxy | default(omit) }}"
     email: "{{ eseries_asup_email | default(omit) }}"
+    maintenance_duration: "{{ eseries_maintenance_duration | default(omit) }}"
+    maintenance_emails: "{{ eseries_maintenance_emails | default(omit) }}"
     validate: "{{ eseries_asup_validate | default(omit) }}"
   when: eseries_asup_state is defined
   tags:

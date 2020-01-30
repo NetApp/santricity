@@ -87,7 +87,6 @@ eseries_system_default_admin_pass: ""         # The current system admin users. 
 #eseries_management_ntp_address_backup:
 #eseries_management_ssh:
 #eseries_management_interfaces:
-#  update_santricity_web_services_proxy:  # Forces the url to be updated in the web services proxy
 #  config_method:
 #  subnet_mask:
 #  gateway_mask:
@@ -99,8 +98,6 @@ eseries_system_default_admin_pass: ""         # The current system admin users. 
 #  ntp_address_backup:
 #  ssh
 #  controller_a:
-#    - update_proxy               # Forces the url to be updated in the web services proxy
-#      update_inventory_url:      # Forces a dynamic change to the inventory url. Use set_fact and then update line in file???
 #      config_method:
 #      address:
 #      subnet_mask:
@@ -119,14 +116,14 @@ eseries_system_default_admin_pass: ""         # The current system admin users. 
 
 # Alerts configuration defaults
 # -----------------------------
-#eseries_alerts_state:        # Whether to enable storage system alerts. Choices: enabled, disabled
-#eseries_alerts_contact:      # This allows owner to specify free-form contact information such as email or phone number.
-#eseries_alerts_recipients:   # List containing e-mails that should be sent notifications when alerts are issued.
-#eseries_alerts_sender:       # Sender email. This does not necessarily need to be a valid e-mail.
-#eseries_alerts_server:       # Fully qualified domain name, IPv4 address, or IPv6 address of the mail server.
-#eseries_alert_syslog_servers:
-eseries_alerts_test: false    # When changes are made to the storage system alert configuration a test e-mail will be sent. Choices: true, false
-eseries_alert_syslog_test: false
+#eseries_alerts_state:            # Whether to enable storage system alerts. Choices: enabled, disabled
+#eseries_alerts_contact:          # This allows owner to specify free-form contact information such as email or phone number.
+#eseries_alerts_recipients:       # List containing e-mails that should be sent notifications when alerts are issued.
+#eseries_alerts_sender:           # Sender email. This does not necessarily need to be a valid e-mail.
+#eseries_alerts_server:           # Fully qualified domain name, IPv4 address, or IPv6 address of the mail server.
+#eseries_alert_syslog_servers:    # List of dictionaries where each dictionary contains a syslog server entry. [{"address": <syslog_address>, "port": 514}]
+eseries_alerts_test: false        # When changes are made to the storage system alert configuration a test e-mail will be sent. Choices: true, false
+eseries_alert_syslog_test: false  # When changes are made to the alerts syslog servers configuration a test message will be sent to them. Choices: true, false
 
 # LDAP configuration defaults
 # ---------------------------
@@ -161,22 +158,24 @@ eseries_firmware_ignore_mel_events: false   # Forces firmware upgrade to be atte
 
 # ASUP configuration defaults
 # ---------------------------
-#eseries_asup_state:          # Whether auto support (ASUP) should be enabled. Choices: enabled, disabled
-eseries_asup_active: true     # Enables active monitoring which allows NetApp support personnel to request support data to resolve issues. Choices: true, false
-#eseries_asup_days:           # List of days of the week. Choices: monday, tuesday, wednesday, thursday, friday, saturday, sunday
-eseries_asup_start: 0         # Hour of the day(s) to start ASUP bundle transmissions. Start time must be less than end time. Choices: 0-23
-eseries_asup_end: 24          # Hour of the day(s) to end ASUP bundle transmissions. Start time must be less than end time. Choices: 1-24
-#eseries_asup_method:         # ASUP delivery method. Choices https, http, email (default: https)
-#eseries_asup_routing_type:   # ASUP delivery routing type for https or http. Choices: direct, proxy, script (default: direct)
-#eseries_asup_proxy:          # ASUP proxy delivery method information.
-#  host:                      # ASUP proxy host IP address or FQDN. When eseries_asup_routing_type==proxy this must be specified.
-#  port:                      # ASUP proxy host port. When eseries_asup_routing_type==proxy this must be specified.
-#  script:                    # ASUP proxy host script.
-#eseries_asup_email:          # ASUP email delivery configuration information
-#  server:                    # ASUP email server
-#  sender:                    # ASUP email sender
-#  test_recipient:            # ASUP configuration mail test recipient
-#eseries_asup_validate:       # Verify ASUP configuration prior to applying changes.
+#eseries_asup_state:              # Whether auto support (ASUP) should be enabled. Choices: enabled, disabled
+eseries_asup_active: true         # Enables active monitoring which allows NetApp support personnel to request support data to resolve issues. Choices: true, false
+#eseries_asup_days:               # List of days of the week. Choices: monday, tuesday, wednesday, thursday, friday, saturday, sunday
+eseries_asup_start: 0             # Hour of the day(s) to start ASUP bundle transmissions. Start time must be less than end time. Choices: 0-23
+eseries_asup_end: 24              # Hour of the day(s) to end ASUP bundle transmissions. Start time must be less than end time. Choices: 1-24
+#eseries_asup_method:             # ASUP delivery method. Choices https, http, email (default: https)
+#eseries_asup_routing_type:       # ASUP delivery routing type for https or http. Choices: direct, proxy, script (default: direct)
+#eseries_asup_proxy:              # ASUP proxy delivery method information.
+#  host:                          # ASUP proxy host IP address or FQDN. When eseries_asup_routing_type==proxy this must be specified.
+#  port:                          # ASUP proxy host port. When eseries_asup_routing_type==proxy this must be specified.
+#  script:                        # ASUP proxy host script.
+#eseries_asup_email:              # ASUP email delivery configuration information
+#  server:                        # ASUP email server
+#  sender:                        # ASUP email sender
+#  test_recipient:                # ASUP configuration mail test recipient
+#eseries_maintenance_duration:    # Duration in hours (1-72) the ASUP maintenance mode will be active
+#eseries_maintenance_emails:      # List of email addresses for maintenance notifications
+#eseries_asup_validate:           # Verify ASUP configuration prior to applying changes.
 
 # Audit-log configuration defaults
 # --------------------------------

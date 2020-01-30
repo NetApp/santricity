@@ -5,7 +5,7 @@ nar_santricity_management
 
 Requirements
 ------------
-    - Ansible 2.8 or later
+    - Ansible 2.9 or later
     - NetApp E-Series E2800 platform or newer or NetApp E-Series SANtricity Web Services Proxy configured for older E-Series storage systems.
 
 Instructions
@@ -108,16 +108,29 @@ Role Variables
 --------------
     # Default storage array credentials for interacting with web services api
     -------------------------------------------------------------------------
-    eseries_ssid:               # Storage array identifier. This value will be 1 when interacting with the embedded web services, otherwise the identifier will be
-                                     defined on the web services proxy.
+    eseries_ssid:               # Storage array identifier. This value will be 1 when interacting with the embedded web services, otherwise the identifier will
+                                     be defined on the web services proxy.
     eseries_api_url:            # Url for the web services api. Example: https://192.168.10.100/devmgr/v2
     eseries_api_username:       # Username for the web services api.
     eseries_api_password:       # Password for the web services api.
     eseries_validate_certs:     # Whether the SSL certificates should be verified. (boolean)
 
-    Storage system defaults
-    -----------------------------
-    eseries_system_name:    # Name of the storage system.
+    # Storage system specific credentials
+    -------------------------------------
+    eseries_serial:             # Storage system chassis serial number. This is used to automatically discover the system.
+    eseries_tags:               # Meta tags to associate to the storage system. Only applicable for proxy web services.
+    eseries_addresses:          # (list) Controller address(es) for the storage system. Only applicable for proxy web services.
+    eseries_password:           # Required when adding storage systems to SANtricity Web Services Proxy.
+
+# SANtricity Web Services Proxy specific variables
+--------------------------------------------------
+    eseries_proxy_discovery_subnet:                 # IPv4 search range for discovering E-Series storage. Must be in CIDR form.
+    eseries_proxy_accept_certifications:            # Force automatic acceptance of all storage system's certificate
+    eseries_proxy_default_system_password:          # Default storage system password
+    eseries_proxy_default_system_tags:              # Default meta tags to associate with all storage systems
+    eseries_proxy_systems:                          # List of storage system information which defines which systems should be added to proxy web services.
+                                                    #   Automatically populated from storage system's inventory when not defined.
+                                                    # See na_santricity_proxy_systems for more details.
 
     Storage management interface defaults
     -------------------------------------
@@ -132,11 +145,9 @@ Role Variables
       ntp_config_method:
       ntp_address:
       ntp_address_backup:
-      ssh
+      ssh:
       controller_a:
-        - update_proxy                        # Forces the url to be updated in the web services proxy
-          update_inventory_url:               # Forces a dynamic change to the inventory url. Use set_fact and then update line in file???
-          config_method:
+        - config_method:
           address:
           subnet_mask:
           gateway:
@@ -148,15 +159,18 @@ Role Variables
           ntp_address_backup:
           ssh:
       controller_b:
+        - (...)
 
     # Alerts configuration defaults
     # -----------------------------
-    eseries_alerts_state:        # Whether to enable storage system alerts. Choices: enabled, disabled
-    eseries_alerts_contact:      # This allows owner to specify free-form contact information such as email or phone number.
-    eseries_alerts_recipients:   # List containing e-mails that should be sent notifications when alerts are issued.
-    eseries_alerts_sender:       # Sender email. This does not necessarily need to be a valid e-mail.
-    eseries_alerts_server:       # Fully qualified domain name, IPv4 address, or IPv6 address of the mail server.
-    eseries_alerts_test: false    # When changes are made to the storage system alert configuration a test e-mail will be sent. Choices: true, false
+    eseries_alerts_state:               # Whether to enable storage system alerts. Choices: enabled, disabled
+    eseries_alerts_contact:             # This allows owner to specify free-form contact information such as email or phone number.
+    eseries_alerts_recipients:          # List containing e-mails that should be sent notifications when alerts are issued.
+    eseries_alerts_sender:              # Sender email. This does not necessarily need to be a valid e-mail.
+    eseries_alerts_server:              # Fully qualified domain name, IPv4 address, or IPv6 address of the mail server.
+    #eseries_alert_syslog_servers:      # List of dictionaries where each dictionary contains a syslog server entry. [{"address": <syslog_address>, "port": 514}]
+    eseries_alerts_test: false          # When changes are made to the storage system alert configuration a test e-mail will be sent. Choices: true, false
+    eseries_alert_syslog_test: false    # When changes are made to the alerts syslog servers configuration a test message will be sent to them. Choices: true, false
 
     # LDAP configuration defaults
     # ---------------------------
@@ -186,27 +200,29 @@ Role Variables
     # ----------------------------
     eseries_firmware_nvsram:                      # Local path for NVSRAM file.
     eseries_firmware_firmware:                    # Local path for controller firmware file.
-    eseries_firmware_wait_for_completion: true    # Forces controller firmware upgrade to wait until upgrade has completed before continuing. Choices: true, false
-    eseries_firmware_ignore_health_check: false   # Forces firmware upgrade to be attempted regardless of the health check results. Choices: true, false
+    eseries_firmware_wait_for_completion: false   # Forces controller firmware upgrade to wait until upgrade has completed before continuing. Choices: true, false
+    eseries_firmware_clear_mel_events: false      # Forces firmware upgrade to be attempted regardless of the health check results. Choices: true, false
 
     # ASUP configuration defaults
     # ---------------------------
-    eseries_asup_state:          # Whether auto support (ASUP) should be enabled. Choices: enabled, disabled
-    eseries_asup_active: true    # Enables active monitoring which allows NetApp support personnel to request support data to resolve issues. Choices: true, false
-    eseries_asup_days:           # List of days of the week. Choices: monday, tuesday, wednesday, thursday, friday, saturday, sunday
-    eseries_asup_start: 0        # Hour of the day(s) to start ASUP bundle transmissions. Start time must be less than end time. Choices: 0-23
-    eseries_asup_end: 24         # Hour of the day(s) to end ASUP bundle transmissions. Start time must be less than end time. Choices: 1-24
-    eseries_asup_method:         # ASUP delivery method. Choices https, http, email (default: https)
-    eseries_asup_routing_type:   # ASUP delivery routing type for https or http. Choices: direct, proxy, script (default: direct)
-    eseries_asup_proxy:          # ASUP proxy delivery method information.
-      host:                      # ASUP proxy host IP address or FQDN. When eseries_asup_routing_type==proxy this must be specified.
-      port:                      # ASUP proxy host port. When eseries_asup_routing_type==proxy this must be specified.
-      script:                    # ASUP proxy host script.
-    eseries_asup_email:          # ASUP email delivery configuration information
-      server:                    # ASUP email server
-      sender:                    # ASUP email sender
-      test_recipient:            # ASUP configuration mail test recipient
-    eseries_asup_validate:       # Verify ASUP configuration prior to applying changes.
+    eseries_asup_state:             # Whether auto support (ASUP) should be enabled. Choices: enabled, disabled
+    eseries_asup_active: true       # Enables active monitoring which allows NetApp support personnel to request support data to resolve issues. Choices: true, false
+    eseries_asup_days:              # List of days of the week. Choices: monday, tuesday, wednesday, thursday, friday, saturday, sunday
+    eseries_asup_start: 0           # Hour of the day(s) to start ASUP bundle transmissions. Start time must be less than end time. Choices: 0-23
+    eseries_asup_end: 24            # Hour of the day(s) to end ASUP bundle transmissions. Start time must be less than end time. Choices: 1-24
+    eseries_asup_method:            # ASUP delivery method. Choices https, http, email (default: https)
+    eseries_asup_routing_type:      # ASUP delivery routing type for https or http. Choices: direct, proxy, script (default: direct)
+    eseries_asup_proxy:             # ASUP proxy delivery method information.
+      host:                         # ASUP proxy host IP address or FQDN. When eseries_asup_routing_type==proxy this must be specified.
+      port:                         # ASUP proxy host port. When eseries_asup_routing_type==proxy this must be specified.
+      script:                       # ASUP proxy host script.
+    eseries_asup_email:             # ASUP email delivery configuration information
+      server:                       # ASUP email server
+      sender:                       # ASUP email sender
+      test_recipient:               # ASUP configuration mail test recipient
+    eseries_maintenance_duration:   # Duration in hours (1-72) the ASUP maintenance mode will be active
+    eseries_maintenance_emails:     # List of email addresses for maintenance notifications
+    eseries_asup_validate:          # Verify ASUP configuration prior to applying changes
 
     # Audit-log configuration defaults
     # --------------------------------
@@ -229,7 +245,7 @@ Role Variables
 
 License
 -------
-    BSD
+    BSD-3 Clause
 
 Author Information
 ------------------

@@ -70,7 +70,7 @@
     nvsram: "{{ eseries_firmware_nvsram | default('') }}"
     firmware: "{{ eseries_firmware_firmware | default('') }}"
     wait_for_completion: "{{ eseries_firmware_wait_for_completion | default(true) }}"
-    ignore_mel_events: "{{ eseries_firmware_ignore_mel_events | default(omit) }}"
+    clear_mel_events: "{{ eseries_firmware_ignore_mel_events | default(omit) }}"
   when: eseries_firmware_nvsram is defined or eseries_firmware_firmware is defined
   tags:
     - firmware
