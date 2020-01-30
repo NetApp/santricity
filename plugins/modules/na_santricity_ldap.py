@@ -251,7 +251,12 @@ class NetAppESeriesLdap(NetAppESeriesModule):
 
                     if self.state == "absent":
                         change_required = True
-                    elif self.group_attributes != domain["groupAttributes"]:
+                    elif (len(self.group_attributes) != len(domain["groupAttributes"]) or
+                          any([a not in domain["groupAttributes"] for a in self.group_attributes])):
+                        change_required = True
+                    elif self.user_attribute != domain["userAttribute"]:
+                        change_required = True
+                    elif self.search_base.lower() != domain["searchBase"].lower():
                         change_required = True
                     elif self.server != domain["ldapUrl"]:
                         change_required = True
