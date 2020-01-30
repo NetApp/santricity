@@ -89,12 +89,10 @@ options:
             - Allow ports that are already assigned to be re-assigned to your current host
         required: false
         type: bool
-note:
-    - The host type for IB iSER before SANtricity 11.52 should be iscsi and not ib; ib was reserved for IB SRP prior to 11.52.
 """
 
 EXAMPLES = """
-    - name: Define or update an existing host named 'Host1'
+    - name: Define or update an existing host named "Host1"
       na_santricity_host:
         ssid: "1"
         api_url: "https://192.168.1.100:8443/devmgr/v2"
@@ -105,17 +103,17 @@ EXAMPLES = """
         state: present
         host_type_index: Linux DM-MP
         ports:
-          - type: 'iscsi'
-            label: 'PORT_1'
-            port: 'iqn.1996-04.de.suse:01:56f86f9bd1fe'
-          - type: 'fc'
-            label: 'FC_1'
-            port: '10:00:FF:7C:FF:FF:FF:01'
-          - type: 'fc'
-            label: 'FC_2'
-            port: '10:00:FF:7C:FF:FF:FF:00'
+          - type: "iscsi"
+            label: "PORT_1"
+            port: "iqn.1996-04.de.suse:01:56f86f9bd1fe"
+          - type: "fc"
+            label: "FC_1"
+            port: "10:00:FF:7C:FF:FF:FF:01"
+          - type: "fc"
+            label: "FC_2"
+            port: "10:00:FF:7C:FF:FF:FF:00"
 
-    - name: Ensure a host named 'Host2' doesn't exist
+    - name: Ensure a host named "Host2" doesn"t exist
       na_santricity_host:
         ssid: "1"
         api_url: "https://192.168.1.100:8443/devmgr/v2"
@@ -160,12 +158,14 @@ from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santrici
 
 
 class NetAppESeriesHost(NetAppESeriesModule):
+    PORT_TYPES = ["iscsi", "sas", "fc", "ib", "nvmeof", "ethernet"]
+
     def __init__(self):
-        ansible_options = dict(state=dict(type='str', default='present', choices=['absent', 'present']),
-                               ports=dict(type='list', required=False),
-                               force_port=dict(type='bool', default=False),
-                               name=dict(type='str', required=True, aliases=['label']),
-                               host_type=dict(type='str', required=False, aliases=['host_type_index']))
+        ansible_options = dict(state=dict(type="str", default="present", choices=["absent", "present"]),
+                               ports=dict(type="list", required=False),
+                               force_port=dict(type="bool", default=False),
+                               name=dict(type="str", required=True, aliases=["label"]),
+                               host_type=dict(type="str", required=False, aliases=["host_type_index"]))
 
         super(NetAppESeriesHost, self).__init__(ansible_options=ansible_options,
                                                 web_services_version="02.00.0000.0000",
@@ -173,10 +173,10 @@ class NetAppESeriesHost(NetAppESeriesModule):
 
         self.check_mode = self.module.check_mode
         args = self.module.params
-        self.ports = args['ports']
-        self.force_port = args['force_port']
-        self.name = args['name']
-        self.state = args['state']
+        self.ports = args["ports"]
+        self.force_port = args["force_port"]
+        self.name = args["name"]
+        self.state = args["state"]
 
         self.post_body = dict()
         self.all_hosts = list()
@@ -186,34 +186,37 @@ class NetAppESeriesHost(NetAppESeriesModule):
         self.portsForRemoval = list()
 
         # Update host type with the corresponding index
-        host_type = args['host_type']
+        host_type = args["host_type"]
         if host_type:
             host_type = host_type.lower()
             if host_type in [key.lower() for key in list(self.HOST_TYPE_INDEXES.keys())]:
                 self.host_type_index = self.HOST_TYPE_INDEXES[host_type]
             elif host_type.isdigit():
-                self.host_type_index = int(args['host_type'])
+                self.host_type_index = int(args["host_type"])
             else:
                 self.module.fail_json(msg="host_type must be either a host type name or host type index found integer the documentation.")
         else:
             self.host_type_index = None
 
-        if not self.url.endswith('/'):
-            self.url += '/'
+        if not self.url.endswith("/"):
+            self.url += "/"
 
         # Fix port representation if they are provided with colons
         if self.ports is not None:
             for port in self.ports:
-                port['label'] = port['label'].lower()
-                port['type'] = port['type'].lower()
-                port['port'] = port['port'].lower()
+                port["label"] = port["label"].lower()
+                port["type"] = port["type"].lower()
+                port["port"] = port["port"].lower()
+
+                if port["type"] not in self.PORT_TYPES:
+                    self.module.fail_json(msg="Invalid port type! Port interface type must be one of [%s]." % ", ".join(self.PORT_TYPES))
 
                 # Determine whether address is 16-byte WWPN and, if so, remove
-                if re.match(r'^(0x)?[0-9a-f]{16}$', port['port'].replace(':', '')):
-                    port['port'] = port['port'].replace(':', '').replace('0x', '')
+                if re.match(r"^(0x)?[0-9a-f]{16}$", port["port"].replace(":", "")):
+                    port["port"] = port["port"].replace(":", '').replace("0x", "")
 
-                    if port['type'] == "ib":
-                        port['port'] = "0" * (32 - len(port['port'])) + port['port']
+                    if port["type"] == "ib":
+                        port["port"] = "0" * (32 - len(port["port"])) + port["port"]
 
     @property
     def default_host_type(self):
@@ -233,19 +236,41 @@ class NetAppESeriesHost(NetAppESeriesModule):
             self.module.fail_json(msg="Failed to get host types. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         try:
-            match = list(filter(lambda host_type: host_type['index'] == self.host_type_index, host_types))[0]
+            match = list(filter(lambda host_type: host_type["index"] == self.host_type_index, host_types))[0]
             return True
         except IndexError:
             self.module.fail_json(msg="There is no host type with index %s" % self.host_type_index)
+
+    def check_port_types(self):
+        """Check to see whether the port interface types are available on storage system."""
+        try:
+            rc, interfaces = self.request("storage-systems/%s/interfaces?channelType=hostside" % self.ssid)
+
+            for port in self.ports:
+                for interface in interfaces:
+
+                    # Check for IB iSER, older firmware treats iSER as a type of iscsi
+                    if (port["type"] == "ib" and "iqn" in port["address"] and
+                            interface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and
+                            interface["ioInterfaceTypeData"]["interfaceData"]["type"] == "infiniband" and
+                            interface["ioInterfaceTypeData"]["interfaceData"]["infinibandData"]["isIser"] == True):
+                        port["type"] = "iscsi"
+                        break
+                    elif port["type"] == interface["ioInterfaceTypeData"]["interfaceType"]:
+                        break
+                else:
+                    self.module.fail_json(msg="Invalid port type! Type [%s]. Port [%s]." % (port["type"], port["label"]))
+        except Exception as error:
+            self.module.fail_json(msg="Failed to validate port types. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
     def assigned_host_ports(self, apply_unassigning=False):
         """Determine if the hostPorts requested have already been assigned and return list of required used ports."""
         used_host_ports = {}
         for host in self.all_hosts:
-            if host['label'] != self.name:
-                for host_port in host['hostSidePorts']:
+            if host["label"] != self.name:
+                for host_port in host["hostSidePorts"]:
                     for port in self.ports:
-                        if port['port'] == host_port["address"] or port['label'] == host_port['label']:
+                        if port["port"] == host_port["address"] or port["label"] == host_port["label"]:
                             if not self.force_port:
                                 self.module.fail_json(msg="There are no host ports available OR there are not enough"
                                                           " unassigned host ports")
@@ -262,10 +287,10 @@ class NetAppESeriesHost(NetAppESeriesModule):
                                 else:
                                     used_host_ports[host["hostRef"]].extend(port_ref)
             else:
-                for host_port in host['hostSidePorts']:
+                for host_port in host["hostSidePorts"]:
                     for port in self.ports:
-                        if ((host_port['label'] == port['label'] and host_port['address'] != port['port']) or
-                                (host_port['label'] != port['label'] and host_port['address'] == port['port'])):
+                        if ((host_port["label"] == port["label"] and host_port["address"] != port["port"]) or
+                                (host_port["label"] != port["label"] and host_port["address"] == port["port"])):
                             if not self.force_port:
                                 self.module.fail_json(msg="There are no host ports available OR there are not enough"
                                                           " unassigned host ports")
@@ -286,18 +311,18 @@ class NetAppESeriesHost(NetAppESeriesModule):
         if apply_unassigning:
             for host_ref in used_host_ports.keys():
                 try:
-                    rc, resp = self.request("storage-systems/%s/hosts/%s" % (self.ssid, host_ref), method='POST',
+                    rc, resp = self.request("storage-systems/%s/hosts/%s" % (self.ssid, host_ref), method="POST",
                                             data={"portsToRemove": used_host_ports[host_ref]})
                 except Exception as err:
                     self.module.fail_json(msg="Failed to unassign host port. Host Id [%s]. Array Id [%s]. Ports [%s]. Error [%s]."
-                                              % (self.host_obj['id'], self.ssid, used_host_ports[host_ref], to_native(err)))
+                                              % (self.host_obj["id"], self.ssid, used_host_ports[host_ref], to_native(err)))
 
         return used_host_ports
 
     @property
     def host_exists(self):
         """Determine if the requested host exists
-        As a side effect, set the full list of defined hosts in 'all_hosts', and the target host in 'host_obj'.
+        As a side effect, set the full list of defined hosts in "all_hosts", and the target host in "host_obj".
         """
         match = False
         all_hosts = list()
@@ -309,21 +334,21 @@ class NetAppESeriesHost(NetAppESeriesModule):
 
         # Augment the host objects
         for host in all_hosts:
-            host['label'] = host['label'].lower()
-            for port in host['hostSidePorts']:
-                port['type'] = port['type'].lower()
-                port['address'] = port['address'].lower()
-                port['label'] = port['label'].lower()
+            host["label"] = host["label"].lower()
+            for port in host["hostSidePorts"]:
+                port["type"] = port["type"].lower()
+                port["address"] = port["address"].lower()
+                port["label"] = port["label"].lower()
 
             # Augment hostSidePorts with their ID (this is an omission in the API)
-            ports = dict((port['label'], port['id']) for port in host['ports'])
-            ports.update((port['label'], port['id']) for port in host['initiators'])
+            ports = dict((port["label"], port["id"]) for port in host["ports"])
+            ports.update((port["label"], port["id"]) for port in host["initiators"])
 
-            for host_side_port in host['hostSidePorts']:
-                if host_side_port['label'] in ports:
-                    host_side_port['id'] = ports[host_side_port['label']]
+            for host_side_port in host["hostSidePorts"]:
+                if host_side_port["label"] in ports:
+                    host_side_port["id"] = ports[host_side_port["label"]]
 
-            if host['label'] == self.name:
+            if host["label"] == self.name:
                 self.host_obj = host
                 match = True
 
@@ -372,11 +397,11 @@ class NetAppESeriesHost(NetAppESeriesModule):
     def port_on_diff_host(self, arg_port):
         """ Checks to see if a passed in port arg is present on a different host """
         for host in self.all_hosts:
-            # Only check 'other' hosts
-            if host['name'] != self.name:
-                for port in host['hostSidePorts']:
+            # Only check "other" hosts
+            if host["name"] != self.name:
+                for port in host["hostSidePorts"]:
                     # Check if the port label is found in the port dict list of each host
-                    if arg_port['label'] == port['label'] or arg_port['port'] == port['address']:
+                    if arg_port["label"] == port["label"] or arg_port["port"] == port["address"]:
                         self.other_host = host
 
                         return True
@@ -394,10 +419,10 @@ class NetAppESeriesHost(NetAppESeriesModule):
         else:
             self.module.log("No host ports were defined.")
 
-        self.post_body['hostType'] = dict(index=self.host_type_index)
+        self.post_body["hostType"] = dict(index=self.host_type_index)
         if not self.check_mode:
             try:
-                rc, self.host_obj = self.request("storage-systems/%s/hosts/%s" % (self.ssid, self.host_obj['id']), method='POST', data=self.post_body)
+                rc, self.host_obj = self.request("storage-systems/%s/hosts/%s" % (self.ssid, self.host_obj["id"]), method="POST", data=self.post_body)
             except Exception as err:
                 self.module.fail_json(msg="Failed to update host. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
@@ -418,7 +443,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
         if not self.host_exists:
             if not self.check_mode:
                 try:
-                    rc, self.host_obj = self.request("storage-systems/%s/hosts" % self.ssid, method='POST', data=post_body)
+                    rc, self.host_obj = self.request("storage-systems/%s/hosts" % self.ssid, method="POST", data=post_body)
                 except Exception as err:
                     self.module.fail_json(msg="Failed to create host. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
         else:
@@ -426,27 +451,27 @@ class NetAppESeriesHost(NetAppESeriesModule):
             self.module.exit_json(changed=False, msg="Host already exists. Id [%s]. Host [%s]." % (self.ssid, self.name), **payload)
 
         payload = self.build_success_payload(self.host_obj)
-        self.module.exit_json(changed=True, msg='Host created.', **payload)
+        self.module.exit_json(changed=True, msg="Host created.", **payload)
 
     def remove_host(self):
         try:
-            rc, resp = self.request("storage-systems/%s/hosts/%s" % (self.ssid, self.host_obj['id']), method='DELETE')
+            rc, resp = self.request("storage-systems/%s/hosts/%s" % (self.ssid, self.host_obj["id"]), method="DELETE")
         except Exception as err:
-            self.module.fail_json(msg="Failed to remove host.  Host[%s]. Array Id [%s]. Error [%s]." % (self.host_obj['id'], self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to remove host.  Host[%s]. Array Id [%s]. Error [%s]." % (self.host_obj["id"], self.ssid, to_native(err)))
 
     def build_success_payload(self, host=None):
-        keys = ['id']
+        keys = ["id"]
         if host:
             self.module.log("%s" % host)
             result = dict((key, host[key]) for key in keys)
         else:
             result = dict()
-        result['ssid'] = self.ssid
-        result['api_url'] = self.url
+        result["ssid"] = self.ssid
+        result["api_url"] = self.url
         return result
 
     def apply(self):
-        if self.state == 'present':
+        if self.state == "present":
             if self.host_type_index is None:
                 self.host_type_index = self.default_host_type
 
@@ -467,6 +492,6 @@ class NetAppESeriesHost(NetAppESeriesModule):
                 self.module.exit_json(changed=False, msg="Host already absent.", **payload)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     host = NetAppESeriesHost()
     host.apply()
