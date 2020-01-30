@@ -275,7 +275,7 @@ eseries_host_remove_unused_hostgroup: True    # Forces any unused groups to be r
 # Initiator-Target Protocol Variable Defaults
 # -------------------------------------------
 #   Note that the following commands produce a unique list of IQNs or WWNs of the interfaces used, line separated.
-eseries_initiator_protocol: iscsi     # This variable defines which protocol the storage array will use. Choices: iscsi, fc, sas
+eseries_initiator_protocol: iscsi     # This variable defines which protocol the storage array will use. Choices: iscsi, fc, sas, ib_iser, ib_srp, nvme_ib, nvme_roce
 eseries_initiator_command:
   fc:
     linux: "systool -c fc_host -v | grep port_name | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"

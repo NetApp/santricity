@@ -6,18 +6,14 @@ nar_santricity_host
 
 Requirements
 ------------
-    - Ansible 2.8 or later
+    - Ansible 2.9 or later
     - NetApp E-Series E2800 platform or newer or NetApp E-Series SANtricity Web Services Proxy configured for older E-Series Storage arrays.
 
 Instructions
 ------------
     1) Use the ansible-galaxy command line tool to install nar_santricity_host role on your Ansible management host.
 
-        Using Mazer (Ansible 2.8 or later, experimental):
-            mazer install netapp_eseries.santricity
-
-        Using ansible-galaxy (Ansible 2.9 or later):
-            ansible-galaxy install netapp_eseries.santricity
+        ansible-galaxy install netapp_eseries.santricity
 
     2) Add your NetApp E-Series storage systems(s) to the Ansible inventory. Copy and modify the example storage array inventory file below or see the example
        inventory files found in this roles examples directory. For the full list variables pertaining to this role, review the role variables section below.
@@ -40,9 +36,9 @@ Example Storage System Inventory File
     eseries_api_url: https://192.168.1.7:8443/devmgr/v2/    # WebService's URL
     eseries_api_username: admin                             # Storage system username and password
     eseries_api_password: mypass
-    eseries_validate_certs: no                              # Forces SSL certificate certification
+    eseries_validate_certs: false                           # Forces SSL certificate certification
     
-    eseries_initiator_protocol: iscsi                       # Choices: iscsi, fc, sas
+    eseries_initiator_protocol: iscsi                       # Choices: iscsi, fc, sas, ib_iser, ib_srp, nvme_ib, nvme_roce
 
     # Controller port definitions
     eseries_controller_port_config_method: static
@@ -144,7 +140,7 @@ Role Variables
 
 License
 -------
-    BSD
+    BSD-3 Clause
 
 Author Information
 ------------------
