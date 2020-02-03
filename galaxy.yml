@@ -1,15 +1,18 @@
 namespace: "netapp_eseries"
 name: "santricity"
-version: "1.0.0"
+version: "1.0.1"
 readme: "README.md"
 authors:
-  - "NetApp Inc."
+  - Nathan Swartz (@ndswartz)
+  - Michael Price (@lmprice)
 dependencies:
 license:
-  - "BSD-Source-Code"
-repository: "https://www.github.com/netapp_eseries/santricity"
+  - "BSD-3-Clause"
+repository: "https://www.github.com/netapp-eseries/santricity"
 documentation: ""
 tags:
+  - netapp
+  - eseries
   - santricity
-homepage: "https://www.github.com/netapp_eseries/santricity"
+homepage: "https://www.github.com/netapp-eseries/santricity"
 issues: ""
