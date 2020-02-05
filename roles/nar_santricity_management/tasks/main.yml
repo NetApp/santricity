@@ -1,28 +1,23 @@
-- name: Determine whether SANtricity Web Services is a proxy.
-  block:
-    - name: Collect storage system facts
-      uri:
-        url: "{{ eseries_api_url | regex_replace('v2', 'utils/about') }}"
-        headers:
-          Content-Type: "application/json"
-          Accept: "application/json"
-        validate_certs: false
-      register: about
-    - name: Determine whether SANtricity Web Services REST API is proxy
-      set_fact:
-        eseries_api_is_proxy: "{{ about['json']['runningAsProxy'] }}"
-    - name: Configure SANtricity WebServices Proxy
-      import_tasks: proxy.yml
-      run_once: true
-      when: eseries_api_is_proxy
+- name: Discover Web Services REST API url
+  import_tasks: discovery.yml
   delegate_to: localhost
   tags:
     - always
 
+- name: Configure SANtricity WebServices Proxy
+  import_tasks: proxy.yml
+  delegate_to: localhost
+  run_once: true
+  when: eseries_api_is_proxy
+
 - name: Ensure management interfaces are configured
   import_tasks: interface.yml
   delegate_to: localhost
-  ignore_errors: true
+  tags:
+    - interface
+    - ntp
+    - dns
+    - ssh
 
 - name: Ensure security settings are configured
   import_tasks: security.yml

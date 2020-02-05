@@ -1,0 +1,95 @@
+# TODO: Discover storage system controller address
+#   If serial number is available, then search subnet for storage system and determine any other available management ip addresses.
+#   Elif either eseries_api_url or eseries_api_url_backup are defined, then use them to determine any other available management ip addresses.
+
+# OUTCOME:
+#  Use available management ports to populate eseries_api_url
+#     eseries_api_url
+#     eseries_api_url_backup
+
+#- name: Update web services api url with the new ip address
+#  set_fact:
+#    eseries_api_url_backup: |-
+#      {%- set info = eseries_api_url | urlsplit %}
+#      {{ info["scheme"] }}://{{ interface_a1["address"] }}:{{ info["port"] }}{{ info["path"] }}
+#  when: not eseries_api_is_proxy and interface_a1 is defined and interface_a1 and "address" in interface_a1 and interface_a1["address"] not in eseries_api_url
+
+# TODO: When na_santricity_discover can search for systems make this task available
+#- name: Discover available controller IP addresses by chassis serial number
+#  na_santricity_discover:
+#    subnet_mask: "{{ eseries_discovery_subnet }}"
+#    ports: "{{ eseries_discovery_ports | default(omit) }}"
+#    expected_serial_numbers: "{{ [eseries_serial] }}"
+#  when: eseries_serial is defined and eseries_serial and eseries_proxy_discovery_subnet is defined and eseries_proxy_discovery_subnet
+
+- name: Compile Web Services REST API backup urls.
+  set_fact:
+    eseries_api_url_backup_list: |-
+      {%- set urls = [] %}
+      {%- set url_info = eseries_api_url | urlsplit %}
+      {%- for address in [eseries_management_interfaces["controller_a"][0]["address"] | default(""),
+                          eseries_management_interfaces["controller_a"][1]["address"] | default(""),
+                          eseries_management_interfaces["controller_b"][0]["address"] | default(""),
+                          eseries_management_interfaces["controller_b"][1]["address"] | default("")] %}
+        {%- if address != "" and urls.append([url_info["scheme"], "://", address, ":", url_info["port"], url_info["path"]] | join("")) %}{%- endif %}
+      {%- endfor %}
+      {%- set backup_urls = [] %}
+      {%- for url in urls %}
+        {%- if url != eseries_api_url and backup_urls.append(url) %}{%- endif %}
+      {%- endfor %}
+      {{ backup_urls }}
+
+- name: Build url list based on provided management IP address(es).
+  block:
+    - name: Collect storage system facts
+      uri:
+        url: "{{ eseries_api_url | regex_replace('v2', 'utils/about') }}"
+        headers:
+          Content-Type: "application/json"
+          Accept: "application/json"
+        validate_certs: false
+      register: about
+    - name: Determine whether SANtricity Web Services REST API is proxy
+      set_fact:
+        eseries_api_is_proxy: "{{ about['json']['runningAsProxy'] }}"
+  rescue:
+    - name: Collect storage system facts
+      uri:
+        url: "{{ item | regex_replace('v2', 'utils/about') }}"
+        headers:
+          Content-Type: "application/json"
+          Accept: "application/json"
+        validate_certs: false
+      ignore_errors: true
+      register: about_results
+      loop: "{{ lookup('list', eseries_api_url_backup_list) }}"
+    - name: Determine the first successful Web Services REST API url.
+      set_fact:
+        first_valid_url: |-
+          {%- set valid_urls = [] %}
+          {%- for result in about_results["results"] %}
+            {%- if not result["failed"] and valid_urls.append(result) %}{%- endif %}
+          {%- endfor %}
+          {{ valid_urls[0] }}
+    - name: Update Web Services REST API information.
+      set_fact:
+        eseries_api_url: "{{ first_valid_url['item'] }}"
+        eseries_api_is_proxy: "{{ first_valid_url['json']['runningAsProxy'] }}"
+    - name: Update Web Services REST API back url list.
+      set_fact:
+        eseries_api_url_backup_list: |-
+          {%- set urls = [] %}
+          {%- set url_info = eseries_api_url | urlsplit %}
+          {%- for address in [eseries_management_interfaces["controller_a"][0]["address"] | default(""),
+                              eseries_management_interfaces["controller_a"][1]["address"] | default(""),
+                              eseries_management_interfaces["controller_b"][0]["address"] | default(""),
+                              eseries_management_interfaces["controller_b"][1]["address"] | default("")] %}
+            {%- if address != "" and urls.append([url_info["scheme"], "://", address, ":", url_info["port"], url_info["path"]] | join("")) %}{%- endif %}
+          {%- endfor %}
+          {%- set backup_urls = [] %}
+          {%- for url in urls %}
+            {%- if url != eseries_api_url and backup_urls.append(url) %}{%- endif %}
+          {%- endfor %}
+          {{ backup_urls }}
+
+

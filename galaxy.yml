@@ -4,7 +4,6 @@ version: "1.0.1"
 readme: "README.md"
 authors:
   - Nathan Swartz (@ndswartz)
-  - Michael Price (@lmprice)
 dependencies:
 license:
   - "BSD-3-Clause"
