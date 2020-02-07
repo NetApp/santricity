@@ -163,6 +163,7 @@ except ImportError:
 
 class NetAppESeriesLdap(NetAppESeriesModule):
     NO_CHANGE_MSG = "No changes were necessary."
+    TEMPORARY_DOMAIN = "ANSIBLE_TMP_DOMAIN"
 
     def __init__(self):
         ansible_options = dict(state=dict(type="str", required=False, default="present", choices=["present", "absent", "disabled"]),
@@ -279,6 +280,10 @@ class NetAppESeriesLdap(NetAppESeriesModule):
                         elif self.bind_password:
                             temporary_domain = None
                             try:
+                                # Check whether temporary domain exists
+                                if any(domain["id"] == self.TEMPORARY_DOMAIN for domain in domains):
+                                    self.delete_domain(self.TEMPORARY_DOMAIN)
+
                                 temporary_domain = self.add_domain(temporary=True, skip_test=True)
                                 rc, tests = self.request(self.url_path_prefix + "storage-systems/1/ldap/test", method="POST")
 
@@ -297,7 +302,7 @@ class NetAppESeriesLdap(NetAppESeriesModule):
 
                             finally:
                                 if temporary_domain:
-                                    self.delete_domain("temporary")
+                                    self.delete_domain(self.TEMPORARY_DOMAIN)
                     break
             else:
                 change_required = True
@@ -313,7 +318,7 @@ class NetAppESeriesLdap(NetAppESeriesModule):
         domain = None
         body = self.body.copy()
         if temporary:
-            body.update({"id": "temporary", "names": ["temporary"]})
+            body.update({"id": self.TEMPORARY_DOMAIN, "names": [self.TEMPORARY_DOMAIN]})
 
         try:
             rc, response = self.request(self.url_path_prefix + "storage-systems/1/ldap/addDomain?skipTest=%s" % ("true" if not skip_test else "false"),

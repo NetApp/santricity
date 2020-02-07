@@ -144,17 +144,17 @@ class LdapTest(ModuleTestCase):
 
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
             self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
-                            "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                            "search_base": "ou=accounts,DC=test2,DC=example,DC=com",
                             "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
                             "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
                             "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
             ldap = NetAppESeriesLdap()
             ldap.build_request_body()
             ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
-            ldap.add_domain = lambda temporary, skip_test: {"id": "temporary"}
+            ldap.add_domain = lambda temporary, skip_test: {"id": "ANSIBLE_TMP_DOMAIN"}
 
             with mock.patch(self.REQ_FUNC, return_value=(200, [{"id": "test2", "result": {"authenticationTestResult": "ok"}},
-                                                               {"id": "temporary", "result": {"authenticationTestResult": "ok"}}])):
+                                                               {"id": "ANSIBLE_TMP_DOMAIN", "result": {"authenticationTestResult": "ok"}}])):
                 self.assertFalse(ldap.are_changes_required())
 
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
@@ -166,42 +166,42 @@ class LdapTest(ModuleTestCase):
             ldap = NetAppESeriesLdap()
             ldap.build_request_body()
             ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
-            ldap.add_domain = lambda temporary, skip_test: {"id": "temporary"}
+            ldap.add_domain = lambda temporary, skip_test: {"id": "ANSIBLE_TMP_DOMAIN"}
 
             with mock.patch(self.REQ_FUNC, return_value=(200, [{"id": "test2", "result": {"authenticationTestResult": "fail"}},
-                                                               {"id": "temporary", "result": {"authenticationTestResult": "ok"}}])):
+                                                               {"id": "ANSIBLE_TMP_DOMAIN", "result": {"authenticationTestResult": "ok"}}])):
                 self.assertTrue(ldap.are_changes_required())
 
     def test_are_changes_required_fail(self):
         """Verify are_changes_required throws expected exception."""
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
             self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
-                            "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                            "search_base": "ou=accounts,DC=test2,DC=example,DC=com",
                             "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
                             "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
                             "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
             ldap = NetAppESeriesLdap()
             ldap.build_request_body()
             ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
-            ldap.add_domain = lambda temporary, skip_test: {"id": "temporary"}
+            ldap.add_domain = lambda temporary, skip_test: {"id": "ANSIBLE_TMP_DOMAIN"}
             with self.assertRaisesRegexp(AnsibleFailJson, "Failed to authenticate bind credentials!"):
                 with mock.patch(self.REQ_FUNC, return_value=(200, [{"id": "test2", "result": {"authenticationTestResult": "fail"}},
-                                                                   {"id": "temporary", "result": {"authenticationTestResult": "fail"}}])):
+                                                                   {"id": "ANSIBLE_TMP_DOMAIN", "result": {"authenticationTestResult": "fail"}}])):
                     ldap.are_changes_required()
                 
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
             self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
-                            "search_base": "ou=accounts,DC=test,DC=example,DC=com",
+                            "search_base": "ou=accounts,DC=test2,DC=example,DC=com",
                             "bind_user": "CN=cn,OU=accounts,DC=test2,DC=example,DC=com", "bind_password": "adminpass",
                             "role_mappings": {".*": ["storage.admin", "support.admin", "security.admin", "storage.monitor"]},
                             "names": ["test2.example.com"], "group_attributes": ["memberOf"], "user_attribute": "sAMAccountName"})
             ldap = NetAppESeriesLdap()
             ldap.build_request_body()
             ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
-            ldap.add_domain = lambda temporary, skip_test: {"id": "temporary"}
+            ldap.add_domain = lambda temporary, skip_test: {"id": "ANSIBLE_TMP_DOMAIN"}
             with self.assertRaisesRegexp(AnsibleFailJson, "Failed to authenticate bind credentials!"):
                 with mock.patch(self.REQ_FUNC, return_value=(200, [{"id": "test2", "result": {"authenticationTestResult": "ok"}},
-                                                                   {"id": "temporary", "result": {"authenticationTestResult": "fail"}}])):
+                                                                   {"id": "ANSIBLE_TMP_DOMAIN", "result": {"authenticationTestResult": "fail"}}])):
                     ldap.are_changes_required()
 
     def test_add_domain_pass(self):
