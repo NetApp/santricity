@@ -1,6 +1,5 @@
-# (c) 2018, NetApp Inc.
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
-
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_alerts import NetAppESeriesAlerts
 from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
 
