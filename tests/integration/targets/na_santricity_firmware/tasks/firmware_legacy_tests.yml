@@ -1,6 +1,6 @@
 # Test code for the na_santricity_firmware module
-# (c) 2018, NetApp, Inc
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 
 # TODO: MUST BE DOWNGRADE BEFORE EXECUTING INTEGRATION TO RCB_11.40.3R2_280x_5c7d81b3.dlp and N280X-842834-D02.dlp
 #   loadControllerFirmware_MT swartzn@10.113.1.250 /home/swartzn/Downloads/RCB_11.40.3R2_280x_5c7d81b3.dlp /home/swartzn/Downloads/N280X-842834-D02.dlp

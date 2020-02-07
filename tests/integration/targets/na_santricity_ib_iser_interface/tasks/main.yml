@@ -1,18 +1,16 @@
 # Test code for the na_santricity_ib_iser_interface module
-# (c) 2018, NetApp, Inc
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
-
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 - name: Set facts for na_santricity_ib_iser_interface module test
   set_fact:
-    vars:
-      credentials: &creds
-        ssid: "{{ ssid }}"
-        api_url: "{{ base_url }}"
-        api_username: "{{ username }}"
-        api_password: "{{ password }}"
-        validate_certs: "{{ validate_cert }}"
-      interface_a1_ip: &a1_ip 192.168.1.101
-      interface_a2_ip: &a2_ip 192.168.2.101
+    credentials: &creds
+      ssid: "{{ ssid }}"
+      api_url: "{{ base_url }}"
+      api_username: "{{ username }}"
+      api_password: "{{ password }}"
+      validate_certs: "{{ validate_cert }}"
+    interface_a1_ip: &a1_ip 192.168.1.101
+    interface_a2_ip: &a2_ip 192.168.2.101
 
 - name: Set the initial ib_iser interfaces
   na_santricity_ib_iser_interface:

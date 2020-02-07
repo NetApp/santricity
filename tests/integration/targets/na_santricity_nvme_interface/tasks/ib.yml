@@ -1,7 +1,6 @@
 # Test code for the na_santricity_nvme_interface module
-# (c) 2018, NetApp, Inc
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
-
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 - name: Set facts for na_santricity_nvme_interface module test
   set_fact:
     credentials: &creds

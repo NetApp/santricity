@@ -1,6 +1,6 @@
-# Test code for the nac_sancticity_auth module found in the SANtricity collection.
-# (c) 2018, NetApp, Inc
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# Test code for the na_sancticity_auth module found in the SANtricity collection.
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 - include_vars: "../../integration_config.yml"
 
 - set_fact:

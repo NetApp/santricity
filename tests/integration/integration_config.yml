@@ -12,3 +12,9 @@ proxy_base_url: https://192.168.1.200:8443/devmgr/v2/
 proxy_username: admin
 proxy_password: adminPass
 proxy_validate_cert: true
+
+# na_santricity_ldap module variable requirements
+#bind_user: "CN=bind_user,OU=accounts,DC=test,DC=example,DC=com"
+#bind_password: "bind_password"
+#server_url: "ldap://test.example.com:389"
+#search_base: "OU=users,DC=test,DC=example,DC=com"

@@ -1,7 +1,6 @@
-# Test code for the nac_sancticity_ldap module found in the SANtricity collection.
-# (c) 2018, NetApp, Inc
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
-
+# Test code for the nac_sancticity_ldap module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 - include_vars: "../../integration_config.yml"
 
 - set_fact:
@@ -12,10 +11,10 @@
       api_password: "{{ password }}"
       validate_certs: "{{ validate_cert }}"
     ldap_info: &info
-      bind_user: "CN=bind_user,OU=accounts,,DC=test,DC=example,DC=com"
-      bind_password: "bind_password"
-      server_url: "ldap://test.example.com:389"
-      search_base: "OU=users,DC=test,DC=example,DC=com"
+      bind_user: "{{ bind_user }}"
+      bind_password: "{{ bind_password }}"
+      server_url: "{{ server_url }}"
+      search_base: "{{ search_base }}"
     role_mappings:
       - ".*":
           - storage.admin
