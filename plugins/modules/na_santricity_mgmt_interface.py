@@ -191,14 +191,11 @@ msg:
     returned: on success
     type: str
     sample: The interface settings have been updated.
-enabled:
-    description:
-        - Indicates whether IPv4 connectivity has been enabled or disabled.
-        - This does not necessarily indicate connectivity. If dhcp was enabled absent a dhcp server, for instance,
-          it is unlikely that the configuration will actually be valid.
+available_embedded_api_urls:
+    description: List containing available web services embedded REST API urls
     returned: on success
-    sample: True
-    type: bool
+    type: list
+    sample:
 """
 from time import sleep
 
@@ -263,6 +260,7 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
         self.body = {}
         self.interface_info = {}
         self.alt_interface_addresses = []
+        self.all_interface_addresses = []
         self.use_alternate_address = False
         self.alt_url_path = None
 
@@ -304,6 +302,9 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
         for net in net_interfaces:
             if net["controllerRef"] == controller_ref:
                 channels.update({net["channel"]: net["linkStatus"]})
+
+            if net["ipv4Enabled"] and net["linkStatus"] == "up":
+                self.all_interface_addresses.append(net["ipv4Address"])
 
             if net["controllerRef"] == controller_ref and net["channel"] == self.channel:
                 if net["ipv4Address"] in self.url:
@@ -459,10 +460,33 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
     def update(self):
         """Update controller with new interface, dns service, ntp service and/or remote ssh access information."""
         change_required = self.update_request_body()
+
+        # Build list of available web services rest api urls
+        available_addresses = self.all_interface_addresses
+        available_embedded_api_urls = []
+        parsed_url = urlparse.urlparse(self.url)
+        location = parsed_url.netloc.split(":")
+        for address in available_addresses:
+            location[0] = address
+            available_embedded_api_urls.append("%s://%s/%s" % (parsed_url.scheme, ":".join(location), self.DEFAULT_REST_API_PATH))
+
         if change_required and not self.module.check_mode:
+
             # Update url if currently used interface will be modified
-            if self.is_embedded() and self.use_alternate_address:
-                self.update_url()
+            if self.is_embedded():
+                if self.use_alternate_address:
+                    self.update_url()
+
+                # Rebuild list of available web services rest api urls
+                available_addresses = self.all_interface_addresses
+                available_embedded_api_urls = []
+                parsed_url = urlparse.urlparse(self.url)
+                location = parsed_url.netloc.split(":")
+                for address in available_addresses:
+                    location[0] = address
+                    available_embedded_api_urls.append("%s://%s/%s" % (parsed_url.scheme, ":".join(location), self.DEFAULT_REST_API_PATH))
+            else:
+                available_embedded_api_urls = []
 
             # Update management interface
             try:
@@ -478,8 +502,10 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
             else:
                 self.module.fail_json(msg="Changes failed to complete! Timeout waiting for management interface to update. Array [%s]." % self.ssid)
 
-            self.module.exit_json(msg="The interface settings have been updated.", changed=change_required)
-        self.module.exit_json(msg="No changes are required.", changed=change_required)
+            self.module.exit_json(msg="The interface settings have been updated.", changed=change_required,
+                                  available_embedded_api_urls=available_embedded_api_urls)
+        self.module.exit_json(msg="No changes are required.", changed=change_required,
+                              available_embedded_api_urls=available_embedded_api_urls if self.is_embedded() else [])
 
 
 if __name__ == '__main__':
