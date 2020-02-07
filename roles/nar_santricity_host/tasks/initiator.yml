@@ -4,7 +4,7 @@
 - name: Collect facts on the storage array
   na_santricity_facts:
     ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
+    api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -35,7 +35,7 @@
 - name: Configure inventory-defined hostgroup definitions
   na_santricity_hostgroup:
     ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
+    api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -49,7 +49,7 @@
 - name: Configure inventory-defined host definitions
   na_santricity_host:
     ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
+    api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -66,7 +66,7 @@
 - name: Collect facts on the storage array
   na_santricity_facts:
     ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
+    api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -99,7 +99,7 @@
 - name: Configure inventory-defined hostgroup definitions
   na_santricity_hostgroup:
     ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
+    api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"

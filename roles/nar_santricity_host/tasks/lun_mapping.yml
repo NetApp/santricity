@@ -1,7 +1,7 @@
 - name: Collect facts on the storage array
   na_santricity_facts:
     ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
+    api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -51,7 +51,7 @@
     - name: Create all hosts objects on the storage array
       na_santricity_host:
         ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
+        api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ eseries_api_username }}"
         api_password: "{{ eseries_api_password }}"
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -65,7 +65,7 @@
     - name: Create all required host groups on the storage array
       na_santricity_hostgroup:
         ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
+        api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ eseries_api_username }}"
         api_password: "{{ eseries_api_password }}"
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -77,7 +77,7 @@
     - name: Update facts on the storage array
       na_santricity_facts:
         ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
+        api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ eseries_api_username }}"
         api_password: "{{ eseries_api_password }}"
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -86,7 +86,7 @@
     - name: Map hosts to there respective volume
       na_santricity_lun_mapping:
         ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
+        api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ eseries_api_username }}"
         api_password: "{{ eseries_api_password }}"
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
