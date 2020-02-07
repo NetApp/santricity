@@ -2,7 +2,7 @@
 # Storage System Credentials for Interacting with Web Services REST API (Embedded or Proxy)
 # -----------------------------------------------------------------------------------------
 #eseries_ssid: 1                                         # Storage array identifier. This value will be 1 when interacting with the embedded web services,
-#eseries_api_url: https://192.168.10.100:8443/devmgr/v2  # Url for the web services api. Example: https://192.168.10.100:8443/devmgr/v2
+eseries_api_url: https://0.0.0.0:8443/devmgr/v2          # Url for the web services api. Example: https://192.168.10.100:8443/devmgr/v2
 #eseries_api_username: admin                             # Username for the web services api.
 #eseries_api_password: password                          # Password for the web services api.
 #eseries_validate_certs: false                           # Whether the SSL certificates should be verified. (boolean)

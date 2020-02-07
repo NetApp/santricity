@@ -1,7 +1,7 @@
 - name: Ensure storage array has the correct array globals
   na_santricity_global:
     ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
+    api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"

@@ -6,56 +6,26 @@
     interface_b2: "{{ eseries_management_interfaces['controller_b'][1] | default(omit) }}"
 
 - name: Ensure the management interface (controller A, port 1) have been configure.
-  block:
-    - name: Ensure the management interface (controller A, port 1) have been configure.
-      na_santricity_mgmt_interface:
-        ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
-        api_username: "{{ eseries_api_username }}"
-        api_password: "{{ eseries_api_password }}"
-        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-        controller: A
-        port: 1
-        address: "{{ interface_a1['address'] | default(omit) }}"
-        config_method: "{{ interface_a1['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
-        subnet_mask: "{{ interface_a1['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-        gateway: "{{ interface_a1['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
-        dns_config_method: "{{ interface_a1['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
-        dns_address: "{{ interface_a1['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
-        dns_address_backup: "{{ interface_a1['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
-        ntp_config_method: "{{ interface_a1['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
-        ntp_address: "{{ interface_a1['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
-        ntp_address_backup: "{{ interface_a1['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
-        ssh: "{{ interface_a1['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-  rescue:
-    - name: Try backup Web Services REST API url.
-      set_fact:
-        eseries_api_url: "{{ eseries_api_url_backup_list[0] }}"
-    - name: Ensure the management interface (controller A, port 1) have been configure.
-      na_santricity_mgmt_interface:
-        ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
-        api_username: "{{ eseries_api_username }}"
-        api_password: "{{ eseries_api_password }}"
-        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-        controller: A
-        port: 1
-        address: "{{ interface_a1['address'] | default(omit) }}"
-        config_method: "{{ interface_a1['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
-        subnet_mask: "{{ interface_a1['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-        gateway: "{{ interface_a1['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
-        dns_config_method: "{{ interface_a1['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
-        dns_address: "{{ interface_a1['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
-        dns_address_backup: "{{ interface_a1['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
-        ntp_config_method: "{{ interface_a1['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
-        ntp_address: "{{ interface_a1['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
-        ntp_address_backup: "{{ interface_a1['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
-        ssh: "{{ interface_a1['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-  always:
-    - name: Update Web Services REST API backup urls.
-      import_tasks: discovery.yml
-      delegate_to: localhost
-      when: not eseries_api_is_proxy
+  na_santricity_mgmt_interface:
+    ssid: "{{ eseries_ssid }}"
+    api_url: "{{ current_eseries_api_url }}"
+    api_username: "{{ eseries_api_username }}"
+    api_password: "{{ eseries_api_password }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    controller: A
+    port: 1
+    address: "{{ interface_a1['address'] | default(omit) }}"
+    config_method: "{{ interface_a1['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
+    subnet_mask: "{{ interface_a1['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
+    gateway: "{{ interface_a1['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+    dns_config_method: "{{ interface_a1['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
+    dns_address: "{{ interface_a1['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
+    dns_address_backup: "{{ interface_a1['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
+    ntp_config_method: "{{ interface_a1['ntp_config_method'] | default(eseries_management_interfaces['ntp_config_method'] | default(eseries_management_ntp_config_method | default(omit))) }}"
+    ntp_address: "{{ interface_a1['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
+    ntp_address_backup: "{{ interface_a1['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
+    ssh: "{{ interface_a1['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+  register: current_management_urls
   when: interface_a1 is defined and interface_a1
 
 - name: Ensure the management interface (controller A, port 2) have been configure.
@@ -63,7 +33,7 @@
     - name: Ensure the management interface (controller A, port 2) have been configure.
       na_santricity_mgmt_interface:
         ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
+        api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ eseries_api_username }}"
         api_password: "{{ eseries_api_password }}"
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -80,14 +50,15 @@
         ntp_address: "{{ interface_a2['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
         ntp_address_backup: "{{ interface_a2['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
         ssh: "{{ interface_a2['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+      register: current_management_urls
   rescue:
     - name: Try backup Web Services REST API url.
       set_fact:
-        eseries_api_url: "{{ eseries_api_url_backup_list[0] }}"
+        current_eseries_api_url: "{{ current_management_urls['available_embedded_api_urls'][0] }}"
     - name: Ensure the management interface (controller A, port 2) have been configure.
       na_santricity_mgmt_interface:
         ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
+        api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ eseries_api_username }}"
         api_password: "{{ eseries_api_password }}"
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -104,11 +75,7 @@
         ntp_address: "{{ interface_a2['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
         ntp_address_backup: "{{ interface_a2['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
         ssh: "{{ interface_a2['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-  always:
-    - name: Update Web Services REST API backup urls.
-      import_tasks: discovery.yml
-      delegate_to: localhost
-      when: not eseries_api_is_proxy
+      register: current_management_urls
   when: interface_a2 is defined and interface_a2
 
 - name: Ensure the management interface (controller B, port 1) have been configure.
@@ -116,7 +83,7 @@
     - name: Ensure the management interface (controller B, port 1) have been configure.
       na_santricity_mgmt_interface:
         ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
+        api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ eseries_api_username }}"
         api_password: "{{ eseries_api_password }}"
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -133,14 +100,15 @@
         ntp_address: "{{ interface_b1['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
         ntp_address_backup: "{{ interface_b1['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
         ssh: "{{ interface_b1['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+      register: current_management_urls
   rescue:
     - name: Try backup Web Services REST API url.
       set_fact:
-        eseries_api_url: "{{ eseries_api_url_backup_list[0] }}"
+        current_eseries_api_url: "{{ current_management_urls[0] }}"
     - name: Ensure the management interface (controller B, port 1) have been configure.
       na_santricity_mgmt_interface:
         ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
+        api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ eseries_api_username }}"
         api_password: "{{ eseries_api_password }}"
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -157,11 +125,7 @@
         ntp_address: "{{ interface_b1['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
         ntp_address_backup: "{{ interface_b1['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
         ssh: "{{ interface_b1['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-  always:
-    - name: Update Web Services REST API backup urls.
-      import_tasks: discovery.yml
-      delegate_to: localhost
-      when: not eseries_api_is_proxy
+      register: current_management_urls
   when: interface_b1 is defined and interface_b1
 
 - name: Ensure the management interface (controller B, port 2) have been configure.
@@ -169,7 +133,7 @@
     - name: Ensure the management interface (controller B, port 2) have been configure.
       na_santricity_mgmt_interface:
         ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
+        api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ eseries_api_username }}"
         api_password: "{{ eseries_api_password }}"
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -186,14 +150,15 @@
         ntp_address: "{{ interface_b2['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
         ntp_address_backup: "{{ interface_b2['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
         ssh: "{{ interface_b2['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+      register: current_management_urls
   rescue:
     - name: Try backup Web Services REST API url.
       set_fact:
-        eseries_api_url: "{{ eseries_api_url_backup_list[0] }}"
+        current_eseries_api_url: "{{ current_management_urls[0] }}"
     - name: Ensure the management interface (controller B, port 2) have been configure.
       na_santricity_mgmt_interface:
         ssid: "{{ eseries_ssid }}"
-        api_url: "{{ eseries_api_url }}"
+        api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ eseries_api_username }}"
         api_password: "{{ eseries_api_password }}"
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -210,9 +175,8 @@
         ntp_address: "{{ interface_b2['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
         ntp_address_backup: "{{ interface_b2['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
         ssh: "{{ interface_b2['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
-  always:
-    - name: Update Web Services REST API backup urls.
-      import_tasks: discovery.yml
-      delegate_to: localhost
-      when: not eseries_api_is_proxy
+      register: current_management_urls
+    - name: Try backup Web Services REST API url.
+      set_fact:
+        current_eseries_api_url: "{{ current_management_urls[0] }}"
   when: interface_b2 is defined and interface_b2

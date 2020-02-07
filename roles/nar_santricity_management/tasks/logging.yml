@@ -1,7 +1,7 @@
 - name: Ensure ASUP configuration
   na_santricity_asup:
     ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
+    api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -25,7 +25,7 @@
 - name: Ensure alerts have been configured
   na_santricity_alerts:
     ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
+    api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -43,7 +43,7 @@
 - name: Ensure auditLog configuration
   na_santricity_auditlog:
     ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
+    api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -60,7 +60,7 @@
 - name: Ensure components are configured to be sent to the approriate syslog servers
   na_santricity_syslog:
     ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
+    api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
@@ -78,7 +78,7 @@
 - name: Ensure alerts are configured to be sent to the approriate syslog servers
   na_santricity_alerts_syslog:
     ssid: "{{ eseries_ssid }}"
-    api_url: "{{ eseries_api_url }}"
+    api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ eseries_api_username }}"
     api_password: "{{ eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"

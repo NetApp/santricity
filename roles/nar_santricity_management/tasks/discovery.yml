@@ -41,6 +41,9 @@
 
 - name: Build url list based on provided management IP address(es).
   block:
+    - name: Clear current_eseries_api_url variable
+      set_fact:
+        current_eseries_api_url: ""
     - name: Collect storage system facts
       uri:
         url: "{{ eseries_api_url | regex_replace('v2', 'utils/about') }}"
@@ -51,6 +54,7 @@
       register: about
     - name: Determine whether SANtricity Web Services REST API is proxy
       set_fact:
+        current_eseries_api_url: "{{ eseries_api_url }}"
         eseries_api_is_proxy: "{{ about['json']['runningAsProxy'] }}"
   rescue:
     - name: Collect storage system facts
@@ -73,8 +77,9 @@
           {{ valid_urls[0] }}
     - name: Update Web Services REST API information.
       set_fact:
-        eseries_api_url: "{{ first_valid_url['item'] }}"
+        current_eseries_api_url: "{{ first_valid_url['item'] }}"
         eseries_api_is_proxy: "{{ first_valid_url['json']['runningAsProxy'] }}"
+
     - name: Update Web Services REST API back url list.
       set_fact:
         eseries_api_url_backup_list: |-
@@ -88,8 +93,12 @@
           {%- endfor %}
           {%- set backup_urls = [] %}
           {%- for url in urls %}
-            {%- if url != eseries_api_url and backup_urls.append(url) %}{%- endif %}
+            {%- if url != current_eseries_api_url and backup_urls.append(url) %}{%- endif %}
           {%- endfor %}
           {{ backup_urls }}
-
+  always:
+    - name: Check whether current Web Services REST API url has been obtained
+      fail:
+        msg: Failed to obtain the current Web Services REST API url
+      when: current_eseries_api_url == ""
 
