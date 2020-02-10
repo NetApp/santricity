@@ -77,17 +77,33 @@
 
 # Initiator-Target Protocol Variable Defaults
 # -------------------------------------------
-#eseries_initiator_protocol: iscsi     # This variable defines which protocol the storage array will use. Choices: iscsi, fc, sas
-#eseries_initiator_configuration:      # Note that the following commands produce a unique list of IQNs or WWNs of the interfaces used, line separated.
+#   Note that the following commands produce a unique list of IQNs or WWNs of the interfaces used, line separated.
+#eseries_initiator_protocol: iscsi     # This variable defines which protocol the storage array will use. Choices: iscsi, fc, sas, ib_iser, ib_srp, nvme_ib, nvme_roce
+#eseries_initiator_command:
 #  fc:
-#    eseries_initiator_command:
-#      linux: "systool -c fc_host -v | grep port_name | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"
-#      windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'Fibre Channel' | Select-Object -Property PortAddress | Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
+#    linux: "systool -c fc_host -v | grep port_name | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"
+#    windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'Fibre Channel' | Select-Object -Property PortAddress |
+#               Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
 #  iscsi:
-#    eseries_initiator_command:
-#      linux: "cat /etc/iscsi/initiatorname.iscsi | grep iqn. | cut -d'=' -f 2 && iscsiadm -m iface | grep iqn. | cut -d',' -f 5 | sort | uniq"
-#      windows: "(get-initiatorPort | select-object -property nodeaddress | sort-object | get-unique | ft -autoSize | out-string -stream | select-string iqn | out-string).trim()"
+#    linux: "grep -o iqn.* /etc/iscsi/initiatorname.iscsi"
+#    windows: "(get-initiatorPort | select-object -property nodeaddress | sort-object | get-unique | ft -autoSize | out-string -stream |
+#               select-string iqn | out-string).trim()"
 #  sas:
-#    eseries_initiator_command:
-#      linux: "systool -c scsi_host -v | grep host_sas_address | cut -d '\"' -f 2 | cut -d 'x' -f 2"
-#      windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'SAS' | Select-Object -Property PortAddress | Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
+##     NetApp IMT for SAS attached E-Series SAN hosts recommends adding all possible SAS addresses with the base address
+##     starting at 0, and the last address ending in 3 for single port HBAs, or 7 for dual port HBAs. Since determining
+##     single vs . dual port HBAs adds complexity, we always add all 8 possible permutations of the SAS address.
+#    linux: "systool -c scsi_host -v | grep host_sas_address | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"
+#    windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'SAS' | Select-Object -Property PortAddress |
+#               Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
+#  ib_iser:
+#    linux: "grep -o iqn.* /etc/iscsi/initiatorname.iscsi"
+#    windows: ""   # add windows command for determining host iqn address(es)
+#  ib_srp:
+#    linux: "ibstat -p"
+#    windows: ""   # add windows command for determining host guid
+#  nvme_ib:
+#    linux: ""
+#    windows: ""   # add windows command for determining host nqn address(es)
+#  nvme_roce:
+#    linux: ""
+#    windows: ""   # add windows command for determining host nqn address(es)

@@ -32,7 +32,7 @@
   tags:
     - lun_mappings
 
-- name: Configure controllers iSCSI interface ports
+- name: Configure controllers interfaces
   import_tasks: interface.yml
   delegate_to: localhost
   tags:

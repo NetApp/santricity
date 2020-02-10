@@ -289,7 +289,7 @@ eseries_initiator_command:
     # NetApp IMT for SAS attached E-Series SAN hosts recommends adding all possible SAS addresses with the base address
     # starting at 0, and the last address ending in 3 for single port HBAs, or 7 for dual port HBAs. Since determining
     # single vs . dual port HBAs adds complexity, we always add all 8 possible permutations of the SAS address.
-    linux: "systool -c scsi_host -v | grep host_sas_address | cut -d '\"' -f 2 | cut -d 'x' -f 2"
+    linux: "systool -c scsi_host -v | grep host_sas_address | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"
     windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'SAS' | Select-Object -Property PortAddress |
                Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
   ib_iser:

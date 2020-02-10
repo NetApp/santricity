@@ -10,8 +10,8 @@
 #eseries_validate_certs: False                      # Whether the SSL certificates should be verified. (boolean)
 
 
-# Controller Interface Port Policy Specifications
-# -----------------------------------------------
+# Controller Management Interface Port Policy Specifications
+# ----------------------------------------------------------
 #eseries_controller_port_config_method: dhcp        # General port configuration method definition for both controllers. Choices: static, dhcp
 #eseries_controller_port_gateway:                   # General port IPv4 gateway for both controllers.
 #eseries_controller_port_subnet_mask:               # General port IPv4 subnet mask for both controllers.
@@ -19,7 +19,7 @@
 #eseries_controller_port:
 #  controller_a:                                    # Controller A port definition.
 #    ports:                                         # List containing ports definitions
-#      - channel:                                   # Channel of the port to modify. This will be a numerical value that represents the port; typically read left to right on the HIC.
+#      - channel:                                   # Channel of the port to modify. This will be a numerical value that represents the port; typically read left to right on the HIC starting with 1.
 #        state:                                     # Whether the port should be enabled.
 #        config_method:                             # Port configuration method Choices: static, dhcp
 #        address:                                   # Port IPv4 address
@@ -27,7 +27,7 @@
 #        subnet_mask:                               # Port IPv4 subnet_mask
 #  controller_b:                                    # Controller B port definition.
 #    ports:                                         # List containing ports definitions
-#      - channel:                                   # Channel of the port to modify. This will be a numerical value that represents the port; typically read left to right on the HIC.
+#      - channel:                                   # Channel of the port to modify. This will be a numerical value that represents the port; typically read left to right on the HIC  starting with 1.
 #        state:                                     # Whether the port should be enabled.
 #        config_method:                             # Port configuration method Choices: static, dhcp
 #        address:                                   # Port IPv4 address
@@ -49,10 +49,10 @@
 #    criteria_drive_type:          # Default drive type for storage pools. Choices: hdd, ssd
 #    common_volume_configuration:  # Any option that can be specified at the volume level can be generalized here at the storage pool level.
 #    volumes:                      # List of volumes associated the storage pool.
-#      - state:                    # Specifies whether the volume should exist (present, absent)
+#      - state:                    # Specifies whether the volume should exist Choices: present, absent (Default: present)
 #        name:                     # (required) Name or name scheme (see above) for the volume(s) to be created in the storage pool(s)
 #        host:                     # host or host group for the volume should be mapped to.
 #        size:                     # Size of the volume or presented size of the thinly provisioned volume.
-#        size_unit:                # Unit size for the size, thin_volume_repo_size, and thin_volume_max_repo_size. Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
+#        size_unit:                # Unit size for the size, thin_volume_repo_size, and thin_volume_max_repo_size. Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb (Default gb)
 #        workload_name:            # Name of the volume's workload.
 #        metadata:                 # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.

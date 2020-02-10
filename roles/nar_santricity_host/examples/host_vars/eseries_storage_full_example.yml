@@ -9,8 +9,8 @@
 #eseries_validate_certs: False                      # Whether the SSL certificates should be verified. (boolean)
 
 
-# Controller Interface Port Policy Specifications
-# -----------------------------------------------
+# Controller Management Interface Port Policy Specifications
+# ----------------------------------------------------------
 #eseries_controller_port_config_method: dhcp        # General port configuration method definition for both controllers. Choices: static, dhcp
 #eseries_controller_port_gateway:                   # General port IPv4 gateway for both controllers.
 #eseries_controller_port_subnet_mask:               # General port IPv4 subnet mask for both controllers.

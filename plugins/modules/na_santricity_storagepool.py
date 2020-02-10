@@ -12,7 +12,6 @@ module: na_santricity_storagepool
 short_description: NetApp E-Series manage volume groups and disk pools
 description: Create or remove volume groups and disk pools for NetApp E-series storage arrays.
 author:
-  - Kevin Hulquest (@hulquest)
   - Nathan Swartz (@ndswartz)
 extends_documentation_fragment:
   - netapp_eseries.santricity.santricity.santricity_doc
@@ -21,8 +20,8 @@ options:
     description:
       - Whether the specified storage pool should exist or not.
       - Note that removing a storage pool currently requires the removal of all defined volumes first.
-    required: true
     choices: ["present", "absent"]
+    default: "present"
   name:
     description:
       - The name of the storage pool to manage
@@ -68,7 +67,6 @@ options:
       - Only available for new storage pools; existing storage pools cannot be converted.
     default: false
     type: bool
-    version_added: '2.9'
   criteria_drive_require_fde:
     description:
      - Whether full disk encryption ability is required for drives to be added to the storage pool
@@ -177,7 +175,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
     def __init__(self):
         version = "02.00.0000.0000"
         ansible_options = dict(
-            state=dict(required=True, choices=["present", "absent"], type="str"),
+            state=dict(choices=["present", "absent"], default="present", type="str"),
             name=dict(required=True, type="str"),
             criteria_size_unit=dict(choices=["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb"],
                                     default="gb", type="str"),

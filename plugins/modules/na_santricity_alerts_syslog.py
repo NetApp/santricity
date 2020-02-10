@@ -80,10 +80,10 @@ class NetAppESeriesAlertsSyslog(NetAppESeriesModule):
         required_if = [["state", "present", ["address"]]]
         mutually_exclusive = [["test", "absent"]]
         super(NetAppESeriesAlertsSyslog, self).__init__(ansible_options=ansible_options,
-                                                       web_services_version="02.00.0000.0000",
-                                                       mutually_exclusive=mutually_exclusive,
-                                                       required_if=required_if,
-                                                       supports_check_mode=True)
+                                                        web_services_version="02.00.0000.0000",
+                                                        mutually_exclusive=mutually_exclusive,
+                                                        required_if=required_if,
+                                                        supports_check_mode=True)
         args = self.module.params
         if args["servers"] and len(args["servers"]) > 5:
             self.module.fail_json(msg="Maximum number of syslog servers is 5! Array Id [%s]." % self.ssid)
