@@ -1,30 +1,48 @@
-- name: Determine all systems to add to SANtricity Web Services Proxy
-  set_fact:
-    eseries_proxy_systems: |-
-      {%- set systems = [] %}
-      {%- for host in ansible_play_hosts_all %}
-        {%- set system = {} %}
-        {%- if "eseries_serial" in hostvars[host] or "eseries_addresses" in hostvars[host] %}
-          {%- if "eseries_serial" in hostvars[host] and system.update({"serial": hostvars[host]["eseries_serial"]}) %}{%- endif %}
-          {%- if "eseries_ssid" in hostvars[host] and system.update({"ssid": hostvars[host]["eseries_ssid"]}) %}{%- endif %}
-          {%- if "eseries_addresses" in hostvars[host] and system.update({"addresses": hostvars[host]["eseries_addresses"]}) %}{%- endif %}
-          {%- if "eseries_password" in hostvars[host] and system.update({"password": hostvars[host]["eseries_password"]}) %}{%- endif %}
-          {%- if "eseries_tags" in hostvars[host] and system.update({"tags": hostvars[host]["eseries_tags"]}) %}{%- endif %}
-        {%- endif %}
-        {%- if system and systems.append(system) %}{%- endif %}
-      {%- endfor %}
-      {{ systems | list }}
-  when: eseries_proxy_systems is not defined
-
 - name: Add storage systems to SANtricity Web Services Proxy
   na_santricity_proxy_systems:
-    api_url: "{{ eseries_api_url }}"
-    api_username: "{{ eseries_api_username }}"
-    api_password: "{{ eseries_api_password }}"
-    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-    accept_certificate: "{{ eseries_proxy_accept_certifications | default(false) }}"
-    subnet_mask: "{{ eseries_proxy_discovery_subnet }}"
-    password: "{{ eseries_proxy_default_system_password | default(omit) }}"
-    tags: "{{ eseries_proxy_default_system_tags | default(omit) }}"
-    systems: "{{ eseries_proxy_systems }}"
-  when: eseries_proxy_systems is defined and eseries_proxy_discovery_subnet is defined and eseries_proxy_systems and eseries_proxy_discovery_subnet
+    api_url: "{{ item['key'] }}"
+    api_username: "{{ item['value']['proxy_username'] }}"
+    api_password: "{{ item['value']['proxy_password'] }}"
+    validate_certs: "{{ item['value']['proxy_validate_certs'] | default(omit) }}"
+    accept_certificate: "{{ item['value']['proxy_accept_certifications'] | default(omit) }}"
+    subnet_mask: "{{ item['value']['proxy_subnet'] }}"
+    password: "{{ item['value']['proxy_default_password'] | default(omit) }}"
+    tags: "{{ item['value']['proxy_default_system_tags'] | default(omit) }}"
+    systems: "{{ item['value']['proxy_systems'] }}"
+  loop: "{{ lookup('dict', proxy_systems_systems, wantlist=True) }}"
+  vars:
+    proxy_systems_systems: |-
+      {#- Build a dictionary of all inventoried proxies keyed by their api url #}
+      {%- set systems = {} %}
+      {%- for array in ansible_play_hosts_all %}
+        {%- if hostvars[array]["current_eseries_api_is_proxy"] %}
+          {%- set array_info = {} %}
+          {%- if "eseries_serial" in hostvars[array] or "eseries_addresses" in hostvars[array] %}
+            {%- if array_info.update({
+              "ssid": hostvars[array]["eseries_ssid"] | default(omit),
+              "password": hostvars[array]["eseries_password"] | default(omit),
+              "serial": hostvars[array]["eseries_serial"] | default(omit),
+              "addresses": hostvars[array]["eseries_addresses"] | default(omit),
+              "tags": hostvars[array]["eseries_tags"] | default(omit)}) %}
+            {%- endif %}
+          {%- endif %}
+          {%- if "eseries_proxy_api_url" in hostvars[array] and "eseries_proxy_api_username" in hostvars[array] and hostvars[array]["eseries_proxy_api_username"] == "admin" and "eseries_proxy_api_password" in hostvars[array] %}
+            {%- if hostvars[array]["eseries_proxy_api_url"] in systems %}
+              {%- if systems[hostvars[array]["eseries_proxy_api_url"]]["proxy_systems"].append(array_info) %}{%- endif %}
+            {%- else %}
+              {%- if systems.update({hostvars[array]["eseries_proxy_api_url"]: {
+                "proxy_username": hostvars[array]["eseries_proxy_api_username"],
+                "proxy_password": hostvars[array]["eseries_proxy_api_password"],
+                "proxy_subnet": hostvars[array]["eseries_proxy_discovery_subnet"],
+                "proxy_systems": [array_info],
+                "proxy_tags": hostvars[array]["eseries_proxy_system_tags"] | default(omit),
+                "proxy_validate_certs": hostvars[array]["eseries_proxy_api_validate_certs"] | default(omit),
+                "proxy_accept_certifications": hostvars[array]["eseries_proxy_accept_certifications"] | default(omit),
+                "proxy_default_system_tags": hostvars[array]["eseries_proxy_default_system_tags"] | default(omit),
+                "proxy_default_password": hostvars[array]["eseries_proxy_default_password"] | default(omit)}}) %}
+              {%- endif %}
+            {%- endif %}
+          {%- endif %}
+        {%- endif %}
+      {%- endfor %}
+      {{ systems }}

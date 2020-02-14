@@ -5,21 +5,28 @@
 eseries_api_url: https://0.0.0.0:8443/devmgr/v2          # Url for the web services api. Example: https://192.168.10.100:8443/devmgr/v2
 #eseries_api_username: admin                             # Username for the web services api.
 #eseries_api_password: password                          # Password for the web services api.
-#eseries_validate_certs: false                           # Whether the SSL certificates should be verified. (boolean)
+eseries_validate_certs: true                             # Whether the SSL certificates should be verified. (boolean)
 
 # Storage system specific credentials
 # -----------------------------------
+#eseries_password                                        # Storage system admin password.
 #eseries_serial:                                         # Storage system chassis serial number. This is used to automatically discover the system.
-#eseries_tags:                                           # Meta tags to associate to the storage system. Only applicable for proxy web services.
 #eseries_addresses:                                      # (list) Controller address(es) for the storage system. Only applicable for proxy web services.
+#eseries_tags:                                           # Meta tags to associate to the storage system. Only applicable for proxy web services.
 #eseries_password:                                       # Required when adding storage systems to SANtricity Web Services Proxy.
 
 # SANtricity Web Services Proxy specific variables
 # ------------------------------------------------
+#eseries_proxy_api_url:                          # Url for the web services proxy rest api. Example: https://192.168.10.100:8443/devmgr/v2
+#eseries_proxy_api_username: admin               # Username for the web services proxy rest api.
+#eseries_proxy_api_password: password            # Password for the web services proxy rest api.
+#eseries_proxy_current_api_password:             # This is for changing the password for the proxy.
+eseries_proxy_api_validate_certs: true           # Whether the SSL certificates should be verified. (boolean)
+
 #eseries_proxy_discovery_subnet:                 # IPv4 search range for discovering E-Series storage. Must be in CIDR form.
 #eseries_proxy_accept_certifications:            # Force automatic acceptance of all storage system's certificate
-#eseries_proxy_default_system_password:          # Default storage system password
 #eseries_proxy_default_system_tags:              # Default meta tags to associate with all storage systems
+#eseries_proxy_default_password:                 # Default password to associate with all storage systems
 #eseries_proxy_systems:                          # List of storage system information which defines which systems should be added to proxy web services.
                                                  #   Automatically populated from storage system's inventory when not defined.
                                                  # See na_santricity_proxy_systems for more details.
@@ -28,7 +35,6 @@ eseries_api_url: https://0.0.0.0:8443/devmgr/v2          # Url for the web servi
 # -------------------------------------------
 eseries_proxy_default_admin_pass: admin       # The current proxy admin users. When eseries_proxy_user_authentication['admin'] is defined then it will take precedence.
 #eseries_proxy_user_authentication:
-#  admin: adminPass                           # Proxy admin user password
 #  monitor: monitorPass                       # Proxy monitor user password
 #  security: securityPass                     # Proxy security user password
 #  storage: storagePass                       # Proxy storage user password

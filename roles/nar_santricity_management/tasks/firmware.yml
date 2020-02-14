@@ -5,7 +5,7 @@
         eseries_proxy_drive_firmware: |-
           {%- set drive_firmware = [] %}
           {%- for host in ansible_play_hosts_all %}
-            {%- if "eseries_drive_firmware_firmware_list" in hostvars[host] %}
+            {%- if hostvars[host]["current_eseries_api_is_proxy"] and "eseries_drive_firmware_firmware_list" in hostvars[host] %}
               {%- if drive_firmware.extend(hostvars[host]["eseries_drive_firmware_firmware_list"]) %}{%- endif %}
             {%- endif %}
           {%- endfor %}
@@ -13,7 +13,7 @@
         eseries_proxy_nvsram: |-
           {%- set nvsram = [] %}
           {%- for host in ansible_play_hosts_all %}
-            {%- if "eseries_firmware_nvsram" in hostvars[host] %}
+            {%- if hostvars[host]["current_eseries_api_is_proxy"] and "eseries_firmware_nvsram" in hostvars[host] %}
               {%- if nvsram.append(hostvars[host]["eseries_firmware_nvsram"]) %}{%- endif %}
             {%- endif %}
           {%- endfor %}
@@ -21,36 +21,37 @@
         eseries_proxy_firmware: |-
           {%- set firmware = [] %}
           {%- for host in ansible_play_hosts_all %}
-            {%- if "eseries_firmware_firmware" in hostvars[host] %}
+            {%- if hostvars[host]["current_eseries_api_is_proxy"] and "eseries_firmware_firmware" in hostvars[host] %}
               {%- if firmware.append(hostvars[host]["eseries_firmware_firmware"]) %}{%- endif %}
             {%- endif %}
           {%- endfor %}
           {{ firmware | list }}
-    - name: Ensure SANtricity Web Services has the expected drive firmware
+
+    - name: Ensure SANtricity Web Services Proxy has the expected drive firmware
       na_santricity_proxy_drive_firmware_upload:
-        api_url: "{{ current_eseries_api_url }}"
-        api_username: "{{ eseries_api_username }}"
-        api_password: "{{ eseries_api_password }}"
-        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+        api_url: "{{ eseries_proxy_api_url }}"
+        api_username: "{{ eseries_proxy_api_username }}"
+        api_password: "{{ eseries_proxy_api_password }}"
+        validate_certs: "{{ eseries_proxy_api_validate_certs | default(omit) }}"
         firmware: "{{ eseries_proxy_drive_firmware | default(omit) }}"
-    - name: Ensure SANtricity Web Services has the expected controller firmware and NVSRAM
+      when: eseries_proxy_drive_firmware != []
+    - name: Ensure SANtricity Web Services Proxy has the expected controller firmware and NVSRAM
       na_santricity_proxy_firmware_upload:
-        api_url: "{{ current_eseries_api_url }}"
-        api_username: "{{ eseries_api_username }}"
-        api_password: "{{ eseries_api_password }}"
-        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
-        nvsram: "{{ eseries_proxy_nvsram | default(omit) }}"
-        firmware: "{{ eseries_proxy_firmware | default(omit) }}"
+        api_url: "{{ eseries_proxy_api_url }}"
+        api_username: "{{ eseries_proxy_api_username }}"
+        api_password: "{{ eseries_proxy_api_password }}"
+        validate_certs: "{{ eseries_proxy_api_validate_certs | default(omit) }}"
+        firmware: "{{ eseries_proxy_firmware | default(omit) + eseries_proxy_nvsram | default(omit)}}"
+      when: eseries_proxy_nvsram != [] or eseries_proxy_firmware != []
   run_once: true
-  when: eseries_api_is_proxy
 
 - name: Ensure drive firmware is properly configured
   na_santricity_drive_firmware:
-    ssid: "{{ eseries_ssid }}"
+    ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
-    api_username: "{{ eseries_api_username }}"
-    api_password: "{{ eseries_api_password }}"
-    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
     firmware: "{{ eseries_drive_firmware_firmware_list }}"
     wait_for_completion: "{{ eseries_drive_firmware_wait_for_completion | default(true) }}"
     ignore_inaccessible_drives: "{{ eseries_drive_firmware_ignore_inaccessible_drives | default(omit) }}"
@@ -62,11 +63,11 @@
 
 - name: Ensure controller firmware is properly configured
   na_santricity_firmware:
-    ssid: "{{ eseries_ssid }}"
+    ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
-    api_username: "{{ eseries_api_username }}"
-    api_password: "{{ eseries_api_password }}"
-    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
     nvsram: "{{ eseries_firmware_nvsram | default('') }}"
     firmware: "{{ eseries_firmware_firmware | default('') }}"
     wait_for_completion: "{{ eseries_firmware_wait_for_completion | default(true) }}"
