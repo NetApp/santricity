@@ -33,7 +33,7 @@
               {%- if systems.update({hostvars[array]["eseries_proxy_api_url"]: {
                 "proxy_username": hostvars[array]["eseries_proxy_api_username"],
                 "proxy_password": hostvars[array]["eseries_proxy_api_password"],
-                "proxy_subnet": hostvars[array]["eseries_proxy_discovery_subnet"],
+                "proxy_subnet": hostvars[array]["eseries_subnet"],
                 "proxy_systems": [array_info],
                 "proxy_tags": hostvars[array]["eseries_proxy_system_tags"] | default(omit),
                 "proxy_validate_certs": hostvars[array]["eseries_proxy_api_validate_certs"] | default(omit),

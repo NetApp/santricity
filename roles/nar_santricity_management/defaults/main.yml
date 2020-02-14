@@ -10,6 +10,7 @@ eseries_validate_certs: true                             # Whether the SSL certi
 # Storage system specific credentials
 # -----------------------------------
 #eseries_password                                        # Storage system admin password.
+#eseries_subnet:                                         # IPv4 search range for discovering E-Series storage. Must be in CIDR form.
 #eseries_serial:                                         # Storage system chassis serial number. This is used to automatically discover the system.
 #eseries_addresses:                                      # (list) Controller address(es) for the storage system. Only applicable for proxy web services.
 #eseries_tags:                                           # Meta tags to associate to the storage system. Only applicable for proxy web services.

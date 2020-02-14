@@ -1,34 +1,33 @@
-- name: Discover storage systems
-  block:
-    - name: Discover storage systems
-      na_santricity_discover:
-        proxy_url: "{{ item['key'] }}"
-        proxy_username: "{{ item['value']['proxy_username'] }}"
-        proxy_password: "{{ item['value']['proxy_password'] }}"
-        proxy_validate_certs: "{{ item['value']['proxy_validate_certs'] | default(omit) }}"
-        subnet_mask: "{{ eseries_proxy_discovery_subnet }}"
-      run_once: true
-      delegate_facts: true
-      register: discovered_systems
-      loop: "{{ lookup('dict', proxy_systems, wantlist=True) }}"
-      vars:
-        proxy_systems: |-
-          {#- Build a dictionary of all inventoried proxies keyed by their api url #}
-          {%- set systems = {} %}
-          {%- for array in ansible_play_hosts_all %}
-            {%- if "eseries_proxy_api_url" in hostvars[array] and "eseries_proxy_api_username" in hostvars[array] and hostvars[array]["eseries_proxy_api_username"] == "admin" and "eseries_proxy_api_password" in hostvars[array] %}
-              {%- if systems.update({hostvars[array]["eseries_proxy_api_url"]: {
-                "proxy_username": hostvars[array]["eseries_proxy_api_username"],
-                "proxy_password": hostvars[array]["eseries_proxy_api_password"],
-                "current_proxy_password": hostvars[array]["eseries_proxy_current_api_password"] | default(omit),
-                "proxy_default_password": hostvars[array]["eseries_proxy_default_system_password"] | default(omit),
-                "proxy_validate_certs": hostvars[array]["eseries_proxy_api_validate_certs"]}}) %}
-              {%- endif %}
-            {%- endif %}
-          {%- endfor %}
-          {{ systems }}
+- name: Discover storage systems from all subnet ranges
+  na_santricity_discover:
+    proxy_url: "{{ item['value']['proxy_url'] }}"
+    proxy_username: "{{ item['value']['proxy_username'] }}"
+    proxy_password: "{{ item['value']['proxy_password'] }}"
+    proxy_validate_certs: "{{ item['value']['proxy_validate_certs'] }}"
+    subnet_mask: "{{ item['key'] }}"
+  run_once: true
+  delegate_facts: true
+  register: discovered_systems
+  loop: "{{ lookup('dict', subnets, wantlist=True) }}"
+  vars:
+    subnets: |-
+      {#- Build a dictionary subnet searches #}
+      {%- set systems = {} %}
+      {%- for array in ansible_play_hosts_all %}
+        {%- if "eseries_subnet" in hostvars[array] %}
+          {%- if systems.update({hostvars[array]["eseries_subnet"]: {
+            "proxy_url": hostvars[array]["eseries_proxy_api_url"],
+            "proxy_username": hostvars[array]["eseries_proxy_api_username"] | default(omit),
+            "proxy_password": hostvars[array]["eseries_proxy_api_password"] | default(omit),
+            "proxy_validate_certs": hostvars[array]["eseries_proxy_api_validate_certs"] | default(omit)}}) %}
+          {%- endif %}
+        {%- endif %}
+      {%- endfor %}
+      {{ systems }}
 
-    - name: Determine storage system Web Services Embedded REST API urls
+- name: Determine storage system Web Services REST API urls
+  block:
+    - name: Determine storage system Web Services REST API urls
       set_fact:
         current_eseries_api_info: |-
           {% set info = {} %}
@@ -38,7 +37,6 @@
           {{ info }}
       delegate_facts: false
       loop: "{{ discovered_systems['results'] }}"
-
     - name: Set storage systems facts
       set_fact:
         current_eseries_api_url: "{{ current_eseries_api_info['api_urls'][0] }}"
@@ -52,7 +50,7 @@
         current_eseries_api_password: "{%- if current_eseries_api_is_proxy %}{{ eseries_proxy_api_password }}{%- else %}{{ eseries_api_password }}{%- endif %}"
         current_eseries_validate_certs: "{%- if current_eseries_api_is_proxy %}{{ eseries_proxy_api_validate_certs }}{%- else %}{{ eseries_validate_certs }}{%- endif %}"
       when: current_eseries_api_info is defined
-  when: eseries_serial is defined and eseries_serial and eseries_proxy_discovery_subnet is defined and eseries_proxy_discovery_subnet
+  when: eseries_serial is defined and eseries_serial
 
 # When discovery fails, attempt discovery from inventory information.
 - name: Build url list based on provided management IP address(es).
@@ -129,5 +127,5 @@
     - name: Check whether current Web Services REST API url has been obtained
       fail:
         msg: Failed to obtain the current Web Services REST API url
-      when: current_eseries_api_url == ""
-  when: current_eseries_api_url == {}
+      when: current_eseries_api_url is not defined
+  when: current_eseries_api_url is not defined
