@@ -236,17 +236,19 @@ class NetAppESeriesModule(object):
 
         if self.is_embedded_available_cache is None:
 
-            if self.is_proxy() and self.ssid == "0":
-                self.is_embedded_available_cache = False
-            else:
-                try:
-                    rc, bundle = self.request("storage-systems/%s/graph/xpath-filter?query=/sa/saData/extendedSAData/codeVersions[codeModule='bundle']"
-                                              % self.ssid)
+            if self.is_proxy():
+                if self.ssid == "0" or self.ssid.lower() == "proxy":
                     self.is_embedded_available_cache = False
-                    if bundle:
-                        self.is_embedded_available_cache = True
-                except Exception as error:
-                    self.module.fail_json(msg="Failed to retrieve information about storage system [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                else:
+                    try:
+                        rc, bundle = self.request("storage-systems/%s/graph/xpath-filter?query=/sa/saData/extendedSAData/codeVersions[codeModule='bundle']" % self.ssid)
+                        self.is_embedded_available_cache = False
+                        if bundle:
+                            self.is_embedded_available_cache = True
+                    except Exception as error:
+                        self.module.fail_json(msg="Failed to retrieve information about storage system [%s]. Error [%s]." % (self.ssid, to_native(error)))
+            else:   # Contacted using embedded web services
+                self.is_embedded_available_cache = True
 
             self.module.log("embedded_available: [%s]" % ("True" if self.is_embedded_available_cache else "False"))
         return self.is_embedded_available_cache
