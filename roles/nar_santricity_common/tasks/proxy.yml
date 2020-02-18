@@ -9,24 +9,25 @@
     password: "{{ item['value']['proxy_default_password'] | default(omit) }}"
     tags: "{{ item['value']['proxy_default_system_tags'] | default(omit) }}"
     systems: "{{ item['value']['proxy_systems'] }}"
-  loop: "{{ lookup('dict', proxy_systems_systems, wantlist=True) }}"
+  loop: "{{ lookup('dict', proxy_systems_info, wantlist=True) }}"
   vars:
-    proxy_systems_systems: |-
+    proxy_systems_info: |-
       {#- Build a dictionary of all inventoried proxies keyed by their api url #}
       {%- set systems = {} %}
       {%- for array in ansible_play_hosts_all %}
         {%- if hostvars[array]["current_eseries_api_is_proxy"] %}
           {%- set array_info = {} %}
-          {%- if "eseries_serial" in hostvars[array] or "eseries_addresses" in hostvars[array] %}
+          {%- if "eseries_system_serial" in hostvars[array] or "eseries_system_addresses" in hostvars[array] %}
             {%- if array_info.update({
-              "ssid": hostvars[array]["eseries_ssid"] | default(omit),
-              "password": hostvars[array]["eseries_password"] | default(omit),
-              "serial": hostvars[array]["eseries_serial"] | default(omit),
-              "addresses": hostvars[array]["eseries_addresses"] | default(omit),
+              "ssid": hostvars[array]["eseries_proxy_ssid"] | default(omit),
+              "password": hostvars[array]["eseries_system_password"] | default(omit),
+              "serial": hostvars[array]["eseries_system_serial"] | default(omit),
+              "addresses": hostvars[array]["eseries_system_addresses"] | default(omit),
               "tags": hostvars[array]["eseries_tags"] | default(omit)}) %}
             {%- endif %}
           {%- endif %}
-          {%- if "eseries_proxy_api_url" in hostvars[array] and "eseries_proxy_api_username" in hostvars[array] and hostvars[array]["eseries_proxy_api_username"] == "admin" and "eseries_proxy_api_password" in hostvars[array] %}
+          {%- if "eseries_proxy_api_url" in hostvars[array] and "eseries_proxy_api_username" in hostvars[array] and
+                 hostvars[array]["eseries_proxy_api_username"] == "admin" and "eseries_proxy_api_password" in hostvars[array] %}
             {%- if hostvars[array]["eseries_proxy_api_url"] in systems %}
               {%- if systems[hostvars[array]["eseries_proxy_api_url"]]["proxy_systems"].append(array_info) %}{%- endif %}
             {%- else %}

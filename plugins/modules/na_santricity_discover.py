@@ -22,27 +22,24 @@ options:
         required: true
     ports:
         description:
-            - This option allows a specific port to be tested.
-            - The ports 8080, 8443, and 443 will always be checked. 
+            - This option specifies which ports to be tested during the discovery process.
+            - The first usable port will be used in the returned API url.
         type: list
-        default: [8080, 8443, 443]
+        default: [8443]
         required: false
     proxy_url:
         description:
             - Web Services Proxy REST API URL. example: https://192.168.1.100:8443/devmgr/v2/
-            - Required for discovering systems before Web Services 4.2
         type: str
         required: false
-    proxy_user:
+    proxy_username:
         description:
-            - Web Service Proxy user
-            - Required for discovering systems before Web Services 4.2
+            - Web Service Proxy username
         type: str
         required: false
-    proxy_user:
+    proxy_password:
         description:
             - Web Service Proxy user password
-            - Required for discovering systems before Web Services 4.2
         type: str
         required: false
     proxy_validate_certs:
@@ -52,8 +49,10 @@ options:
         default: true
         required: false
 notes:
-    - Chassis serial numbers will only be available from systems running SANtricity version 11.62 or later.
-    - Only E-Series storage systems utilizing SANtricity Web Services Embedded REST API will be discovered.
+    - Only available for platforms E2800 or later (SANtricity Web Services Embedded REST API must be available).
+    - All E-Series storage systems with SANtricity version 11.62 or later will be discovered.
+    - Only E-Series storage systems without a set admin password running SANtricity versions prior to 11.62 will be discovered.
+    - Use SANtricity Web Services Proxy to discover all systems regardless of SANricity version or password.
 """
 
 EXAMPLES = """
@@ -71,7 +70,9 @@ msg:
 """
 import ipaddress
 import json
+import multiprocessing
 import threading
+from os import system
 from time import sleep
 
 from ansible.module_utils.basic import AnsibleModule
@@ -86,23 +87,21 @@ except ImportError:
 
 class NetAppESeriesDiscover:
     """Discover E-Series storage systems."""
-    SEARCH_STEP = 128  # This will be the maximum number of threads.
+    MAX_THREAD_POOL_SIZE = 256
+    CPU_THREAD_MULTIPLE = 32
     SEARCH_TIMEOUT = 1
     DEFAULT_CONNECTION_TIMEOUT_SEC = 1
-    DEFAULT_GRAPH_DISCOVERY_TIMEOUT = 30
-    DEFAULT_PASSWORD_STATE_TIMEOUT = 30
     DEFAULT_DISCOVERY_TIMEOUT_SEC = 300
-    PROXYLESS_WEB_SERVICES_MINIMUM = "04.20.0000.0000"
 
     def __init__(self):
         ansible_options = dict(subnet_mask=dict(type="str", required=True),
-                               ports=dict(type="list", required=False, default=[8443, 443, 8080]),
+                               ports=dict(type="list", required=False, default=[8443]),
                                proxy_url=dict(type="str", required=False),
-                               proxy_user=dict(type="str", required=False),
+                               proxy_username=dict(type="str", required=False),
                                proxy_password=dict(type="str", required=False, no_log=True),
                                proxy_validate_certs=dict(type="bool", default=True, required=False))
 
-        required_together = [["proxy_url", "proxy_user", "proxy_password"]]
+        required_together = [["proxy_url", "proxy_username", "proxy_password"]]
         self.module = AnsibleModule(argument_spec=ansible_options, required_together=required_together)
         args = self.module.params
 
@@ -115,7 +114,7 @@ class NetAppESeriesDiscover:
             self.proxy_about_url = urlparse.urlunparse(parsed_url)
             parsed_url[2] = "/devmgr/v2/"
             self.proxy_url = urlparse.urlunparse(parsed_url)
-            self.proxy_user = args["proxy_user"]
+            self.proxy_username = args["proxy_username"]
             self.proxy_password = args["proxy_password"]
             self.proxy_validate_certs = args["proxy_validate_certs"]
 
@@ -131,30 +130,35 @@ class NetAppESeriesDiscover:
         """Determine where an E-Series storage system is available at a specific ip address."""
         for port in self.ports:
             if port == "8080":
-                url = "http://%s:%s/devmgr/v2/" % (address, port)
+                url = "http://%s:%s/devmgr/v2/storage-systems/1/" % (address, port)
             else:
-                url = "https://%s:%s/devmgr/v2/" % (address, port)
+                url = "https://%s:%s/devmgr/v2/storage-systems/1/" % (address, port)
 
             try:
-                rc, graph = request(url + "storage-systems/1/graph", validate_certs=False, url_username="admin", url_password="", timeout=self.SEARCH_TIMEOUT)
+                rc, sa_data = request(url + "symbol/getSAData", validate_certs=False, force_basic_auth=False, ignore_errors=True)
+                if rc == 401:   # Unauthorized
+                    self.module.warn("Fail over and discover any storage system without a set admin password. This will cover newly deployed systems.")
+                    # Fail over and discover any storage system without a set admin password. This will cover newly deployed systems.
+                    rc, graph = request(url + "graph", validate_certs=False, url_username="admin", url_password="", timeout=self.SEARCH_TIMEOUT)
+                    sa_data = graph["sa"]["saData"]
 
-                sa_data = graph["sa"]["saData"]
                 if sa_data["chassisSerialNumber"] in systems_found:
                     systems_found[sa_data["chassisSerialNumber"]]["api_urls"].append(url)
                 else:
-                    systems_found.update({sa_data["chassisSerialNumber"]: {"api_urls": [url], "label": sa_data["storageArrayLabel"]}})
+                    systems_found.update({sa_data["chassisSerialNumber"]: {"api_urls": [url], "label": sa_data["storageArrayLabel"], "proxy_required": False}})
                 break
             except Exception as error:
                 pass
 
     def no_proxy_discover(self):
         """Discover E-Series storage systems using embedded web services."""
+        thread_pool_size = min(multiprocessing.cpu_count() * self.CPU_THREAD_MULTIPLE, self.MAX_THREAD_POOL_SIZE)
         subnet = list(ipaddress.ip_network(u"%s" % self.subnet_mask))
 
         thread_pool = []
         search_count = len(subnet)
-        for start in range(0, search_count, self.SEARCH_STEP):
-            end = search_count if (search_count - start) < self.SEARCH_STEP else start + self.SEARCH_STEP
+        for start in range(0, search_count, thread_pool_size):
+            end = search_count if (search_count - start) < thread_pool_size else start + thread_pool_size
 
             for address in subnet[start:end]:
                 thread = threading.Thread(target=self.check_ip_address, args=(self.systems_found, address))
@@ -165,7 +169,6 @@ class NetAppESeriesDiscover:
 
     def verify_proxy_service(self):
         """Verify proxy url points to a web services proxy."""
-        self.module.log("%s" % self.proxy_about_url)
         try:
             rc, about = request(self.proxy_about_url, validate_certs=self.proxy_validate_certs)
             if not about["runningAsProxy"]:
@@ -189,7 +192,7 @@ class NetAppESeriesDiscover:
                     break
                 except Exception as error:
                     pass
-        systems_found.update({serial: {"api_urls": api_urls, "label": label}})
+        systems_found.update({serial: {"api_urls": api_urls, "label": label, "proxy_required": False}})
 
     def proxy_discover(self):
         """Search for array using it's chassis serial from web services proxy."""
@@ -198,7 +201,7 @@ class NetAppESeriesDiscover:
 
         try:
             rc, request_id = request(self.proxy_url + "discovery", method="POST", validate_certs=self.proxy_validate_certs,
-                                     force_basic_auth=True, url_username=self.proxy_user, url_password=self.proxy_password,
+                                     force_basic_auth=True, url_username=self.proxy_username, url_password=self.proxy_password,
                                      data=json.dumps({"startIP": str(subnet[0]), "endIP": str(subnet[-1]),
                                                       "connectionTimeout": self.DEFAULT_CONNECTION_TIMEOUT_SEC}))
 
@@ -207,12 +210,14 @@ class NetAppESeriesDiscover:
                 for iteration in range(self.DEFAULT_DISCOVERY_TIMEOUT_SEC):
                     rc, discovered_systems = request(self.proxy_url + "discovery?requestId=%s" % request_id["requestId"],
                                                      validate_certs=self.proxy_validate_certs,
-                                                     force_basic_auth=True, url_username=self.proxy_user, url_password=self.proxy_password)
+                                                     force_basic_auth=True, url_username=self.proxy_username, url_password=self.proxy_password)
 
                     if not discovered_systems["discoverProcessRunning"]:
 
                         thread_pool = []
                         for system in discovered_systems["storageSystems"]:
+
+                            # Storage systems with embedded web services.
                             if "https" in system["supportedManagementPorts"]:
                                 addresses = []
                                 for controller in system["controllers"]:
@@ -223,6 +228,10 @@ class NetAppESeriesDiscover:
                                 thread_pool.append(thread)
                                 thread.start()
 
+                            # Storage systems without embedded web services.
+                            else:
+                                self.systems_found.update({system["serialNumber"]: {"api_urls": [self.proxy_url], "label": system["label"],
+                                                                                    "proxy_required": True}})
                         for thread in thread_pool:
                             thread.join()
                         break

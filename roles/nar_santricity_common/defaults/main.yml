@@ -1,0 +1,45 @@
+# Common Storage system and proxy variables
+# -----------------------------------------
+#eseries_subnet:                              # IPv4 search range for discovering E-Series storage. Must be in CIDR form.
+#eseries_validate_certs:                      # Whether the SSL certificates should be verified. (boolean)
+
+# Storage system specific credentials
+# -----------------------------------
+#eseries_system_serial:                       # Storage system chassis serial number. This is used to automatically discover the system.
+#eseries_system_api_url:                      # Storage system web services api url. Example: https://192.168.10.100:8443/devmgr/v2
+eseries_system_username: admin                # Storage system username. Default: admin
+#eseries_system_password:                     # Storage system admin password.
+
+# SANtricity Web Services Proxy specific variables
+# ------------------------------------------------
+#eseries_proxy_ssid:                          # Storage array identifier. This value will be 1 when interacting with the embedded web services,
+#eseries_proxy_api_url:                       # Url for the web services proxy rest api. Example: https://192.168.10.100:8443/devmgr/v2
+eseries_proxy_api_username: admin             # Username for the web services proxy rest api.
+#eseries_proxy_api_password:                  # Password for the web services proxy rest api.
+
+#eseries_proxy_current_api_password:          # This is for changing the password for the proxy.
+#eseries_proxy_minimum_password_length:       # Minimum required proxy password length
+
+#eseries_proxy_discovery_subnet:              # IPv4 search range for discovering E-Series storage. Must be in CIDR form.
+#eseries_proxy_accept_certifications:         # Force automatic acceptance of all storage system's certificate
+#eseries_proxy_default_system_tags:           # Default meta tags to associate with all storage systems
+#eseries_proxy_default_password:              # Default password to associate with all storage systems
+
+#eseries_proxy_monitor_password:              # Proxy monitor username password
+#eseries_proxy_security_password:             # Proxy security username password
+#eseries_proxy_storage_password:              # Proxy storage username password
+#eseries_proxy_support_password:              # Proxy support username password
+
+# Storage system management interface information - This is a subset of the eseries_management_interface variable found in the nar_santricity_management role.
+# -----------------------------------------------
+#eseries_management_interfaces:               # (Optional) Will only be used when eseries_system_serial is not specified
+#  controller_a:
+#    - address:                               # Controller A port 1's IP address
+#    - address:                               # Controller A port 2's IP address
+#  controller_b:
+#    - address:                               # Controller B port 1's IP address
+#    - address:                               # Controller B port 2's IP address
+
+# Non-storage system related variables
+# ------------------------------------
+eseries_template_api_url: https://0.0.0.0:8443/devmgr/v2/   # Template for the web services api url. Override in the inventory should the scheme or port change.

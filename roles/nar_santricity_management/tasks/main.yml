@@ -1,20 +1,6 @@
-- name: Configure SANtricity Web Services Proxy's passwords
-  import_tasks: proxy_security.yml
-  delegate_to: localhost
-  run_once: true
-  tags:
-    - always
-
 - name: Discover Web Services REST API url
-  import_tasks: discovery.yml
-  delegate_to: localhost
-  tags:
-    - always
-
-- name: Configure SANtricity WebServices Proxy
-  import_tasks: proxy.yml
-  delegate_to: localhost
-  run_once: true
+  import_role:
+    name: nar_santricity_common
   tags:
     - always
 

@@ -39,11 +39,11 @@ options:
             - For systems prior to E2800, all choices except admin will be ignored.
         type: str
         choices: ["admin", "monitor", "support", "security", "storage"]
-        default: "admin"
+        required: true
     minimum_password_length:
         description:
             - This option defines the minimum password length.
-        required: False 
+        required: false 
 note:
     - Set I(ssid=="0") or I(ssid=="proxy") when attempting to change the password for SANtricity Web Services Proxy.
     - SANtricity Web Services Proxy storage password will be updated when changing the password on a managed storage system from the proxy; This is only true
@@ -80,7 +80,7 @@ class NetAppESeriesAuth(NetAppESeriesModule):
         version = "02.00.0000.0000"
         ansible_options = dict(current_admin_password=dict(type="str", required=False, no_log=True),
                                password=dict(type="str", required=False, no_log=True),
-                               user=dict(type="str", default="admin", choices=["admin", "monitor", "support", "security", "storage"]),
+                               user=dict(type="str", choices=["admin", "monitor", "support", "security", "storage"], required=True),
                                minimum_password_length=dict(type="int", required=False, no_log=True))
 
         super(NetAppESeriesAuth, self).__init__(ansible_options=ansible_options, web_services_version=version, supports_check_mode=True)
@@ -224,7 +224,7 @@ class NetAppESeriesAuth(NetAppESeriesModule):
                         else:
                             self.module.fail_json(msg="Failed to validate stored password! Array Id [%s]." % self.ssid)
                     else:
-                        self.module.fail_json(msg="Role based login not available! Only admin password can be set for storage systems prior to E2800."
+                        self.module.fail_json(msg="Role based login not available! Only storage system password can be set for storage systems prior to E2800."
                                                   " Array Id [%s]." % self.ssid)
             else:
                 utils_login_used = True

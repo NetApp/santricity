@@ -1,0 +1,85 @@
+- name: Ensure proxy admin password has been set
+  na_santricity_auth:
+    ssid: proxy
+    api_url: "{{ item['key'] }}"
+    api_username: "{{ item['value']['proxy_username'] }}"
+    api_password: "{{ item['value']['current_password'] | default(item['value']['proxy_password']) }}"
+    validate_certs: "{{ item['value']['proxy_validate_certs'] }}"
+    minimum_password_length: "{{ item['value']['proxy_minimum_password_length'] }}"
+    user: admin
+    password: "{{ item['value']['proxy_password'] }}"
+  loop: "{{ lookup('dict', proxy_admin, wantlist=True) }}"
+  vars:
+    proxy_admin: |-
+      {#- Build a dictionary of all inventoried proxies keyed by their api url #}
+      {%- set systems = {} %}
+      {%- for array in ansible_play_hosts_all %}
+        {%- if "eseries_proxy_api_url" in hostvars[array] and
+               "eseries_proxy_api_username" in hostvars[array] and hostvars[array]["eseries_proxy_api_username"] == "admin" and
+               "eseries_proxy_api_password" in hostvars[array] %}
+          {%- if systems.update({hostvars[array]["eseries_proxy_api_url"]: {
+            "proxy_username": hostvars[array]["eseries_proxy_api_username"],
+            "proxy_password": hostvars[array]["eseries_proxy_api_password"],
+            "current_proxy_password": hostvars[array]["eseries_proxy_current_api_password"] | default(omit),
+            "proxy_validate_certs": hostvars[array]["eseries_proxy_api_validate_certs"] | default(omit),
+            "proxy_minimum_password_length": hostvars[array]["eseries_proxy_minimum_password_length"] | default(omit)}}) %}
+          {%- endif %}
+        {%- endif %}
+      {%- endfor %}
+      {{ systems }}
+
+- name: Ensure proxy non-admin passwords have been set
+  na_santricity_auth:
+    ssid: proxy
+    api_url: "{{ item['value']['proxy_url'] }}"
+    api_username: "{{ item['value']['proxy_url_username'] }}"
+    api_password: "{{ item['value']['proxy_url_password'] }}"
+    validate_certs: "{{ eseries_proxy_api_validate_certs | default(omit) }}"
+    user: "{{ item['value']['proxy_username'] }}"
+    password: "{{ item['value']['proxy_password'] }}"
+  loop: "{{ lookup('dict', proxy_non_admin, wantlist=True) }}"
+  vars:
+    proxy_non_admin: |-
+      {#- Build a dictionary of all inventoried proxies keyed by their api url containing non-admin usernames/passwords #}
+      {%- set systems = {} %}
+      {%- for array in ansible_play_hosts_all %}
+        {%- if "eseries_proxy_api_url" in hostvars[array] and "eseries_proxy_api_username" in hostvars[array] and "eseries_proxy_api_password" in hostvars[array] and
+               (("eseries_proxy_monitor_password" in hostvars[array] and hostvars[array]["eseries_proxy_monitor_password"]) or
+                ("eseries_proxy_security_password" in hostvars[array] and hostvars[array]["eseries_proxy_security_password"]) or
+                ("eseries_proxy_storage_password" in hostvars[array] and hostvars[array]["eseries_proxy_storage_password"]) or
+                ("eseries_proxy_support_password" in hostvars[array] and hostvars[array]["eseries_proxy_support_password"])) %}
+          {%- if "eseries_proxy_monitor_password" in hostvars[array] and hostvars[array]["eseries_proxy_monitor_password"] and
+                 systems.update({[hostvars[array]["eseries_proxy_api_url"], 'monitor'] | join("-"): {
+            "proxy_url": hostvars[array]["eseries_proxy_api_url"],
+            "proxy_url_username": hostvars[array]["eseries_proxy_api_username"],
+            "proxy_url_password": hostvars[array]["eseries_proxy_api_password"],
+            "proxy_username": 'monitor',
+            "proxy_password": hostvars[array]["eseries_proxy_monitor_password"]}})%}
+          {%- endif %}
+          {%- if "eseries_proxy_security_password" in hostvars[array] and hostvars[array]["eseries_proxy_security_password"] and
+                 systems.update({[hostvars[array]["eseries_proxy_api_url"], 'security'] | join("-"): {
+            "proxy_url": hostvars[array]["eseries_proxy_api_url"],
+            "proxy_url_username": hostvars[array]["eseries_proxy_api_username"],
+            "proxy_url_password": hostvars[array]["eseries_proxy_api_password"],
+            "proxy_username": 'security',
+            "proxy_password": hostvars[array]["eseries_proxy_security_password"]}})%}
+          {%- endif %}
+          {%- if "eseries_proxy_storage_password" in hostvars[array] and hostvars[array]["eseries_proxy_storage_password"] and
+                 systems.update({[hostvars[array]["eseries_proxy_api_url"], 'storage'] | join("-"): {
+            "proxy_url": hostvars[array]["eseries_proxy_api_url"],
+            "proxy_url_username": hostvars[array]["eseries_proxy_api_username"],
+            "proxy_url_password": hostvars[array]["eseries_proxy_api_password"],
+            "proxy_username": 'storage',
+            "proxy_password": hostvars[array]["eseries_proxy_storage_password"]}})%}
+          {%- endif %}
+          {%- if "eseries_proxy_support_password" in hostvars[array] and hostvars[array]["eseries_proxy_support_password"] and
+                 systems.update({[hostvars[array]["eseries_proxy_api_url"], 'support'] | join("-"): {
+            "proxy_url": hostvars[array]["eseries_proxy_api_url"],
+            "proxy_url_username": hostvars[array]["eseries_proxy_api_username"],
+            "proxy_url_password": hostvars[array]["eseries_proxy_api_password"],
+            "proxy_username": 'support',
+            "proxy_password": hostvars[array]["eseries_proxy_support_password"]}})%}
+          {%- endif %}
+        {%- endif %}
+      {%- endfor %}
+      {{ systems }}

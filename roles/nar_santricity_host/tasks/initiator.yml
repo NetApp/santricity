@@ -3,11 +3,11 @@
 
 - name: Collect facts on the storage array
   na_santricity_facts:
-    ssid: "{{ eseries_ssid }}"
+    ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
-    api_username: "{{ eseries_api_username }}"
-    api_password: "{{ eseries_api_password }}"
-    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
   register: storage_array_facts
   when: eseries_host_object is defined
 
@@ -34,11 +34,11 @@
 
 - name: Configure inventory-defined hostgroup definitions
   na_santricity_hostgroup:
-    ssid: "{{ eseries_ssid }}"
+    ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
-    api_username: "{{ eseries_api_username }}"
-    api_password: "{{ eseries_api_password }}"
-    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
     state: present
     name: "{{ item }}"
     hosts: "{{ current_storage_array_hostgroups[item] | default(omit) }}"
@@ -48,11 +48,11 @@
 
 - name: Configure inventory-defined host definitions
   na_santricity_host:
-    ssid: "{{ eseries_ssid }}"
+    ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
-    api_username: "{{ eseries_api_username }}"
-    api_password: "{{ eseries_api_password }}"
-    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
     log_path: "{{ item.log_path | default(eseries_log_path | default(omit)) }}"
     state: "{{ item.state | default(omit) }}"
     name: "{{ item.name }}"
@@ -65,11 +65,11 @@
 
 - name: Collect facts on the storage array
   na_santricity_facts:
-    ssid: "{{ eseries_ssid }}"
+    ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
-    api_username: "{{ eseries_api_username }}"
-    api_password: "{{ eseries_api_password }}"
-    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
   register: storage_array_facts
   when: eseries_host_object is defined
 
@@ -98,11 +98,11 @@
 
 - name: Configure inventory-defined hostgroup definitions
   na_santricity_hostgroup:
-    ssid: "{{ eseries_ssid }}"
+    ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
-    api_username: "{{ eseries_api_username }}"
-    api_password: "{{ eseries_api_password }}"
-    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
     state: absent
     name: "{{ item }}"
     hosts: "{{ current_storage_array_hostgroups[item] | default(omit) }}"

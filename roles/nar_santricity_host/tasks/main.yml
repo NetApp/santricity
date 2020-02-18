@@ -1,6 +1,8 @@
-- name: Determine expected Web Services REST API url
-  set_fact:
-    current_eseries_api_url: "{{ current_eseries_api_url | default(eseries_api_url) }}"
+- name: Discover Web Services REST API url
+  import_role:
+    name: nar_santricity_common
+  tags:
+    - always
 
 - name: Configure NetApp E-Series storage system disk pool configuration
   import_tasks: storage_pool_present.yml
