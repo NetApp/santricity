@@ -145,7 +145,8 @@ class NetAppESeriesDiscover:
                 if sa_data["chassisSerialNumber"] in systems_found:
                     systems_found[sa_data["chassisSerialNumber"]]["api_urls"].append(url)
                 else:
-                    systems_found.update({sa_data["chassisSerialNumber"]: {"api_urls": [url], "label": sa_data["storageArrayLabel"], "proxy_required": False}})
+                    systems_found.update({sa_data["chassisSerialNumber"]: {"api_urls": [url], "label": sa_data["storageArrayLabel"],
+                                                                           "addresses": [], "proxy_required": False}})
                 break
             except Exception as error:
                 pass
@@ -192,7 +193,7 @@ class NetAppESeriesDiscover:
                     break
                 except Exception as error:
                     pass
-        systems_found.update({serial: {"api_urls": api_urls, "label": label, "proxy_required": False}})
+        systems_found.update({serial: {"api_urls": api_urls, "label": label, "addresses": addresses, "proxy_required": False}})
 
     def proxy_discover(self):
         """Search for array using it's chassis serial from web services proxy."""
@@ -216,12 +217,12 @@ class NetAppESeriesDiscover:
 
                         thread_pool = []
                         for system in discovered_systems["storageSystems"]:
+                            addresses = []
+                            for controller in system["controllers"]:
+                                addresses.extend(controller["ipAddresses"])
 
                             # Storage systems with embedded web services.
                             if "https" in system["supportedManagementPorts"]:
-                                addresses = []
-                                for controller in system["controllers"]:
-                                    addresses.extend(controller["ipAddresses"])
 
                                 thread = threading.Thread(target=self.test_systems_found,
                                                           args=(self.systems_found, system["serialNumber"], system["label"], addresses))
@@ -231,7 +232,7 @@ class NetAppESeriesDiscover:
                             # Storage systems without embedded web services.
                             else:
                                 self.systems_found.update({system["serialNumber"]: {"api_urls": [self.proxy_url], "label": system["label"],
-                                                                                    "proxy_required": True}})
+                                                                                    "addresses": addresses, "proxy_required": True}})
                         for thread in thread_pool:
                             thread.join()
                         break
