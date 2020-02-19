@@ -32,7 +32,7 @@
         api_url: "{{ eseries_proxy_api_url }}"
         api_username: "{{ eseries_proxy_api_username }}"
         api_password: "{{ eseries_proxy_api_password }}"
-        validate_certs: "{{ eseries_proxy_api_validate_certs | default(omit) }}"
+        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
         firmware: "{{ eseries_proxy_drive_firmware | default(omit) }}"
       when: eseries_proxy_drive_firmware != []
     - name: Ensure SANtricity Web Services Proxy has the expected controller firmware and NVSRAM
@@ -40,7 +40,7 @@
         api_url: "{{ eseries_proxy_api_url }}"
         api_username: "{{ eseries_proxy_api_username }}"
         api_password: "{{ eseries_proxy_api_password }}"
-        validate_certs: "{{ eseries_proxy_api_validate_certs | default(omit) }}"
+        validate_certs: "{{ eseries_validate_certs | default(omit) }}"
         firmware: "{{ eseries_proxy_firmware | default(omit) + eseries_proxy_nvsram | default(omit)}}"
       when: eseries_proxy_nvsram != [] or eseries_proxy_firmware != []
   run_once: true
