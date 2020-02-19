@@ -14,14 +14,12 @@
       {#- Build a dictionary of all inventoried proxies keyed by their api url #}
       {%- set systems = {} %}
       {%- for array in ansible_play_hosts_all %}
-        {%- if "eseries_proxy_api_url" in hostvars[array] and
-               "eseries_proxy_api_username" in hostvars[array] and hostvars[array]["eseries_proxy_api_username"] == "admin" and
-               "eseries_proxy_api_password" in hostvars[array] %}
+        {%- if "eseries_proxy_api_url" in hostvars[array] and "eseries_proxy_api_password" in hostvars[array] %}
           {%- if systems.update({hostvars[array]["eseries_proxy_api_url"]: {
-            "proxy_username": hostvars[array]["eseries_proxy_api_username"],
+            "proxy_username": hostvars[array]["eseries_proxy_api_username"] | default('admin'),
             "proxy_password": hostvars[array]["eseries_proxy_api_password"],
             "current_proxy_password": hostvars[array]["eseries_proxy_current_api_password"] | default(omit),
-            "proxy_validate_certs": hostvars[array]["eseries_proxy_api_validate_certs"] | default(omit),
+            "proxy_validate_certs": hostvars[array]["eseries_validate_certs"] | default(omit),
             "proxy_minimum_password_length": hostvars[array]["eseries_proxy_minimum_password_length"] | default(omit)}}) %}
           {%- endif %}
         {%- endif %}
@@ -34,7 +32,7 @@
     api_url: "{{ item['value']['proxy_url'] }}"
     api_username: "{{ item['value']['proxy_url_username'] }}"
     api_password: "{{ item['value']['proxy_url_password'] }}"
-    validate_certs: "{{ eseries_proxy_api_validate_certs | default(omit) }}"
+    validate_certs: "{{ eseries_validate_certs | default(omit) }}"
     user: "{{ item['value']['proxy_username'] }}"
     password: "{{ item['value']['proxy_password'] }}"
   loop: "{{ lookup('dict', proxy_non_admin, wantlist=True) }}"
@@ -43,7 +41,7 @@
       {#- Build a dictionary of all inventoried proxies keyed by their api url containing non-admin usernames/passwords #}
       {%- set systems = {} %}
       {%- for array in ansible_play_hosts_all %}
-        {%- if "eseries_proxy_api_url" in hostvars[array] and "eseries_proxy_api_username" in hostvars[array] and "eseries_proxy_api_password" in hostvars[array] and
+        {%- if "eseries_proxy_api_url" in hostvars[array] and "eseries_proxy_api_password" in hostvars[array] and
                (("eseries_proxy_monitor_password" in hostvars[array] and hostvars[array]["eseries_proxy_monitor_password"]) or
                 ("eseries_proxy_security_password" in hostvars[array] and hostvars[array]["eseries_proxy_security_password"]) or
                 ("eseries_proxy_storage_password" in hostvars[array] and hostvars[array]["eseries_proxy_storage_password"]) or
@@ -54,7 +52,7 @@
             "proxy_url_username": hostvars[array]["eseries_proxy_api_username"],
             "proxy_url_password": hostvars[array]["eseries_proxy_api_password"],
             "proxy_username": 'monitor',
-            "proxy_password": hostvars[array]["eseries_proxy_monitor_password"]}})%}
+            "proxy_password": hostvars[array]["eseries_proxy_monitor_password"]}}) %}
           {%- endif %}
           {%- if "eseries_proxy_security_password" in hostvars[array] and hostvars[array]["eseries_proxy_security_password"] and
                  systems.update({[hostvars[array]["eseries_proxy_api_url"], 'security'] | join("-"): {
@@ -62,7 +60,7 @@
             "proxy_url_username": hostvars[array]["eseries_proxy_api_username"],
             "proxy_url_password": hostvars[array]["eseries_proxy_api_password"],
             "proxy_username": 'security',
-            "proxy_password": hostvars[array]["eseries_proxy_security_password"]}})%}
+            "proxy_password": hostvars[array]["eseries_proxy_security_password"]}}) %}
           {%- endif %}
           {%- if "eseries_proxy_storage_password" in hostvars[array] and hostvars[array]["eseries_proxy_storage_password"] and
                  systems.update({[hostvars[array]["eseries_proxy_api_url"], 'storage'] | join("-"): {
@@ -70,7 +68,7 @@
             "proxy_url_username": hostvars[array]["eseries_proxy_api_username"],
             "proxy_url_password": hostvars[array]["eseries_proxy_api_password"],
             "proxy_username": 'storage',
-            "proxy_password": hostvars[array]["eseries_proxy_storage_password"]}})%}
+            "proxy_password": hostvars[array]["eseries_proxy_storage_password"]}}) %}
           {%- endif %}
           {%- if "eseries_proxy_support_password" in hostvars[array] and hostvars[array]["eseries_proxy_support_password"] and
                  systems.update({[hostvars[array]["eseries_proxy_api_url"], 'support'] | join("-"): {
@@ -78,7 +76,7 @@
             "proxy_url_username": hostvars[array]["eseries_proxy_api_username"],
             "proxy_url_password": hostvars[array]["eseries_proxy_api_password"],
             "proxy_username": 'support',
-            "proxy_password": hostvars[array]["eseries_proxy_support_password"]}})%}
+            "proxy_password": hostvars[array]["eseries_proxy_support_password"]}}) %}
           {%- endif %}
         {%- endif %}
       {%- endfor %}

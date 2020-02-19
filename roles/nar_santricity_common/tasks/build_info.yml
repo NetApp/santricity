@@ -1,11 +1,30 @@
+- name: Determine management interface IP addresses
+  set_fact:
+    eseries_system_addresses: |-
+      {%- set addresses = [] %}
+      {%- set url_info = eseries_template_api_url | urlsplit %}
+      {%- for address in [eseries_management_interfaces["controller_a"][0]["address"] | default(""),
+                          eseries_management_interfaces["controller_a"][1]["address"] | default(""),
+                          eseries_management_interfaces["controller_b"][0]["address"] | default(""),
+                          eseries_management_interfaces["controller_b"][1]["address"] | default("")] %}
+        {%- if address != "" and addresses.append(address) %}{%- endif %}
+      {%- endfor %}
+      {{ addresses }}
+  when: eseries_system_addresses is not defined
+
 - name: Determine storage system Web Services information from discover storage systems
   block:
     - name: Determine storage system Web Services information
       set_fact:
         current_eseries_api_info: |-
           {% set info = {} %}
-          {%- for serial in (item["systems_found"].keys() | list) %}
-            {%- if serial == eseries_system_serial and info.update(item["systems_found"][serial]) %}{%- endif %}
+          {%- for serial in (item["systems_found"].keys() | list) if info == {} %}
+            {%- if eseries_system_serial | default(False) and serial == eseries_system_serial and info.update(item["systems_found"][serial]) %}
+            {%- elif eseries_system_addresses | default(False) %}
+              {%- for address in item["systems_found"][serial]["addresses"] if address in eseries_system_addresses %}
+                {%- if info.update(item["systems_found"][serial]) %}{%- endif %}
+              {%- endfor %}
+            {%- endif %}
           {%- endfor %}
           {{ info }}
       delegate_facts: false
@@ -19,11 +38,11 @@
     - name: Set Web Services URL credentials
       set_fact:
         current_eseries_ssid: "{%- if current_eseries_api_is_proxy %}{{ eseries_proxy_ssid | default(eseries_system_serial) }}{%- else %}1{%- endif %}"
-        current_eseries_api_username: "{%- if current_eseries_api_is_proxy %}{{ eseries_proxy_api_username }}{%- else %}{{ eseries_system_username }}{%- endif %}"
+        current_eseries_api_username: "{%- if current_eseries_api_is_proxy %}{{ eseries_proxy_api_username | default('admin') }}{%- else %}{{ eseries_system_username | default('admin') }}{%- endif %}"
         current_eseries_api_password: "{%- if current_eseries_api_is_proxy %}{{ eseries_proxy_api_password }}{%- else %}{{ eseries_system_password }}{%- endif %}"
         current_eseries_validate_certs: "{{ eseries_validate_certs | default(omit) }}"
       when: current_eseries_api_info is defined
-  when: eseries_system_serial is defined and eseries_system_serial
+  when: (eseries_system_serial is defined and eseries_system_serial) or (eseries_system_addresses is defined and eseries_system_addresses)
 
 # When discovery fails, attempt discovery from inventory information.
 - name: Build Web Services Embedded URL list based on provided management IP address(es).
@@ -43,8 +62,8 @@
       set_fact:
         current_eseries_api_url: "{%- if current_eseries_api_is_proxy %}{{ eseries_proxy_api_url }}{%- else %}{{ eseries_system_api_url }}{%- endif %}"
         current_eseries_ssid: "{%- if current_eseries_api_is_proxy %}{{ eseries_proxy_ssid | default(eseries_system_serial) }}{%- else %}1{%- endif %}"
-        current_eseries_api_username: "{%- if current_eseries_api_is_proxy %}{{ eseries_proxy_api_username }}{%- else %}{{ eseries_system_username }}{%- endif %}"
-        current_eseries_api_password: "{%- if current_eseries_api_is_proxy %}{{ eseries_proxy_api_password }}{%- else %}{{ eseries_api_password }}{%- endif %}"
+        current_eseries_api_username: "{%- if current_eseries_api_is_proxy %}{{ eseries_proxy_api_username | default('admin') }}{%- else %}{{ eseries_system_username | default('admin') }}{%- endif %}"
+        current_eseries_api_password: "{%- if current_eseries_api_is_proxy %}{{ eseries_proxy_api_password }}{%- else %}{{ eseries_system_password }}{%- endif %}"
         current_eseries_validate_certs: "{{ eseries_validate_certs | default(omit) }}"
   rescue:
     - name: Compile Web Services REST API backup urls.
@@ -52,10 +71,7 @@
         eseries_api_url_list: |-
           {%- set urls = [] %}
           {%- set url_info = eseries_template_api_url | urlsplit %}
-          {%- for address in [eseries_management_interfaces["controller_a"][0]["address"] | default(""),
-                              eseries_management_interfaces["controller_a"][1]["address"] | default(""),
-                              eseries_management_interfaces["controller_b"][0]["address"] | default(""),
-                              eseries_management_interfaces["controller_b"][1]["address"] | default("")] %}
+          {%- for address in eseries_system_addresses %}
             {%- if address != "" and urls.append([url_info["scheme"], "://", address, ":", url_info["port"], url_info["path"]] | join("")) %}{%- endif %}
           {%- endfor %}
           {%- set backup_urls = [] %}
@@ -84,7 +100,7 @@
     - name: Update Web Services REST API information.
       set_fact:
         current_eseries_api_url: "{{ first_valid_url['item'] }}"
-        current_eseries_api_username: "{{ eseries_system_username }}"
+        current_eseries_api_username: "{{ eseries_system_username  | default('admin') }}"
         current_eseries_api_password: "{{ eseries_system_password }}"
         current_eseries_validate_certs: "{{ eseries_validate_certs | default(omit) }}"
         current_eseries_ssid: 1

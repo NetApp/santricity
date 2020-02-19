@@ -17,7 +17,7 @@
         {%- if "eseries_subnet" in hostvars[array] %}
           {%- if systems.update({hostvars[array]["eseries_subnet"]: {
             "proxy_url": hostvars[array]["eseries_proxy_api_url"],
-            "proxy_username": hostvars[array]["eseries_proxy_api_username"] | default(omit),
+            "proxy_username": hostvars[array]["eseries_proxy_api_username"] | default('admin'),
             "proxy_password": hostvars[array]["eseries_proxy_api_password"] | default(omit),
             "proxy_validate_certs": hostvars[array]["eseries_validate_certs"] | default(omit)}}) %}
           {%- endif %}

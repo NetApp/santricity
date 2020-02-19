@@ -1,7 +1,14 @@
-nar_santricity_discover
-=========
+nar_santricity_common
+=====================
+    Discover NetApp E-Series storage systems and configures SANtricity Web Services Proxy.
 
-    Discover NetApp E-Series storage system
+    The following variables with be made available:
+        current_eseries_api_url:            # Web Services REST API URL
+        current_eseries_api_username:       # Web Services REST API username
+        current_eseries_api_password:       # Web Services REST API password
+        current_eseries_ssid:               # Arbitrary string for the proxy to represent the storage system.
+        current_eseries_validate_certs:     # Indicates whether SSL certificates should be verified.
+        current_eseries_api_is_proxy:       # Indicates whether Web Services REST API is running on a proxy.
 
 Requirements
 ------------
@@ -11,156 +18,70 @@ Requirements
 Example Playbook
 ----------------
     - hosts: eseries_storage_systems
-      gather_facts: false             # Fact gathering should be disabled to avoid gathering unnecessary facts about the control node.
+      gather_facts: false
       collection:
         - netapp_eseries.santricity
       tasks:
-        - name: Ensure NetApp E-Series storage system is properly configured
+        - name: Configure SANtricity Web Services and discover storage systems 
           import_role:
-            name: nar_santricity_discover
+            name: nar_santricity_common
+
+Example Inventory Host file using discovery
+-------------------------------------------
+    eseries_subnet: 192.168.1.0/24
+    eseries_validate_certs: false
+    eseries_system_serial: "012345678901"   # Be sure to quote if the serial is all numbers and begins with zero.
+    eseries_system_password: admin_password
+    eseries_proxy_api_url: https://192.168.1.100:8443/devmgr/v2/
+    eseries_proxy_api_password: admin_password
+
+Example Inventory Host file without using discovery
+---------------------------------------------------
+    eseries_system_api_url: https://192.168.1.200:8443/devmgr/v2/
+    eseries_system_password: admin_password
+    eseries_validate_certs: false
 
 Role Variables
 --------------
-    # Default storage array credentials for interacting with web services api
-    -------------------------------------------------------------------------
-    eseries_ssid:               # Storage array identifier. This value will be 1 when interacting with the embedded web services, otherwise the identifier will
-                                     be defined on the web services proxy.
-    eseries_api_url:            # Url for the web services api. Example: https://192.168.10.100/devmgr/v2
-    eseries_api_username:       # Username for the web services api.
-    eseries_api_password:       # Password for the web services api.
-    eseries_validate_certs:     # Whether the SSL certificates should be verified. (boolean)
+    eseries_subnet:                       # Network subnet to search for the storage system specified in CIDR form. Example: 192.168.1.0/24
+    eseries_template_api_url:             # Template for the web services api url. Default: https://0.0.0.0:8443/devmgr/v2/
+    eseries_validate_certs:               # Indicates Whether SSL certificates should be verified. Used for both embedded and proxy. (Boolean)
 
-    # Storage system specific credentials
-    -------------------------------------
-    eseries_serial:             # Storage system chassis serial number. This is used to automatically discover the system.
-    eseries_tags:               # Meta tags to associate to the storage system. Only applicable for proxy web services.
-    eseries_addresses:          # (list) Controller address(es) for the storage system. Only applicable for proxy web services.
-    eseries_password:           # Required when adding storage systems to SANtricity Web Services Proxy.
+    # Storage system specific variables
+    eseries_proxy_ssid:                   # Arbitrary string for the proxy to represent the storage system. eseries_system_serial will be used when not defined.
+    eseries_system_serial:                # Storage system serial number. Be sure to quote if the serial is all numbers and begins with zero. (This is located on a label at the top-left towards the front on the device)
+    eseries_system_addresses:             # Storage system management IP addresses. Only required when eseries_system_serial or eseries_system_api_url are not defined. When not specified, addresses will be populated with eseries_management_interfaces controller addresses.
+    eseries_system_api_url:               # Url for the storage system's for embedded web services rest api. Example: https://192.168.10.100/devmgr/v2
+    eseries_system_username:              # Username for the storage system's for embedded web services rest api
+    eseries_system_password:              # Password for the storage system's for embedded web services rest api and when the admin password has not been set eseries_system_password will be used to set it.
+    eseries_system_tags:                  # Meta tags to associate with storage system when added to the proxy.
 
-# SANtricity Web Services Proxy specific variables
---------------------------------------------------
-    eseries_proxy_discovery_subnet:                 # IPv4 search range for discovering E-Series storage. Must be in CIDR form.
-    eseries_proxy_accept_certifications:            # Force automatic acceptance of all storage system's certificate
-    eseries_proxy_default_system_password:          # Default storage system password
-    eseries_proxy_default_system_tags:              # Default meta tags to associate with all storage systems
-    eseries_proxy_systems:                          # List of storage system information which defines which systems should be added to proxy web services.
-                                                    #   Automatically populated from storage system's inventory when not defined.
-                                                    # See na_santricity_proxy_systems for more details.
-
-    Storage management interface defaults
-    -------------------------------------
-    eseries_management_interfaces:
-      update_santricity_web_services_proxy:   # Forces the url to be updated in the web services proxy
-      config_method:
-      subnet_mask:
-      gateway_mask:
-      dns_config_method:
-      dns_address:
-      dns_address_backup:
-      ntp_config_method:
-      ntp_address:
-      ntp_address_backup:
-      ssh:
+    # Storage system management interface information
+        Note: eseries_management_interfaces will be used when eseries_system_serial, eseries_system_api_url, or eseries_system_addresses are not defined.
+    eseries_management_interfaces:        # Subset of the eseries_management_interface variable found in the nar_santricity_management role
       controller_a:
-        - config_method:
-          address:
-          subnet_mask:
-          gateway:
-          dns_config_method:
-          dns_address:
-          dns_address_backup:
-          ntp_config_method:
-          ntp_address:
-          ntp_address_backup:
-          ssh:
+        - address:                        # Controller A port 1's IP address
+        - address:                        # Controller A port 2's IP address
       controller_b:
-        - (...)
+        - address:                        # Controller B port 1's IP address
+        - address:                        # Controller B port 2's IP address
 
-    # Alerts configuration defaults
-    # -----------------------------
-    eseries_alerts_state:               # Whether to enable storage system alerts. Choices: enabled, disabled
-    eseries_alerts_contact:             # This allows owner to specify free-form contact information such as email or phone number.
-    eseries_alerts_recipients:          # List containing e-mails that should be sent notifications when alerts are issued.
-    eseries_alerts_sender:              # Sender email. This does not necessarily need to be a valid e-mail.
-    eseries_alerts_server:              # Fully qualified domain name, IPv4 address, or IPv6 address of the mail server.
-    #eseries_alert_syslog_servers:      # List of dictionaries where each dictionary contains a syslog server entry. [{"address": <syslog_address>, "port": 514}]
-    eseries_alerts_test: false          # When changes are made to the storage system alert configuration a test e-mail will be sent. Choices: true, false
-    eseries_alert_syslog_test: false    # When changes are made to the alerts syslog servers configuration a test message will be sent to them. Choices: true, false
-
-    # LDAP configuration defaults
-    # ---------------------------
-    eseries_ldap_state:                           # Whether LDAP should be configured
-    eseries_ldap_identifier: memberOf             # The user attributes that should be considered for the group to role mapping
-    eseries_ldap_user_attribute: sAMAccountName   # Attribute used to the provided username during authentication.
-    eseries_ldap_bind_username:                   # User account that will be used for querying the LDAP server.
-    eseries_ldap_bind_password:                   # Password for the bind user account
-    eseries_ldap_server:                          # LDAP server URL.
-    eseries_ldap_search_base:                     # Search base used for find user's group membership
-    eseries_ldap_role_mappings:                   # Dictionary of user groups, each containing the list of access roles.
-                                                  #     Role choices: storage.admin - allows users full read/writes access to storage objects and operations.
-                                                  #                   storage.monitor - allows users read-only access to storage objects and operations.
-                                                  #                   storage.admin - allows users access to hardware, diagnostic information, major event logs,
-                                                  #                       and other critical support-related functionality, but not the sorage configuration.
-                                                  #                   security.admin - allows users access to authentication/authorization configuration, as
-                                                  #                       well as the audit log configuration, adn certification management.
-
-    # Drive firmware defaults
-    # -----------------------
-    eseries_drive_firmware_firmware_list:                     # Local path list for drive firmware.
-    eseries_drive_firmware_wait_for_completion: true          # Forces drive firmware upgrades to wait for all associated tasks to complete. Choices: true, false
-    eseries_drive_firmware_ignore_inaccessible_drives: false  # Forces drive firmware upgrades to ignore any inaccessible drives. Choices: true, false
-    eseries_drive_firmware_upgrade_drives_online: true        # Forces drive firmware upgrades to be performed while I/Os are accepted. Choices: true, false
-
-    # Controller firmware defaults
-    # ----------------------------
-    eseries_firmware_nvsram:                      # Local path for NVSRAM file.
-    eseries_firmware_firmware:                    # Local path for controller firmware file.
-    eseries_firmware_wait_for_completion: false   # Forces controller firmware upgrade to wait until upgrade has completed before continuing. Choices: true, false
-    eseries_firmware_clear_mel_events: false      # Forces firmware upgrade to be attempted regardless of the health check results. Choices: true, false
-
-    # ASUP configuration defaults
-    # ---------------------------
-    eseries_asup_state:             # Whether auto support (ASUP) should be enabled. Choices: enabled, disabled
-    eseries_asup_active: true       # Enables active monitoring which allows NetApp support personnel to request support data to resolve issues. Choices: true, false
-    eseries_asup_days:              # List of days of the week. Choices: monday, tuesday, wednesday, thursday, friday, saturday, sunday
-    eseries_asup_start: 0           # Hour of the day(s) to start ASUP bundle transmissions. Start time must be less than end time. Choices: 0-23
-    eseries_asup_end: 24            # Hour of the day(s) to end ASUP bundle transmissions. Start time must be less than end time. Choices: 1-24
-    eseries_asup_method:            # ASUP delivery method. Choices https, http, email (default: https)
-    eseries_asup_routing_type:      # ASUP delivery routing type for https or http. Choices: direct, proxy, script (default: direct)
-    eseries_asup_proxy:             # ASUP proxy delivery method information.
-      host:                         # ASUP proxy host IP address or FQDN. When eseries_asup_routing_type==proxy this must be specified.
-      port:                         # ASUP proxy host port. When eseries_asup_routing_type==proxy this must be specified.
-      script:                       # ASUP proxy host script.
-    eseries_asup_email:             # ASUP email delivery configuration information
-      server:                       # ASUP email server
-      sender:                       # ASUP email sender
-      test_recipient:               # ASUP configuration mail test recipient
-    eseries_maintenance_duration:   # Duration in hours (1-72) the ASUP maintenance mode will be active
-    eseries_maintenance_emails:     # List of email addresses for maintenance notifications
-    eseries_asup_validate:          # Verify ASUP configuration prior to applying changes
-
-    # Audit-log configuration defaults
-    # --------------------------------
-    eseries_auditlog_enforce_policy: false    # Whether to make audit-log policy changes. Choices: true, false
-    eseries_auditlog_force: false             # Forces audit-log to delete log messages when fullness threshold has been exceeded.
-                                              #     Applicable when eseries_auditlog_full_policy=preventSystemAccess. Choices: true, false
-    eseries_auditlog_full_policy: overWrite   # Policy for what to do when record limit has been reached. Choices: overWrite, preventSystemAccess
-    eseries_auditlog_log_level: writeOnly     # Filters logs based on the specified level. Choices: all, writeOnly
-    eseries_auditlog_max_records: 50000       # Maximum number of audit-log messages retained. Choices: 100-50000.
-    eseries_auditlog_threshold: 90            # Memory full percentage threshold that audit-log will start issuing warning messages. Choices: 60-90
-
-    # Syslog configuration defaults
-    # -----------------------------
-    eseries_syslog_state:                     # Whether syslog servers should be added or removed from storage system. Choices: present, absent
-    eseries_syslog_address:                   # Syslog server IPv4 address or fully qualified hostname.
-    eseries_syslog_test: false                # Whether a test messages should be sent to syslog server when added to the storage system. Choices: true, false
-    eseries_syslog_protocol: udp              # Protocol to be used when transmitting log messages to syslog server. Choices: udp, tc, tls
-    eseries_syslog_port: 514                  # Port to be used when transmitting log messages to syslog server.
-    eseries_syslog_components: ["auditLog"]   # List of components log to syslog server. Choices: auditLog, (others may be available)
+    # Web Services Proxy specific variable
+        Note: eseries_proxy_* variables are required to discover storage systems prior to SANtricity OS version 11.60.2.
+    eseries_proxy_api_url:                # Url for the storage system's for proxy web services rest api. Example: https://192.168.10.100/devmgr/v2
+    eseries_proxy_api_username:           # Username for the storage system's for proxy web services rest api.
+    eseries_proxy_api_password:           # Password for the storage system's for proxy web services rest api and when the admin password has not been set eseries_proxy_api_password will be used to set it.
+    eseries_proxy_monitor_password:       # Proxy password for the monitor username
+    eseries_proxy_security_password:      # Proxy password for the security username
+    eseries_proxy_storage_password:       # Proxy password for the monitor username
+    eseries_proxy_support_password:       # Proxy password for the support username
+    eseries_proxy_accept_certifications:  # Force automatic acceptance of all storage system's certificate
+    eseries_proxy_default_system_tags:    # Default meta tags to associate with all storage systems
+    eseries_proxy_default_password:       # Default password to associate with all storage systems. This is overridden by eseries_system_password.
 
 License
 -------
-    BSD-3 Clause
+    BSD-3-Clause
 
 Author Information
 ------------------
