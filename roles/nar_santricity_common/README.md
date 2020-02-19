@@ -2,7 +2,7 @@ nar_santricity_common
 =====================
     Discover NetApp E-Series storage systems and configures SANtricity Web Services Proxy.
 
-    The following variables with be made available:
+    The following variables with be added to the runtime host inventory.
         current_eseries_api_url:            # Web Services REST API URL
         current_eseries_api_username:       # Web Services REST API username
         current_eseries_api_password:       # Web Services REST API password
@@ -45,7 +45,7 @@ Role Variables
 --------------
     eseries_subnet:                       # Network subnet to search for the storage system specified in CIDR form. Example: 192.168.1.0/24
     eseries_template_api_url:             # Template for the web services api url. Default: https://0.0.0.0:8443/devmgr/v2/
-    eseries_validate_certs:               # Indicates Whether SSL certificates should be verified. Used for both embedded and proxy. (Boolean)
+    eseries_validate_certs:               # Indicates Whether SSL certificates should be verified. Used for both embedded and proxy. Choices: true, false
 
     # Storage system specific variables
     eseries_proxy_ssid:                   # Arbitrary string for the proxy to represent the storage system. eseries_system_serial will be used when not defined.
