@@ -1,20 +1,30 @@
-# THIS IS A COMPREHENSIVE VARIABLE LIST
+# Web Services Embedded information
+#eseries_subnet:                         # Network subnet to search for the storage system specified in CIDR form. Example: 192.168.1.0/24
+#eseries_system_serial:                  # Storage system serial number. Be sure to quote if the serial is all numbers and begins with zero. (This is located
+                                         #     on a label at the top-left towards the front on the device)
+#eseries_system_addresses:               # Storage system management IP addresses. Only required when eseries_system_serial or eseries_system_api_url are not
+                                         #     defined. When not specified, addresses will be populated with eseries_management_interfaces controller addresses.
+#eseries_system_api_url:                 # Url for the storage system's for embedded web services rest api. Example: https://192.168.10.100/devmgr/v2
+#eseries_system_username:                # Username for the storage system's for embedded web services rest api
+#eseries_system_password:                # Password for the storage system's for embedded web services rest api and when the admin password has not been set
+                                         #     eseries_system_password will be used to set it.
+#eseries_proxy_ssid:                     # Arbitrary string for the proxy to represent the storage system. eseries_system_serial will be used when not defined.
+#eseries_template_api_url:               # Template for the web services api url. Default: https://0.0.0.0:8443/devmgr/v2/
+#eseries_validate_certs:                 # Indicates Whether SSL certificates should be verified. Used for both embedded and proxy. Choices: true, false
 
-# Storage System Credentials for Interacting with Web Services REST API
-# ---------------------------------------------------------------------
-eseries_ssid: 1                                          # Storage array identifier. This value will be 1 when interacting with the embedded web services,
-                                                         #     otherwise the identifier will be defined on the web services proxy.
-#eseries_api_url: https://192.168.10.100/devmgr/v2       # Url for the web services api. Example: https://192.168.10.100/devmgr/v2
-#eseries_api_username: admin                             # Username for the web services api.
-#eseries_api_password: password                          # Password for the web services api.
-#eseries_validate_certs: False                           # Whether the SSL certificates should be verified. (boolean)
+# Web Services Proxy information
+#   Note: eseries_proxy_* variables are required to discover storage systems prior to SANtricity OS version 11.60.2.
+#eseries_proxy_api_url:                  # Url for the storage system's for proxy web services rest api. Example: https://192.168.10.100/devmgr/v2
+#eseries_proxy_api_username:             # Username for the storage system's for proxy web services rest api.
+#eseries_proxy_api_password:             # Password for the storage system's for proxy web services rest api and when the admin password has not been set
+                                         #     eseries_proxy_api_password will be used to set it.
 
 
 # Storage Pool Default Policy Specifications
 # ------------------------------------------
 eseries_storage_pool_state: present                      # Default storage pool state. Choices: present, absent
 eseries_storage_pool_raid_level: raidDiskPool            # Default volume raid level. Choices: raid0, raid1, raid5, raid6, raidDiskPool
-eseries_storage_pool_secure_pool: no                     # Default for storage pool drive security. This flag will enable the security at rest feature. There
+eseries_storage_pool_secure_pool: false                  # Default for storage pool drive security. This flag will enable the security at rest feature. There
                                                          #    must be sufficient FDE or FIPS security capable drives. Type: boolean
 #eseries_storage_pool_criteria_drive_count:              # Default storage pool drive count.
 #eseries_storage_pool_reserve_drive_count:               # Default reserve drive count for drive reconstruction for storage pools using dynamic disk pool and
@@ -77,62 +87,38 @@ eseries_controller_iscsi_port_mtu: 9000                   # General port maximum
 #eseries_controller_iscsi_port:
 #  controller_a:                                    # Controller A port definition.
 #    state:                                         # General definitions for all ports on controller A. Any option specified in the ports definition can be
-                                                    #     specified here to generalize for all controller A ports.
+                                                    #     specified here to generalize for all controller A ports. Choices: enabled, disabled
 #    config_method:                                 # Port configuration method Choices: static, dhcp
 #    address:                                       # Port IPv4 address
 #    gateway:                                       # Port IPv4 gateway
 #    subnet_mask:                                   # Port IPv4 subnet_mask
 #    mtu:                                           # Port IPv4 mtu
 #    ports:                                         # List containing ports definitions
-#      - channel:                                   # Channel of the port to modify. This will be a numerical value that represents the port; typically read
-                                                    #     left to right on the HIC.
-#        state:                                     # Whether the port should be enabled.
+#      - state:                                     # Whether the port should be enabled. Choices: enabled, disabled
 #        config_method:                             # Port configuration method Choices: static, dhcp
 #        address:                                   # Port IPv4 address
 #        gateway:                                   # Port IPv4 gateway
 #        subnet_mask:                               # Port IPv4 subnet_mask
 #  controller_b:                                    # Controller B port definition.
-#    state:                                         # General definitions for all ports on controller B. Any option specified in the ports definition can be
-                                                    #     specified here to generalize for all controller A ports.
-#    config_method:                                 # Port configuration method Choices: static, dhcp
-#    address:                                       # Port IPv4 address
-#    gateway:                                       # Port IPv4 gateway
-#    subnet_mask:                                   # Port IPv4 subnet_mask
-#    mtu:                                           # Port IPv4 mtu
-#    ports:                                         # List containing ports definitions
-#      - channel:                                   # Channel of the port to modify. This will be a numerical value that represents the port; typically read
-                                                    #     left to right on the HIC.
-#        state:                                     # Whether the port should be enabled.
-#        config_method:                             # Port configuration method Choices: static, dhcp
-#        address:                                   # Port IPv4 address
-#        gateway:                                   # Port IPv4 gateway
-#        subnet_mask:                               # Port IPv4 subnet_mask
+#    (...)                                          # Same as controller A but for controller B
+
 
 
 # Controller InfiniBand iSER Interface Channel
 # --------------------------------------------
 #eseries_controller_ib_iser_port:
-#  controller_a:                                        # Controller A port definition.
-#    channel:
-#      - address1:                                       # Port IPv4 address for channel 1
-#      - address2:                                       # Port IPv4 address for channel 2
-#  controller_b:                                        # Controller B port definition.
-#    channel:
-#      - address1:                                       # Port IPv4 address for channel 1
-#      - address2:                                       # Port IPv4 address for channel 2
-
+#  controller_a:                                     # Ordered list of controller A channel address definition.
+#      -                                             # Port IPv4 address for channel 1
+#      - (...)                                       # So on and so forth
+#  controller_b:                                     # Ordered list of controller B channel address definition.
 
 # Controller NVMe over InfiniBand Interface Channel
 # -------------------------------------------------
 #eseries_controller_nvme_ib_port:
-#  controller_a:                                        # Controller A port definition.
-#    channel:
-#      - address1:                                       # Port IPv4 address for channel 1
-#      - address2:                                       # Port IPv4 address for channel 2
-#  controller_b:                                        # Controller B port definition.
-#    channel:
-#      - address1:                                       # Port IPv4 address for channel 1
-#      - address2:                                       # Port IPv4 address for channel 2
+#  controller_a:                                     # Ordered list of controller A channel address definition.
+#      -                                             # Port IPv4 address for channel 1
+#      - (...)                                       # So on and so forth
+#  controller_b:                                     # Ordered list of controller B channel address definition.
 
 # Controller NVMe RoCE Interface Port Default Policy Specifications
 # -------------------------------------------------------
@@ -254,7 +240,7 @@ eseries_host_remove_unused_hostgroup: True    # Forces any unused groups to be r
 #        size:                                # Size of the volume or presented size of the thinly provisioned volume.
 #        size_unit:                           # Unit size for the size, thin_volume_repo_size, and thin_volume_max_repo_size
                                               #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
-#        segment_size_kb:
+#        segment_size_kb:                     # Indicates the amount of data stored on a drive before moving on to the next drive in the volume group. Does not apply to pool volumes.
 #        thin_provision:                      # Whether volumes should be thinly provisioned.
 #        thin_volume_repo_size:               # Actually allocated space for thinly provisioned volumes.
 #        thin_volume_max_repo_size:           # Maximum allocated space allowed for thinly provisioned volumes.
@@ -275,7 +261,7 @@ eseries_host_remove_unused_hostgroup: True    # Forces any unused groups to be r
 # Initiator-Target Protocol Variable Defaults
 # -------------------------------------------
 #   Note that the following commands produce a unique list of IQNs or WWNs of the interfaces used, line separated.
-eseries_initiator_protocol: iscsi     # This variable defines which protocol the storage array will use. Choices: iscsi, fc, sas, ib_iser, ib_srp, nvme_ib, nvme_roce
+eseries_initiator_protocol: fc     # This variable defines which protocol the storage array will use. Choices: iscsi, fc, sas, ib_iser, ib_srp, nvme_ib, nvme_roce
 eseries_initiator_command:
   fc:
     linux: "systool -c fc_host -v | grep port_name | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"
