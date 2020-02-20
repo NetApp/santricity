@@ -21,7 +21,7 @@ description:
 author:
     - Nathan Swartz (@ndswartz)
 extends_documentation_fragment:
-    - netapp.eseries
+    - netapp_eseries.santricity.santricity.netapp.eseries
 options:
     nvsram:
         description:
@@ -77,7 +77,7 @@ import os
 
 from time import sleep
 from ansible.module_utils import six
-from ansible.module_utils.netapp import NetAppESeriesModule, create_multipart_formdata, request
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.netapp import NetAppESeriesModule, create_multipart_formdata, request
 from ansible.module_utils._text import to_native, to_text, to_bytes
 
 

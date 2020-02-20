@@ -21,7 +21,7 @@ author:
   - Kevin Hulquest (@hulquest)
   - Nathan Swartz (@ndswartz)
 extends_documentation_fragment:
-  - netapp.eseries
+  - netapp_eseries.santricity.santricity.netapp.eseries
 options:
   state:
     description:
@@ -146,7 +146,7 @@ import functools
 from itertools import groupby
 from time import sleep
 from pprint import pformat
-from ansible.module_utils.netapp import NetAppESeriesModule
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.netapp import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 
 

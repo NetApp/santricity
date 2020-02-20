@@ -20,7 +20,7 @@ description:
 version_added: '2.7'
 author: Nathan Swartz (@ndswartz)
 extends_documentation_fragment:
-    - netapp.eseries
+    - netapp_eseries.santricity.santricity.netapp.eseries
 options:
     state:
         description:
@@ -103,7 +103,7 @@ import json
 import logging
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.netapp import request, eseries_host_argument_spec
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.netapp import request, eseries_host_argument_spec
 from ansible.module_utils._text import to_native
 
 HEADERS = {

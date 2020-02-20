@@ -23,7 +23,7 @@ author:
     - Nathan Swartz (@ndswartz)
 description: Create, update or destroy host groups on a NetApp E-Series storage array.
 extends_documentation_fragment:
-    - netapp.eseries
+    - netapp_eseries.santricity.santricity.netapp.eseries
 options:
     state:
         required: true
@@ -104,7 +104,7 @@ protectionInformationCapableAccessMethod:
     sample: true
 """
 
-from ansible.module_utils.netapp import NetAppESeriesModule
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.netapp import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 
 

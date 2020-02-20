@@ -21,7 +21,7 @@ author:
     - Kevin Hulquest (@hulquest)
     - Nathan Swartz (@ndswartz)
 extends_documentation_fragment:
-    - netapp.eseries
+    - netapp_eseries.santricity.santricity.netapp.eseries
 '''
 
 EXAMPLES = """
@@ -231,7 +231,7 @@ RETURN = """
 
 from re import match
 from pprint import pformat
-from ansible.module_utils.netapp import NetAppESeriesModule
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.netapp import NetAppESeriesModule
 
 
 class Facts(NetAppESeriesModule):

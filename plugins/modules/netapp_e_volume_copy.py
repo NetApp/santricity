@@ -99,7 +99,7 @@ import json
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils._text import to_native
-from ansible.module_utils.netapp import request
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.netapp import request
 
 HEADERS = {
     "Content-Type": "application/json",

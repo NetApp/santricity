@@ -20,7 +20,7 @@ description:
 version_added: '2.2'
 author: Kevin Hulquest (@hulquest)
 extends_documentation_fragment:
-    - netapp.eseries
+    - netapp_eseries.santricity.santricity.netapp.eseries
 options:
     name:
         description:
@@ -105,7 +105,7 @@ import traceback
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils._text import to_native
-from ansible.module_utils.netapp import request, eseries_host_argument_spec
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.netapp import request, eseries_host_argument_spec
 
 
 HEADERS = {
