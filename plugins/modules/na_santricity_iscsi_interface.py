@@ -29,10 +29,10 @@ options:
         choices:
             - A
             - B
-    channel:
+    port:
         description:
             - The controller iSCSI HIC port to modify.
-            - You can determine this value by numbering the iSCSI ports left to right on the controller you wish to modify.
+            - You can determine this value by numbering the iSCSI ports left to right on the controller you wish to modify starting with one.
         type: int
         required: true
     state:
@@ -93,7 +93,7 @@ EXAMPLES = """
         api_username: "admin"
         api_password: "adminpass"
         validate_certs: true
-        name: "1"
+        port: "1"
         controller: "A"
         config_method: static
         address: "192.168.1.100"
@@ -107,7 +107,7 @@ EXAMPLES = """
         api_username: "admin"
         api_password: "adminpass"
         validate_certs: true
-        name: "2"
+        port: "2"
         controller: "B"
         state: disabled
 
@@ -118,7 +118,7 @@ EXAMPLES = """
         api_username: "admin"
         api_password: "adminpass"
         validate_certs: true
-        name: "{{ item | int }}"
+        port: "{{ item }}"
         controller: "A"
         state: enabled
         mtu: 9000
@@ -146,7 +146,7 @@ from ansible.module_utils._text import to_native
 class NetAppESeriesIscsiInterface(NetAppESeriesModule):
     def __init__(self):
         ansible_options = dict(controller=dict(type="str", required=True, choices=["A", "B"]),
-                               channel=dict(type="int"),
+                               port=dict(type="int", required=True),
                                state=dict(type="str", required=False, default="enabled", choices=["enabled", "disabled"]),
                                address=dict(type="str", required=False),
                                subnet_mask=dict(type="str", required=False),
@@ -162,7 +162,7 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
 
         args = self.module.params
         self.controller = args["controller"]
-        self.channel = args["channel"]
+        self.port = args["port"]
         self.mtu = args["mtu"]
         self.state = args["state"]
         self.address = args["address"]
@@ -246,12 +246,12 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
                     controller_ifaces.append([iface["iscsi"]["channel"], iface, iface["iscsi"]["interfaceData"]["ethernetData"]["linkStatus"]])
 
             sorted_controller_ifaces = sorted(controller_ifaces)
-            if self.channel < 1 or self.channel > len(controller_ifaces):
+            if self.port < 1 or self.port > len(controller_ifaces):
                 status_msg = ", ".join(["%s (link %s)" % (index + 1, values[2]) for index, values in enumerate(sorted_controller_ifaces)])
                 self.module.fail_json(msg="Invalid controller %s iSCSI channel. Available channels: %s, Array Id [%s]."
                                           % (self.controller, status_msg, self.ssid))
 
-            self.get_target_interface_cache = sorted_controller_ifaces[self.channel - 1][1]
+            self.get_target_interface_cache = sorted_controller_ifaces[self.port - 1][1]
         return self.get_target_interface_cache
 
     def make_update_body(self, target_iface):
