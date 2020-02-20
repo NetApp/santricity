@@ -8,7 +8,7 @@
     state: "{{ item['state'] |
                default(eseries_controller_iscsi_port['controller_a']['state'] |
                default(eseries_controller_iscsi_port_state | default(omit))) }}"
-    channel: "{{ item['channel'] }}"
+    port: "{{ port + 1 }}"
     controller: A
     config_method: "{{ item['config_method'] |
                        default(eseries_controller_iscsi_port['controller_a']['config_method'] |
@@ -24,6 +24,8 @@
              default(eseries_controller_iscsi_port['controller_a']['mtu'] |
              default(eseries_controller_iscsi_port_mtu | default(omit))) }}"
   loop: "{{ lookup('list', eseries_controller_iscsi_port['controller_a']['ports']) }}"
+  loop_control:
+    index_var: port
   when: "eseries_controller_iscsi_port is defined and eseries_controller_iscsi_port['controller_a'] is defined and
          eseries_controller_iscsi_port['controller_a']['ports'] is defined"
 
@@ -37,7 +39,7 @@
     state: "{{ item['state'] |
                default(eseries_controller_iscsi_port['controller_b']['state'] |
                default(eseries_controller_iscsi_port_state | default(omit))) }}"
-    channel: "{{ item.channel }}"
+    port: "{{ port + 1 }}"
     controller: B
     config_method: "{{ item['config_method'] |
                        default(eseries_controller_iscsi_port['controller_b']['config_method'] |
@@ -53,6 +55,8 @@
              default(eseries_controller_iscsi_port['controller_b']['mtu'] |
              default(eseries_controller_iscsi_port_mtu | default(omit))) }}"
   loop: "{{ lookup('list', eseries_controller_iscsi_port['controller_b']['ports']) }}"
+  loop_control:
+    index_var: port
   when: "eseries_controller_iscsi_port is defined and eseries_controller_iscsi_port['controller_b'] is defined and
          eseries_controller_iscsi_port['controller_b']['ports'] is defined"
 

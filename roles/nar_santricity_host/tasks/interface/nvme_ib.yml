@@ -6,11 +6,12 @@
     api_password: "{{ current_eseries_api_password }}"
     validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
     controller: A
-    channel: "{{ item['channel'] }}"
-    address: "{{ item['address'] | default(omit) }}"
+    channel: "{{ channel + 1 }}"
+    address: "{{ item }}"
   loop: "{{ lookup('list', eseries_controller_nvme_ib_port['controller_a']['channel']) }}"
-  when: "eseries_controller_nvme_ib_port is defined and eseries_controller_nvme_ib_port['controller_a'] is defined and
-         eseries_controller_nvme_ib_port['controller_a']['channel'] is defined"
+  loop_control:
+    index_var: channel
+  when: eseries_controller_nvme_ib_port is defined and eseries_controller_nvme_ib_port['controller_a'] is defined
 
 - name: Configure controller B inventory-defined controller port definitions for NVMe interface ports over InfiniBand
   na_santricity_nvme_interface:
@@ -20,8 +21,9 @@
     api_password: "{{ current_eseries_api_password }}"
     validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
     controller: B
-    channel: "{{ item.channel }}"
-    address: "{{ item['address'] | default(omit) }}"
+    channel: "{{ channel + 1 }}"
+    address: "{{ item }}"
   loop: "{{ lookup('list', eseries_controller_nvme_ib_port['controller_b']['channel']) }}"
-  when: "eseries_controller_nvme_ib_port is defined and eseries_controller_nvme_ib_port['controller_b'] is defined and
-         eseries_controller_nvme_ib_port['controller_b']['channel'] is defined"
+  loop_control:
+    index_var: channel
+  when: eseries_controller_nvme_ib_port is defined and eseries_controller_nvme_ib_port['controller_b'] is defined
