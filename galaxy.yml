@@ -8,7 +8,7 @@ dependencies:
 license:
   - "BSD-3-Clause"
 repository: "https://www.github.com/netapp-eseries/santricity"
-documentation: ""
+documentation: "https://www.netapp.com/us/media/tr-4574.pdf"
 tags:
   - netapp
   - eseries
