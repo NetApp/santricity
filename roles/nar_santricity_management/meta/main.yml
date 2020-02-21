@@ -3,7 +3,7 @@ galaxy_info:
   description: Manages NetApp E-Series storage system's firmware, management interfaces, security, system, and logging configuration.
   company: NetApp, Inc
   license: BSD-3 Clause
-  platforms:
+  platforms: []
   min_ansible_version: 2.9
   galaxy_tags:
     - netapp

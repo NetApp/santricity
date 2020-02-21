@@ -1,9 +1,3 @@
----
-# Storage System Credentials for Interacting with Web Services REST API (Embedded or Proxy)
-# -----------------------------------------------------------------------------------------
-eseries_system_api_url: https://0.0.0.0:8443/devmgr/v2/  # Preferred url. This is only used when discovery is not used. It is also used as a template for the web
-                                                         #   services api, so update if the scheme and port differs. Example: https://0.0.0.0:8443/devmgr/v2
-
 # Storage system specific credentials
 # -----------------------------------
 eseries_system_username: admin                   # Storage system username. Default: admin
@@ -20,7 +14,7 @@ eseries_system_username: admin                   # Storage system username. Defa
 # ------------------------------------------------
 #eseries_proxy_ssid:                             # Storage array identifier. This value will be 1 when interacting with the embedded web services,
 #eseries_proxy_api_url:                          # Url for the web services proxy rest api. Example: https://192.168.10.100:8443/devmgr/v2
-eseries_proxy_api_username: admin                # Username for the web services proxy rest api.
+#eseries_proxy_api_username:                     # Username for the web services proxy rest api.
 #eseries_proxy_api_password:                     # Password for the web services proxy rest api.
 #eseries_proxy_current_api_password:             # This is for changing the password for the proxy.
 #eseries_proxy_api_validate_certs:               # Whether the SSL certificates should be verified. (boolean)
