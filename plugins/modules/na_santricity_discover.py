@@ -48,6 +48,13 @@ options:
         type: bool
         default: true
         required: false
+    prefer_embedded:
+        description:
+            - Give preference to Web Services Embedded when an option exists for both Web Services Proxy and Embedded.
+            - Web Services Proxy will be utilized when available by default.
+        type: bool
+        default: false
+        required: false
 notes:
     - Only available for platforms E2800 or later (SANtricity Web Services Embedded REST API must be available).
     - All E-Series storage systems with SANtricity version 11.62 or later will be discovered.
@@ -99,13 +106,15 @@ class NetAppESeriesDiscover:
                                proxy_url=dict(type="str", required=False),
                                proxy_username=dict(type="str", required=False),
                                proxy_password=dict(type="str", required=False, no_log=True),
-                               proxy_validate_certs=dict(type="bool", default=True, required=False))
+                               proxy_validate_certs=dict(type="bool", default=True, required=False),
+                               prefer_embedded=dict(type="bool", default=False, required=False))
 
         required_together = [["proxy_url", "proxy_username", "proxy_password"]]
         self.module = AnsibleModule(argument_spec=ansible_options, required_together=required_together)
         args = self.module.params
 
         self.subnet_mask = args["subnet_mask"]
+        self.prefer_embedded = args["prefer_embedded"]
         self.ports = []
         self.proxy_url = args["proxy_url"]
         if args["proxy_url"]:
@@ -137,7 +146,8 @@ class NetAppESeriesDiscover:
             try:
                 rc, sa_data = request(url + "symbol/getSAData", validate_certs=False, force_basic_auth=False, ignore_errors=True)
                 if rc == 401:   # Unauthorized
-                    self.module.warn("Fail over and discover any storage system without a set admin password. This will cover newly deployed systems.")
+                    self.module.warn("Fail over and discover any storage system without a set admin password."
+                                     " This will discover systems without a set password such as newly deployed storage systems.")
                     # Fail over and discover any storage system without a set admin password. This will cover newly deployed systems.
                     rc, graph = request(url + "graph", validate_certs=False, url_username="admin", url_password="", timeout=self.SEARCH_TIMEOUT)
                     sa_data = graph["sa"]["saData"]
@@ -216,23 +226,24 @@ class NetAppESeriesDiscover:
                     if not discovered_systems["discoverProcessRunning"]:
 
                         thread_pool = []
-                        for system in discovered_systems["storageSystems"]:
+                        for discovered_system in discovered_systems["storageSystems"]:
                             addresses = []
-                            for controller in system["controllers"]:
+                            for controller in discovered_system["controllers"]:
                                 addresses.extend(controller["ipAddresses"])
 
                             # Storage systems with embedded web services.
-                            if "https" in system["supportedManagementPorts"]:
+                            if "https" in discovered_system["supportedManagementPorts"] and self.prefer_embedded:
 
                                 thread = threading.Thread(target=self.test_systems_found,
-                                                          args=(self.systems_found, system["serialNumber"], system["label"], addresses))
+                                                          args=(self.systems_found, discovered_system["serialNumber"], discovered_system["label"], addresses))
                                 thread_pool.append(thread)
                                 thread.start()
 
                             # Storage systems without embedded web services.
                             else:
-                                self.systems_found.update({system["serialNumber"]: {"api_urls": [self.proxy_url], "label": system["label"],
-                                                                                    "addresses": addresses, "proxy_required": True}})
+                                self.systems_found.update({discovered_system["serialNumber"]: {"api_urls": [self.proxy_url],
+                                                                                               "label": discovered_system["label"],
+                                                                                               "addresses": addresses, "proxy_required": True}})
                         for thread in thread_pool:
                             thread.join()
                         break
