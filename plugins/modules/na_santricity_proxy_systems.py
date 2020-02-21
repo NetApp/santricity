@@ -474,7 +474,8 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
             self.module.fail_json(msg="Cannot add/remove storage systems to SANtricity Web Services Embedded instance.")
 
         if self.add_discovered_systems or self.systems:
-            self.discover_array()
+            if self.subnet_mask:
+                self.discover_array()
             self.update_storage_systems_info()
 
             # Determine whether the storage system requires updating
