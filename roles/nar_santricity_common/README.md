@@ -30,6 +30,7 @@ Example Inventory Host file using discovery
 -------------------------------------------
     eseries_subnet: 192.168.1.0/24
     eseries_validate_certs: false
+    eseries_prefer_embedded: true
     eseries_system_serial: "012345678901"   # Be sure to quote if the serial is all numbers and begins with zero.
     eseries_system_password: admin_password
     eseries_proxy_api_url: https://192.168.1.100:8443/devmgr/v2/
@@ -43,9 +44,10 @@ Example Inventory Host file without using discovery
 
 Role Variables
 --------------
-    eseries_subnet:                 # Network subnet to search for the storage system specified in CIDR form. Example: 192.168.1.0/24
-    eseries_template_api_url:       # Template for the web services api url. Default: https://0.0.0.0:8443/devmgr/v2/
-    eseries_validate_certs: true    # Indicates Whether SSL certificates should be verified. Used for both embedded and proxy. Choices: true, false
+    eseries_subnet:                   # Network subnet to search for the storage system specified in CIDR form. Example: 192.168.1.0/24
+    eseries_template_api_url:         # Template for the web services api url. Default: https://0.0.0.0:8443/devmgr/v2/
+    eseries_prefer_embedded: false    # Overrides the default behavior of using Web Services Proxy when eseries_proxy_api_url is defined. This will only effect storage systems that have Embedded Web Services.
+    eseries_validate_certs: true      # Indicates Whether SSL certificates should be verified. Used for both embedded and proxy. Choices: true, false
 
     # Storage system specific variables
     eseries_proxy_ssid:               # Arbitrary string for the proxy to represent the storage system. eseries_system_serial will be used when not defined.

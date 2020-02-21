@@ -1,9 +1,9 @@
 galaxy_info:
   author: Nathan Swartz (@ndswartz)
-  description: Manages NetApp E-Series storage system's firmware, management interfaces, security, system, and logging configuration.
+  description: Discover NetApp E-Series storage systems and configures SANtricity Web Services Proxy.
   company: NetApp, Inc
-  license: BSD-3 Clause
-  platforms:
+  license: BSD-3-Clause
+  platforms: []
   min_ansible_version: 2.9
   galaxy_tags:
     - netapp
