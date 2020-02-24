@@ -248,7 +248,7 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
             sorted_controller_ifaces = sorted(controller_ifaces)
             if self.port < 1 or self.port > len(controller_ifaces):
                 status_msg = ", ".join(["%s (link %s)" % (index + 1, values[2]) for index, values in enumerate(sorted_controller_ifaces)])
-                self.module.fail_json(msg="Invalid controller %s iSCSI channel. Available channels: %s, Array Id [%s]."
+                self.module.fail_json(msg="Invalid controller %s iSCSI port. Available ports: %s, Array Id [%s]."
                                           % (self.controller, status_msg, self.ssid))
 
             self.get_target_interface_cache = sorted_controller_ifaces[self.port - 1][1]
