@@ -15,7 +15,7 @@ class IscsiInterfaceTest(ModuleTestCase):
         'api_url': 'http://localhost',
         'ssid': '1',
         'state': 'disabled',
-        'channel': 1,
+        'port': 1,
         'controller': 'A',
     }
     REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_iscsi_interface.NetAppESeriesIscsiInterface.request'
@@ -34,7 +34,7 @@ class IscsiInterfaceTest(ModuleTestCase):
                 for mtu in [1500, 2500, 9000]:
                     self._set_args(dict(
                         state='disabled',
-                        channel=i,
+                        port=i,
                         controller=controller,
                         mtu=mtu,
                     ))
@@ -46,7 +46,7 @@ class IscsiInterfaceTest(ModuleTestCase):
         # Currently a 'C' controller is invalid
         self._set_args(dict(
             state='disabled',
-            channel=1,
+            port=1,
             controller="C",
         ))
         with self.assertRaises(AnsibleFailJson) as result:
@@ -56,7 +56,7 @@ class IscsiInterfaceTest(ModuleTestCase):
         for mtu in [500, 1499, 9001]:
             self._set_args({
                 'state': 'disabled',
-                'channel': 1,
+                'port': 1,
                 'controller': 'A',
                 'mtu': mtu
             })
@@ -89,13 +89,13 @@ class IscsiInterfaceTest(ModuleTestCase):
                 iface = NetAppESeriesIscsiInterface()
                 interfaces = iface.interfaces
 
-    def test_get_target_interface_bad_channel(self):
-        """Ensure we fail correctly when a bad channel is provided"""
+    def test_get_target_interface_bad_port(self):
+        """Ensure we fail correctly when a bad port is provided"""
         self._set_args()
 
-        interfaces = [{"iscsi": {"channel": 1, "controllerId": "1"}}]
+        interfaces = [{"iscsi": {"port": 1, "controllerId": "1"}}]
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Invalid controller.*?iSCSI channel."):
+        with self.assertRaisesRegexp(AnsibleFailJson, r"Invalid controller.*?iSCSI port."):
             with mock.patch.object(NetAppESeriesIscsiInterface, 'interfaces', return_value=interfaces):
                 iface = NetAppESeriesIscsiInterface()
                 interfaces = iface.get_target_interface()
