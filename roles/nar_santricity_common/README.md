@@ -81,6 +81,21 @@ Role Variables
     eseries_proxy_default_system_tags:      # Default meta tags to associate with all storage systems
     eseries_proxy_default_password:         # Default password to associate with all storage systems. This is overridden by eseries_system_password.
 
+    # LDAP configuration defaults
+    eseries_proxy_ldap_state:             # Whether LDAP should be configured for the proxy`
+    eseries_proxy_ldap_identifier:        # The user attributes that should be considered for the group to role mapping
+    eseries_proxy_ldap_user_attribute:    # Attribute used to the provided username during authentication.
+    eseries_proxy_ldap_bind_username:     # User account that will be used for querying the LDAP server.
+    eseries_proxy_ldap_bind_password:     # Password for the bind user account
+    eseries_proxy_ldap_server:            # LDAP server URL.
+    eseries_proxy_ldap_search_base:       # Search base used for find user's group membership
+    eseries_proxy_ldap_role_mappings:     # Dictionary of user groups, each containing the list of access roles.
+                                          #     Role choices: storage.admin - allows users full read/writes access to storage objects and operations.
+                                          #                   storage.monitor - allows users read-only access to storage objects and operations.
+                                          #                   storage.admin - allows users access to hardware, diagnostic information, major event logs,
+                                          #                       and other critical support-related functionality, but not the sorage configuration.
+                                          #                   security.admin - allows users access to authentication/authorization configuration, as
+                                          #                       well as the audit log configuration, adn certification management.
 License
 -------
     BSD-3-Clause
