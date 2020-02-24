@@ -8,7 +8,6 @@ try:
 except ImportError:
     import mock
 
-from ansible.module_utils.netapp import NetAppESeriesModule
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_volume import NetAppESeriesVolume
 from units.modules.utils import AnsibleFailJson, ModuleTestCase, set_module_args
 
