@@ -7,7 +7,7 @@ __metaclass__ = type
 from units.compat import mock
 
 
-class AlertsTest(ModuleTestCase):
+class AuthTest(ModuleTestCase):
     REQUIRED_PARAMS = {'api_username': 'admin', 'api_password': 'password', 'api_url': 'http://localhost', 'ssid': '1'}
     REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_auth.NetAppESeriesAuth.request'
     SLEEP_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_auth.sleep'
