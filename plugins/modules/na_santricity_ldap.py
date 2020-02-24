@@ -203,8 +203,10 @@ class NetAppESeriesLdap(NetAppESeriesModule):
 
         # Check whether request needs to be forwarded on to the controller web services rest api.
         self.url_path_prefix = ""
-        if not self.is_embedded():
-            self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid
+        if self.is_embedded():
+            self.url_path_prefix = "storage-systems/1/"
+        elif self.ssid != "0" and self.ssid != "proxy":
+            self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/storage-systems/1/" % self.ssid
 
         self.existing_domain_ids = []
         self.domain = {}    # Existing LDAP domain
@@ -214,7 +216,7 @@ class NetAppESeriesLdap(NetAppESeriesModule):
         """Retrieve all domain information from storage system."""
         domains = None
         try:
-            rc, response = self.request(self.url_path_prefix + "storage-systems/1/ldap")
+            rc, response = self.request(self.url_path_prefix + "ldap")
             domains = response["ldapDomains"]
         except Exception as error:
             self.module.fail_json(msg="Failed to retrieve current LDAP configuration. Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
@@ -285,7 +287,7 @@ class NetAppESeriesLdap(NetAppESeriesModule):
                                     self.delete_domain(self.TEMPORARY_DOMAIN)
 
                                 temporary_domain = self.add_domain(temporary=True, skip_test=True)
-                                rc, tests = self.request(self.url_path_prefix + "storage-systems/1/ldap/test", method="POST")
+                                rc, tests = self.request(self.url_path_prefix + "ldap/test", method="POST")
 
                                 temporary_domain_test = {}
                                 domain_test = {}
@@ -321,7 +323,7 @@ class NetAppESeriesLdap(NetAppESeriesModule):
             body.update({"id": self.TEMPORARY_DOMAIN, "names": [self.TEMPORARY_DOMAIN]})
 
         try:
-            rc, response = self.request(self.url_path_prefix + "storage-systems/1/ldap/addDomain?skipTest=%s" % ("true" if not skip_test else "false"),
+            rc, response = self.request(self.url_path_prefix + "ldap/addDomain?skipTest=%s" % ("true" if not skip_test else "false"),
                                         method="POST", data=body)
             domain = response["ldapDomains"][0]
         except Exception as error:
@@ -332,14 +334,15 @@ class NetAppESeriesLdap(NetAppESeriesModule):
     def update_domain(self):
         """Update existing domain on storage system."""
         try:
-            rc, response = self.request(self.url_path_prefix + "storage-systems/1/ldap/%s" % self.domain["id"], method="POST", data=self.body)
+            rc, response = self.request(self.url_path_prefix + "ldap/%s" % self.domain["id"], method="POST", data=self.body)
         except Exception as error:
             self.module.fail_json(msg="Failed to update LDAP domain. Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
     def delete_domain(self, domain_id):
         """Delete specific domain on the storage system."""
         try:
-            rc, response = self.request(self.url_path_prefix + "storage-systems/1/ldap/%s" % domain_id, method="DELETE")
+            url = self.url_path_prefix + "ldap/%s" % domain_id
+            rc, response = self.request(self.url_path_prefix + "ldap/%s" % domain_id, method="DELETE")
         except Exception as error:
             self.module.fail_json(msg="Failed to delete LDAP domain. Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
