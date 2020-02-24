@@ -264,6 +264,8 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
         self.use_alternate_address = False
         self.alt_url_path = None
 
+        self.available_embedded_api_urls = []
+
     def get_controllers(self):
         """Retrieve a mapping of controller labels to their references
         :return: controllers defined on the system. Example: {'A': '070000000000000000000001', 'B': '070000000000000000000002'}
@@ -455,6 +457,7 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
             location = parsed_url.netloc.split(":")
             location[0] = self.alt_interface_addresses[0]
             self.url = "%s://%s/" % (parsed_url.scheme, ":".join(location))
+            self.available_embedded_api_urls = [self.url]
             self.module.warn("Using alternate url [%s]" % self.url)
 
     def update(self):
@@ -462,13 +465,12 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
         change_required = self.update_request_body()
 
         # Build list of available web services rest api urls
-        available_addresses = self.all_interface_addresses
-        available_embedded_api_urls = []
+        self.available_embedded_api_urls = []
         parsed_url = urlparse.urlparse(self.url)
         location = parsed_url.netloc.split(":")
-        for address in available_addresses:
+        for address in self.all_interface_addresses:
             location[0] = address
-            available_embedded_api_urls.append("%s://%s/%s" % (parsed_url.scheme, ":".join(location), self.DEFAULT_REST_API_PATH))
+            self.available_embedded_api_urls.append("%s://%s/%s" % (parsed_url.scheme, ":".join(location), self.DEFAULT_REST_API_PATH))
 
         if change_required and not self.module.check_mode:
 
@@ -478,15 +480,12 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
                     self.update_url()
 
                 # Rebuild list of available web services rest api urls
-                available_addresses = self.all_interface_addresses
-                available_embedded_api_urls = []
+                self.available_embedded_api_urls = []
                 parsed_url = urlparse.urlparse(self.url)
                 location = parsed_url.netloc.split(":")
-                for address in available_addresses:
-                    location[0] = address
-                    available_embedded_api_urls.append("%s://%s/%s" % (parsed_url.scheme, ":".join(location), self.DEFAULT_REST_API_PATH))
+                self.available_embedded_api_urls.append("%s://%s/%s" % (parsed_url.scheme, ":".join(location), self.DEFAULT_REST_API_PATH))
             else:
-                available_embedded_api_urls = []
+                self.available_embedded_api_urls = []
 
             # Update management interface
             try:
@@ -503,9 +502,9 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
                 self.module.fail_json(msg="Changes failed to complete! Timeout waiting for management interface to update. Array [%s]." % self.ssid)
 
             self.module.exit_json(msg="The interface settings have been updated.", changed=change_required,
-                                  available_embedded_api_urls=available_embedded_api_urls)
+                                  available_embedded_api_urls=self.available_embedded_api_urls)
         self.module.exit_json(msg="No changes are required.", changed=change_required,
-                              available_embedded_api_urls=available_embedded_api_urls if self.is_embedded() else [])
+                              available_embedded_api_urls=self.available_embedded_api_urls if self.is_embedded() else [])
 
 
 if __name__ == '__main__':
