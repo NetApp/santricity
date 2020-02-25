@@ -102,6 +102,8 @@ Example Storage System Inventory File (Without storage system discovery)
 
 Role Variables
 --------------
+**Note that when values are specified below, they indicate the default value.**
+
     # Web Services Embedded information
     eseries_subnet:                    # Network subnet to search for the storage system specified in CIDR form. Example: 192.168.1.0/24
     eseries_system_serial:             # Storage system serial number. Be sure to quote if the serial is all numbers and begins with zero. (This is located on a label at the top-left towards the front on the device)

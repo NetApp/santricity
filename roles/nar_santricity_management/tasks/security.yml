@@ -8,6 +8,8 @@
     current_admin_password: "{{ eseries_system_password }}"
     user: admin
     password: "{{ eseries_system_password }}"
+  tags:
+    - always
 
 - name: Ensure non-admin passwords have been set
   na_santricity_auth:

@@ -25,6 +25,8 @@
         {%- endif %}
       {%- endfor %}
       {{ systems }}
+  tags:
+    - always
 
 - name: Ensure proxy non-admin passwords have been set
   na_santricity_auth:

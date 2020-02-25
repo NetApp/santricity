@@ -1,8 +1,6 @@
 - name: Discover Web Services REST API url
   import_role:
     name: nar_santricity_common
-  tags:
-    - always
 
 - name: Configure NetApp E-Series storage system disk pool configuration
   import_tasks: storage_pool_present.yml

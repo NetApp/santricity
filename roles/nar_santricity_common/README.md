@@ -96,6 +96,7 @@ Role Variables
                                           #                       and other critical support-related functionality, but not the sorage configuration.
                                           #                   security.admin - allows users access to authentication/authorization configuration, as
                                           #                       well as the audit log configuration, adn certification management.
+
 License
 -------
     BSD-3-Clause

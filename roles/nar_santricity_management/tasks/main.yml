@@ -1,8 +1,6 @@
 - name: Discover Web Services REST API url
   import_role:
     name: nar_santricity_common
-  tags:
-    - always
 
 - name: Ensure security settings are configured
   import_tasks: security.yml
