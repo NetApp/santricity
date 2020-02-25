@@ -1,6 +1,14 @@
-NetApp SANtricity Collection
+NetApp E-Series SANtricity Collection
 =========
-    The NetApp SANtricity collection consist of the latest available versions of the SANtricity modules and roles.
+    The SANtricity collection consist of the latest available versions of the NetApp E-Series SANtricity modules and roles.
+
+        This collection provides NetApp E-Series customers with a wide range of configuration options through the collection's modules. However, the real
+    benefit of using the SANtricity collection is found in the host and management roles. These roles provide ready-made, policy-based orchestration for
+    E-Series platforms based on predefined role variables.
+        Once the physical hardware has been installed, the SANtricity roles are capable of discovering the DHCP-assigned addresses, setting initial passwords
+    and management interfaces so your automation can do full deployments for you without logging directly into the devices. Yet that's just the beginning,
+    the management role will also ensure alerts, ASUP, logging, LDAP, and firmware are configured as expected; and the host role will setup host interfaces,
+    provision and map storage, and if your servers are defined in the inventory, correctly populate E-Series hosts and host groups automatically.
 
     Roles:
         - nar_santricity_common: Discover NetApp E-Series storage systems and configures SANtricity Web Services Proxy.
@@ -10,7 +18,7 @@ NetApp SANtricity Collection
             
     Modules:
         - na_santricity_alerts: Manage email alert notification settings
-        - na_santricity_alerts_syslog: Manage syslog servers receiving storage system alerts 
+        - na_santricity_alerts_syslog: Manage syslog servers receiving storage system alerts
         - na_santricity_asup: Manage auto-support settings
         - na_santricity_auditlog: Manage audit-log configuration
         - na_santricity_auth: Set or update the password for a storage array
