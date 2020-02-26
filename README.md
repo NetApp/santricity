@@ -224,7 +224,7 @@ Example Storage System Inventory File
         - "address": 192.168.1.150
           "port": 514
     eseries_initiator_protocol: iscsi
-
+    
     # Controller port definitions
     eseries_controller_port_config_method: static
     eseries_controller_port_subnet_mask: 255.255.255.0
@@ -443,6 +443,16 @@ Collection Variables
     eseries_syslog_port:          # Port to be used when transmitting log messages to syslog server.
     eseries_syslog_components:    # List of components log to syslog server. Choices: auditLog, (others may become available)
 
+    # iSCSI target discovery specifications
+        Note: add the following to ansible-playbook command to update the chap secret: --extra-vars "eseries_target_chap_secret_update=True
+    eseries_iscsi_target_name:                        # iSCSI target name that will be seen by the initiator
+    eseries_iscsi_target_ping: True                   # Enables ICMP ping response from the configured iSCSI ports (boolean)
+    eseries_iscsi_target_unnamed_discovery: True      # Whether the iSCSI target iqn should be returned when an initiator performs a discovery session.
+    eseries_iscsi_target_chap_secret:                 # iSCSI chap secret. When left blank, the chap secret will be removed from the storage system.
+    eseries_iscsi_target_chap_secret_update: False    # DO NOT REMOVE! Since na_santricity_iscsi_target cannot compare the chap secret with the current and chooses to always
+                                                      #     return changed=True, this flag is used to force the module to update the chap secret. It is preferable to
+                                                      #     leave this value False and to add the --extra-vars "eseries_target_chap_secret_update=True".
+
     # Controller iSCSI Interface Port Default Policy Specifications
     eseries_controller_iscsi_port_state: enabled         # Generally specifies whether a controller port definition should be applied Choices: enabled, disabled
     eseries_controller_iscsi_port_config_method: dhcp    # General port configuration method definition for both controllers. Choices: static, dhcp
@@ -508,16 +518,6 @@ Collection Variables
             subnet_mask:      # Port IPv4 subnet_mask
       controller_b:           # Controller B port definition.
         (...)                 # Same as controller A but for controller B
-
-    # iSCSI target discovery specifications
-        Note: add the following to ansible-playbook command to update the chap secret: --extra-vars "eseries_target_chap_secret_update=True
-    eseries_target_name:                        # iSCSI target name that will be seen by the initiator
-    eseries_target_ping: True                   # Enables ICMP ping response from the configured iSCSI ports (boolean)
-    eseries_target_unnamed_discovery: True      # Whether the iSCSI target iqn should be returned when an initiator performs a discovery session.
-    eseries_target_chap_secret:                 # iSCSI chap secret. When left blank, the chap secret will be removed from the storage system.
-    eseries_target_chap_secret_update: False    # DO NOT REMOVE! Since na_santricity_iscsi_target cannot compare the chap secret with the current and chooses to always
-                                                #     return changed=True, this flag is used to force the module to update the chap secret. It is preferable to
-                                                #     leave this value False and to add the --extra-vars "eseries_target_chap_secret_update=True".
 
     # Storage Pool Default Policy Specifications
     eseries_storage_pool_state: present                   # Default storage pool state. Choices: present, absent

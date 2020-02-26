@@ -1,12 +1,11 @@
 # (c) 2020, NetApp, Inc
 # BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
-from __future__ import (absolute_import, division, print_function)
-
+from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-from units.compat import mock
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_nvme_interface import NetAppESeriesNvmeInterface
 from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
+from units.compat import mock
 
 
 class NvmeInterfaceTest(ModuleTestCase):
@@ -67,12 +66,14 @@ class NvmeInterfaceTest(ModuleTestCase):
         self._set_args(options)
         nvme = NetAppESeriesNvmeInterface()
         with mock.patch(self.REQ_FUNC, return_value=(200, response)):
-            self.assertEquals(nvme.get_nvmeof_interfaces(), [{"properties": {"provider": "providerInfiniband", "ibProperties": {
-                "ipAddressData": {"addressType": "ipv4", "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
-                                                              "reference": "2201020000000000000000000000000000000000", "channel": 1, "interface_type": "ib",
-                                                              "interface": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 1,
-                                                                            "linkState": "up"}, "controller_id": "070000000000000000000001",
-                                                              "link_status": "up"}])
+            self.assertEquals(nvme.get_nvmeof_interfaces(), [
+                {"properties": {"provider": "providerInfiniband", "ibProperties": {
+                    "ipAddressData": {"addressType": "ipv4",
+                                      "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
+                 "reference": "2201020000000000000000000000000000000000", "channel": 1, "interface_type": "ib",
+                 "interface": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 1,
+                               "linkState": "up"}, "controller_id": "070000000000000000000001",
+                 "link_status": "up"}])
 
     def test_get_nvmeof_interfaces_fail(self):
         """Verify get_nvmeof_interfaces method throws the expected exceptions."""
@@ -90,48 +91,51 @@ class NvmeInterfaceTest(ModuleTestCase):
         options = {"address": "192.168.1.200"}
         self._set_args(options)
         nvme = NetAppESeriesNvmeInterface()
-        nvme.get_nvmeof_interfaces = lambda: [{"properties": {"provider": "providerInfiniband", "ibProperties": {
-            "ipAddressData": {"addressType": "ipv4",
-                              "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
-                                               "reference": "2201020000000000000000000000000000000000", "channel": 5,
-                                               "interface_type": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 5,
-                                                                  "linkState": "up"}, "controller_id": "070000000000000000000001",
-                                               "link_status": "up"},
-                                              {"properties": {"provider": "providerInfiniband", "ibProperties": {
-                                                  "ipAddressData": {"addressType": "ipv4",
-                                                                    "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.2.100"}}}},
-                                               "reference": "2201030000000000000000000000000000000000", "channel": 4,
-                                               "interface_type": {"interfaceRef": "2201030000000000000000000000000000000000", "channel": 4,
-                                                                  "linkState": "up"}, "controller_id": "070000000000000000000001",
-                                               "link_status": "up"},
-                                              {"properties": {"provider": "providerInfiniband", "ibProperties": {
-                                                  "ipAddressData": {"addressType": "ipv4",
-                                                                    "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.3.100"}}}},
-                                               "reference": "2201040000000000000000000000000000000000", "channel": 6,
-                                               "interface_type": {"interfaceRef": "2201040000000000000000000000000000000000", "channel": 6,
-                                                                  "linkState": "down"}, "controller_id": "070000000000000000000001",
-                                               "link_status": "up"}]
+        nvme.get_nvmeof_interfaces = lambda: [
+            {"properties": {"provider": "providerInfiniband", "ibProperties": {
+                "ipAddressData": {"addressType": "ipv4",
+                                  "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
+             "reference": "2201020000000000000000000000000000000000", "channel": 5,
+             "interface_type": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 5,
+                                "linkState": "up"}, "controller_id": "070000000000000000000001",
+             "link_status": "up"},
+            {"properties": {"provider": "providerInfiniband", "ibProperties": {
+                "ipAddressData": {"addressType": "ipv4",
+                                  "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.2.100"}}}},
+             "reference": "2201030000000000000000000000000000000000", "channel": 4,
+             "interface_type": {"interfaceRef": "2201030000000000000000000000000000000000", "channel": 4,
+                                "linkState": "up"}, "controller_id": "070000000000000000000001",
+             "link_status": "up"},
+            {"properties": {"provider": "providerInfiniband", "ibProperties": {
+                "ipAddressData": {"addressType": "ipv4",
+                                  "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.3.100"}}}},
+             "reference": "2201040000000000000000000000000000000000", "channel": 6,
+             "interface_type": {"interfaceRef": "2201040000000000000000000000000000000000", "channel": 6,
+                                "linkState": "down"}, "controller_id": "070000000000000000000001",
+             "link_status": "up"}]
         nvme.get_controllers = lambda: {"A": "070000000000000000000001", "B": "070000000000000000000002"}
-        self.assertEqual(nvme.get_target_interface(), {"properties": {"provider": "providerInfiniband", "ibProperties": {
-            "ipAddressData": {"addressType": "ipv4",
-                              "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.2.100"}}}},
-                                                       "reference": "2201030000000000000000000000000000000000", "channel": 4,
-                                                       "interface_type": {"interfaceRef": "2201030000000000000000000000000000000000", "channel": 4,
-                                                                          "linkState": "up"}, "controller_id": "070000000000000000000001",
-                                                       "link_status": "up"})
+        self.assertEqual(nvme.get_target_interface(), {
+            "properties": {"provider": "providerInfiniband", "ibProperties": {
+                "ipAddressData": {"addressType": "ipv4",
+                                  "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.2.100"}}}},
+            "reference": "2201030000000000000000000000000000000000", "channel": 4,
+            "interface_type": {"interfaceRef": "2201030000000000000000000000000000000000", "channel": 4,
+                               "linkState": "up"}, "controller_id": "070000000000000000000001",
+            "link_status": "up"})
 
     def test_get_target_interface_fail(self):
         """Verify get_target_interface method throws the expected exceptions."""
         options = {"address": "192.168.1.200", "channel": "0"}
         self._set_args(options)
         nvme = NetAppESeriesNvmeInterface()
-        nvme.get_nvmeof_interfaces = lambda: [{"properties": {"provider": "providerInfiniband", "ibProperties": {
-            "ipAddressData": {"addressType": "ipv4",
-                              "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
-                                               "reference": "2201020000000000000000000000000000000000", "channel": 5,
-                                               "interface_type": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 5,
-                                                                  "linkState": "up"}, "controller_id": "070000000000000000000001",
-                                               "link_status": "up"}]
+        nvme.get_nvmeof_interfaces = lambda: [
+            {"properties": {"provider": "providerInfiniband", "ibProperties": {
+                "ipAddressData": {"addressType": "ipv4",
+                                  "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
+             "reference": "2201020000000000000000000000000000000000", "channel": 5,
+             "interface_type": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 5,
+                                "linkState": "up"}, "controller_id": "070000000000000000000001",
+             "link_status": "up"}]
         nvme.get_controllers = lambda: {"A": "070000000000000000000001", "B": "070000000000000000000002"}
         with self.assertRaisesRegexp(AnsibleFailJson, "Invalid controller .*? NVMe channel."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
@@ -140,13 +144,14 @@ class NvmeInterfaceTest(ModuleTestCase):
         options = {"address": "192.168.1.200", "channel": "2"}
         self._set_args(options)
         nvme = NetAppESeriesNvmeInterface()
-        nvme.get_nvmeof_interfaces = lambda: [{"properties": {"provider": "providerInfiniband", "ibProperties": {
-            "ipAddressData": {"addressType": "ipv4",
-                              "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
-                                               "reference": "2201020000000000000000000000000000000000", "channel": 5,
-                                               "interface_type": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 5,
-                                                                  "linkState": "up"}, "controller_id": "070000000000000000000001",
-                                               "link_status": "up"}]
+        nvme.get_nvmeof_interfaces = lambda: [
+            {"properties": {"provider": "providerInfiniband", "ibProperties": {
+                "ipAddressData": {"addressType": "ipv4",
+                                  "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
+             "reference": "2201020000000000000000000000000000000000", "channel": 5,
+             "interface_type": {"interfaceRef": "2201020000000000000000000000000000000000", "channel": 5,
+                                "linkState": "up"}, "controller_id": "070000000000000000000001",
+             "link_status": "up"}]
         nvme.get_controllers = lambda: {"A": "070000000000000000000001", "B": "070000000000000000000002"}
         with self.assertRaisesRegexp(AnsibleFailJson, "Invalid controller .*? NVMe channel."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):

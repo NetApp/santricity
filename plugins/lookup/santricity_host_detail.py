@@ -1,10 +1,12 @@
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = """
     lookup: santricity_hosts_detail
     author: Nathan Swartz
-    short_description: Expands the host information from santricity_host lookup 
+    short_description: Expands the host information from santricity_host lookup
     description:
         - Expands the host information from santricity_host lookup to include system and port information
     options:
@@ -22,10 +24,10 @@ DOCUMENTATION = """
             type: list
         host_interface_ports:
             description:
-                - List of dictionaries containing "stdout_lines" which is a list of iqn/wwpns for each expected_hosts from the results of 
+                - List of dictionaries containing "stdout_lines" which is a list of iqn/wwpns for each expected_hosts from the results of
                   the santricity_host lookup plugin.
                 - Register the results from the shell module that is looped over each host in expected_hosts. The command issued should result
-                  in a newline delineated list of iqns, nqns, or wwpns. 
+                  in a newline delineated list of iqns, nqns, or wwpns.
             required: True
             type: list
         protocol:
@@ -33,7 +35,7 @@ DOCUMENTATION = """
                 - Storage system interface protocol (iscsi, sas, fc, ib-iser, ib-srp, nvme_ib, or nvme_roce)
             required: True
             type: str
-            
+
 """
 import re
 from ansible.errors import AnsibleError

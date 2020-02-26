@@ -1,7 +1,7 @@
 - name: Add storage systems to SANtricity Web Services Proxy
-  na_santricity_proxy_systems:
+  netapp_eseries.santricity.na_santricity_proxy_systems:
     api_url: "{{ item['key'] }}"
-    api_username: "{{ item['value']['proxy_username'] | default('admin') }}"
+    api_username: "{{ item['value']['proxy_username'] }}"
     api_password: "{{ item['value']['proxy_password'] }}"
     validate_certs: "{{ item['value']['proxy_validate_certs'] | default(omit) }}"
     accept_certificate: "{{ item['value']['proxy_accept_certifications'] | default(omit) }}"
@@ -31,11 +31,10 @@
               {%- if systems[hostvars[array]["eseries_proxy_api_url"]]["proxy_systems"].append(array_info) %}{%- endif %}
             {%- else %}
               {%- if systems.update({hostvars[array]["eseries_proxy_api_url"]: {
-                "proxy_username": hostvars[array]["eseries_proxy_api_username"] | default(omit),
+                "proxy_username": hostvars[array]["eseries_proxy_api_username"] | default("admin"),
                 "proxy_password": hostvars[array]["eseries_proxy_api_password"] | default(omit),
                 "proxy_subnet": hostvars[array]["eseries_subnet"] | default(omit),
                 "proxy_systems": [array_info],
-                "proxy_tags": hostvars[array]["eseries_proxy_system_tags"] | default(omit),
                 "proxy_validate_certs": hostvars[array]["eseries_validate_certs"] | default(omit),
                 "proxy_accept_certifications": hostvars[array]["eseries_proxy_accept_certifications"] | default(omit),
                 "proxy_default_system_tags": hostvars[array]["eseries_proxy_default_system_tags"] | default(omit),

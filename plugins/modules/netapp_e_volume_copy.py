@@ -11,7 +11,6 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'community'}
 
-
 DOCUMENTATION = """
 ---
 module: netapp_e_volume_copy
@@ -21,7 +20,7 @@ description:
 version_added: '2.2'
 author: Kevin Hulquest (@hulquest)
 extends_documentation_fragment:
-    - netapp.eseries
+    - netapp_eseries.santricity.santricity.netapp.eseries
 options:
     api_username:
         required: true
@@ -76,8 +75,6 @@ options:
         description:
             - Searches for all valid potential target and source volumes that could be used in a copy_pair
             - Mutually exclusive with volume_copy_pair_id, destination_volume_id and source_volume_id
-"""
-RESULTS = """
 """
 EXAMPLES = """
 ---

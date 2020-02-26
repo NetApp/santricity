@@ -5,11 +5,7 @@ __metaclass__ = type
 
 from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_storagepool import NetAppESeriesStoragePool
-
-try:
-    from unittest.mock import patch, PropertyMock
-except ImportError:
-    from mock import patch, PropertyMock
+from units.compat.mock import patch, PropertyMock
 
 
 class StoragePoolTest(ModuleTestCase):

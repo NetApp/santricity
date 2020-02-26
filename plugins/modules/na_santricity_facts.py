@@ -605,18 +605,18 @@ class Facts(NetAppESeriesModule):
 
                             # Determine drive count
                             stripe_count = 0
-                            vg_drive_count = sum(1 for d in array_facts['drive'] if d['currentVolumeGroupRef'] == volume['volumeGroupRef'] and not d['hotSpare'])
+                            vg_drive_num = sum(1 for d in array_facts['drive'] if d['currentVolumeGroupRef'] == volume['volumeGroupRef'] and not d['hotSpare'])
 
                             if volume['raidLevel'] == "raidDiskPool":
                                 stripe_count = 8
                             if volume['raidLevel'] == "raid0":
-                                stripe_count = vg_drive_count
+                                stripe_count = vg_drive_num
                             if volume['raidLevel'] == "raid1":
-                                stripe_count = int(vg_drive_count / 2)
+                                stripe_count = int(vg_drive_num / 2)
                             if volume['raidLevel'] in ["raid3", "raid5"]:
-                                stripe_count = vg_drive_count - 1
+                                stripe_count = vg_drive_num - 1
                             if volume['raidLevel'] == "raid6":
-                                stripe_count = vg_drive_count - 2
+                                stripe_count = vg_drive_num - 2
 
                             facts['netapp_volumes_by_initiators'][host['name']].append(
                                 dict(name=volume['name'],

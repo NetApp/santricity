@@ -262,13 +262,9 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
         return [entry[0] for entry in get_most_common_elements(interfaces)]
 
     @property
-    def storage_pool_drives(self, exclude_hotspares=True):
+    def storage_pool_drives(self):
         """Retrieve list of drives found in storage pool."""
-        if exclude_hotspares:
-            return [drive for drive in self.drives
-                    if drive["currentVolumeGroupRef"] == self.pool_detail["id"] and not drive["hotSpare"]]
-
-        return [drive for drive in self.drives if drive["currentVolumeGroupRef"] == self.pool_detail["id"]]
+        return [drive for drive in self.drives if drive["currentVolumeGroupRef"] == self.pool_detail["id"] and not drive["hotSpare"]]
 
     @property
     def expandable_drive_count(self):

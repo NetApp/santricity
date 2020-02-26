@@ -355,6 +355,10 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                               array_name=self.get_current_configuration()["name"])
 
 
-if __name__ == '__main__':
+def main():
     global_settings = NetAppESeriesGlobalSettings()
     global_settings.update()
+
+
+if __name__ == "__main__":
+    main()

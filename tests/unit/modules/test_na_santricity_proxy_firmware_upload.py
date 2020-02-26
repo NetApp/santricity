@@ -3,14 +3,9 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-from ansible.module_utils import six
 from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_proxy_firmware_upload import NetAppESeriesProxyFirmwareUpload
-
-try:
-    from unittest.mock import patch, mock_open
-except ImportError:
-    from mock import patch, mock_open
+from units.compat.mock import patch, mock_open
 
 
 class StoragePoolTest(ModuleTestCase):
@@ -21,7 +16,8 @@ class StoragePoolTest(ModuleTestCase):
                        "validate_certs": "no"}
 
     REQUEST_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_proxy_firmware_upload.NetAppESeriesProxyFirmwareUpload.request"
-    CREATE_MULTIPART_FORMDATA_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_proxy_firmware_upload.create_multipart_formdata"
+    CREATE_MULTIPART_FORMDATA_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules." \
+                                     "na_santricity_proxy_firmware_upload.create_multipart_formdata"
     OS_PATH_EXISTS_FUNC = "os.path.exists"
     OS_PATH_ISDIR_FUNC = "os.path.isdir"
     OS_LISTDIR_FUNC = "os.listdir"
@@ -72,7 +68,7 @@ class StoragePoolTest(ModuleTestCase):
         """Ensure class constructor fails when file does not exist."""
         self._set_args({"firmware": ["/path/to/firmware1.dlp", "/path/to/firmware/directory"]})
         firmware = NetAppESeriesProxyFirmwareUpload()
-        
+
         with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to retrieve current firmware file listing."):
             with patch(self.REQUEST_FUNC, return_value=Exception()):
                 firmware.determine_changes()
@@ -90,21 +86,6 @@ class StoragePoolTest(ModuleTestCase):
             with patch(self.REQUEST_FUNC, return_value=(200, None)):
                 firmware.upload_files()
 
-    # AnsibleFailJson exception has changed to a warning
-    # def test_upload_files_fail(self):
-    #     """Ensure upload_files throws expected exceptions."""
-    #     self._set_args({"firmware": ["/path/to/firmware1.dlp", "/path/to/firmware/directory"]})
-    #     firmware = NetAppESeriesProxyFirmwareUpload()
-    #     firmware.files = {"firmware1.dlp": "/path/to/firmware1.dlp",
-    #                       "firmware2.dlp": "/path/to/firmware/directory/firmware2.dlp",
-    #                       "firmware3.dlp": "/path/to/firmware/directory/firmware3.dlp"}
-    #     firmware.add_files = ["firmware1.dlp", "firmware2.dlp"]
-    # 
-    #     with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to upload drive firmware file."):
-    #         with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", "")):
-    #             with patch(self.REQUEST_FUNC, return_value=Exception()):
-    #                 firmware.upload_files()
-
     def test_delete_files_pass(self):
         """Ensure delete_files completes as expected."""
         self._set_args({"firmware": ["/path/to/firmware1.dlp", "/path/to/firmware/directory"]})
@@ -113,17 +94,6 @@ class StoragePoolTest(ModuleTestCase):
 
         with patch(self.REQUEST_FUNC, return_value=(204, None)):
             firmware.delete_files()
-
-    # AnsibleFailJson exception has changed to a warning
-    # def test_delete_files_fail(self):
-    #     """Ensure delete_files throws expected exceptions."""
-    #     self._set_args({"firmware": ["/path/to/firmware1.dlp", "/path/to/firmware/directory"]})
-    #     firmware = NetAppESeriesProxyFirmwareUpload()
-    #     firmware.remove_files = ["firmware1.dlp", "firmware2.dlp"]
-    #
-    #     with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to delete drive firmware file."):
-    #         with patch(self.REQUEST_FUNC, return_value=Exception()):
-    #             firmware.delete_files()
 
     def test_apply_pass(self):
         """Ensure that the apply method behaves as expected."""

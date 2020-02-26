@@ -20,7 +20,7 @@ options:
     firmware:
         description:
             - This option can be a list of file paths and/or directories containing drive firmware.
-            - Note that only files with the extension .dlp will be attempted to be added to the proxy; all other files will be ignored. 
+            - Note that only files with the extension .dlp will be attempted to be added to the proxy; all other files will be ignored.
             - NetApp E-Series drives require special firmware which can be downloaded from https://mysupport.netapp.com/NOW/download/tools/diskfw_eseries/
         type: list
         required: false
@@ -35,7 +35,7 @@ EXAMPLES = """
     firmware:
         - "path/to/drive_firmware_file1.dlp"
         - "path/to/drive_firmware_file2.dlp"
-        - "path/to/drive_firmware_directory" 
+        - "path/to/drive_firmware_directory"
 """
 RETURN = """
 msg:
@@ -83,7 +83,7 @@ class NetAppESeriesProxyDriveFirmwareUpload(NetAppESeriesModule):
                     self.files.update({name: path})
 
         self.module.warn("%s" % self.files)
-        
+
     def determine_changes(self):
         """Determine whether drive firmware files should be uploaded to the proxy."""
         try:
@@ -140,6 +140,10 @@ class NetAppESeriesProxyDriveFirmwareUpload(NetAppESeriesModule):
         self.module.exit_json(changed=change_required, files_added=self.add_files, files_removed=self.remove_files)
 
 
-if __name__ == '__main__':
+def main():
     proxy_firmware_upload = NetAppESeriesProxyDriveFirmwareUpload()
     proxy_firmware_upload.apply()
+
+
+if __name__ == "__main__":
+    main()

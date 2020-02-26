@@ -3,13 +3,9 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_volume import NetAppESeriesVolume
 from units.modules.utils import AnsibleFailJson, ModuleTestCase, set_module_args
+from units.compat import mock
 
 
 class NetAppESeriesVolumeTest(ModuleTestCase):

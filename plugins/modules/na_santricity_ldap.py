@@ -375,6 +375,10 @@ class NetAppESeriesLdap(NetAppESeriesModule):
         self.module.exit_json(msg="No changes have been made to the LDAP configuration. Array Id: [%s]" % self.ssid, changed=change_required)
 
 
-if __name__ == "__main__":
+def main():
     ldap = NetAppESeriesLdap()
     ldap.apply()
+
+
+if __name__ == "__main__":
+    main()

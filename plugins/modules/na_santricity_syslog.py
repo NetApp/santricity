@@ -228,6 +228,10 @@ class NetAppESeriesSyslog(NetAppESeriesModule):
         self.module.exit_json(msg="The syslog settings have been updated.", changed=update)
 
 
-if __name__ == "__main__":
+def main():
     settings = NetAppESeriesSyslog()
     settings.update()
+
+
+if __name__ == "__main__":
+    main()

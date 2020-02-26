@@ -234,6 +234,10 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
         self.module.exit_json(msg="No changes were required.", changed=update_required)
 
 
-if __name__ == "__main__":
+def main():
     ib_iser = NetAppESeriesIbIserInterface()
     ib_iser.update()
+
+
+if __name__ == "__main__":
+    main()

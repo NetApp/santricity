@@ -1,6 +1,6 @@
 # (c) 2020, NetApp, Inc
 # BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_ldap import NetAppESeriesLdap
@@ -188,7 +188,7 @@ class LdapTest(ModuleTestCase):
                 with mock.patch(self.REQ_FUNC, return_value=(200, [{"id": "test2", "result": {"authenticationTestResult": "fail"}},
                                                                    {"id": "ANSIBLE_TMP_DOMAIN", "result": {"authenticationTestResult": "fail"}}])):
                     ldap.are_changes_required()
-                
+
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
             self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
                             "search_base": "ou=accounts,DC=test2,DC=example,DC=com",

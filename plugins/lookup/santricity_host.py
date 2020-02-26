@@ -1,10 +1,12 @@
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = """
     lookup: santricity_hosts
     author: Nathan Swartz
-    short_description: 
+    short_description: Collects host information
     description:
         - Collects current host, expected host and host group inventory definitions.
     options:

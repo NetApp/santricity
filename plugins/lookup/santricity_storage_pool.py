@@ -1,3 +1,5 @@
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 

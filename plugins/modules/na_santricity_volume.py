@@ -51,7 +51,7 @@ options:
             - All values are in kibibytes.
             - Some common choices include "8", "16", "32", "64", "128", "256", and "512" but options are system
               dependent.
-            - Retrieve the definitive system list from M(na_santricity_facts) under segment_sizes.
+            - Retrieve the definitive s ystem list from M(na_santricity_facts) under segment_sizes.
             - When the storage pool is a raidDiskPool then the segment size must be 128kb.
             - Segment size migrations are not allowed in this module
         default: "128"

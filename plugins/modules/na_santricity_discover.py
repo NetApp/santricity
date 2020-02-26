@@ -265,6 +265,10 @@ class NetAppESeriesDiscover:
         self.module.exit_json(msg="Discover process complete.", systems_found=self.systems_found, changed=False)
 
 
-if __name__ == "__main__":
+def main():
     discover = NetAppESeriesDiscover()
     discover.discover()
+
+
+if __name__ == "__main__":
+    main()

@@ -7,6 +7,7 @@ __metaclass__ = type
 
 
 DOCUMENTATION = """
+---
 module: na_santricity_proxy_systems
 short_description: NetApp E-Series manage SANtricity web services proxy storage arrays
 description:
@@ -24,7 +25,7 @@ options:
     systems:
         description:
             - List of storage system information which defines which systems should be added on SANtricity Web Services Proxy.
-            - This option will accept a simple serial number list or list of dictionary containing at minimum the serial or addresses key from the sub-option list.
+            - Accepts a simple serial number list or list of dictionary containing at minimum the serial or addresses key from the sub-option list.
             - Note that the serial number will be used as the storage system identifier when an identifier is not specified.
             - When I(add_discovered_systems == False) and any system serial number not supplied that is discovered will be removed from the proxy.
         type: list
@@ -557,6 +558,10 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
         self.module.exit_json(msg="No changes were made.", changed=changes_required)
 
 
-if __name__ == '__main__':
+def main():
     proxy_systems = NetAppESeriesProxySystems()
     proxy_systems.apply()
+
+
+if __name__ == "__main__":
+    main()

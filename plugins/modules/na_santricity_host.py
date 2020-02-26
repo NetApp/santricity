@@ -253,7 +253,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
                     if (port["type"] == "ib" and "iqn" in port["address"] and
                             interface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and
                             interface["ioInterfaceTypeData"]["interfaceData"]["type"] == "infiniband" and
-                            interface["ioInterfaceTypeData"]["interfaceData"]["infinibandData"]["isIser"] == True):
+                            interface["ioInterfaceTypeData"]["interfaceData"]["infinibandData"]["isIser"]):
                         port["type"] = "iscsi"
                         break
                     elif port["type"] == interface["ioInterfaceTypeData"]["interfaceType"]:
@@ -261,7 +261,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
                 else:
                     self.module.fail_json(msg="Invalid port type! Type [%s]. Port [%s]." % (port["type"], port["label"]))
         except Exception as error:
-            self.module.fail_json(msg="Failed to validate port types. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to validate port types. Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
     def assigned_host_ports(self, apply_unassigning=False):
         """Determine if the hostPorts requested have already been assigned and return list of required used ports."""
@@ -492,6 +492,10 @@ class NetAppESeriesHost(NetAppESeriesModule):
                 self.module.exit_json(changed=False, msg="Host already absent.", **payload)
 
 
-if __name__ == "__main__":
+def main():
     host = NetAppESeriesHost()
     host.apply()
+
+
+if __name__ == "__main__":
+    main()

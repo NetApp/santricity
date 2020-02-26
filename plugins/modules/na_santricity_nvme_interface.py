@@ -53,7 +53,7 @@ options:
     speed:
         description:
             - This is the ethernet port speed measured in Gb/s.
-            - Value must be a supported speed or auto for automatically negotiating the speed with the port. 
+            - Value must be a supported speed or auto for automatically negotiating the speed with the port.
             - Only applicable when configuring RoCE
             - The configured ethernet port speed should match the speed capability of the SFP on the selected port.
         type: str
@@ -67,10 +67,10 @@ options:
             - enabled
             - disabled
         required: false
-        default: enabled 
+        default: enabled
     channel:
         description:
-            - This option specifies the which NVMe controller channel to configure. 
+            - This option specifies the which NVMe controller channel to configure.
             - The list of choices is not necessarily comprehensive. It depends on the number of ports
               that are available in the system.
             - The numerical value represents the number of the channel (typically from left to right on the HIC),
@@ -143,9 +143,9 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
         ifaces = list()
         try:
             rc, ifaces = self.request("storage-systems/%s/interfaces?channelType=hostside" % self.ssid)
-        except Exception as err:
+        except Exception as error:
             self.module.fail_json(msg="Failed to retrieve defined host interfaces. Array Id [%s]. Error [%s]."
-                                      % (self.ssid, to_native(err)))
+                                      % (self.ssid, to_native(error)))
 
         # Filter out all not nvme-nvmeof hostside interfaces.
         nvmeof_ifaces = []
@@ -155,7 +155,7 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
 
             try:
                 link_status = iface["ioInterfaceTypeData"]["ib"]["linkState"]
-            except:
+            except Exception as error:
                 link_status = iface["ioInterfaceTypeData"]["ethernet"]["interfaceData"]["ethernetData"]["linkStatus"]
 
             if (properties and properties[0]["commandProtocol"] == "nvme" and
@@ -166,7 +166,6 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
                                       "interface_type": interface_type,
                                       "interface": iface["ioInterfaceTypeData"][interface_type],
                                       "controller_id": iface["controllerRef"],
-                                      "interface_type": interface_type,
                                       "link_status": link_status})
         return nvmeof_ifaces
 
@@ -285,6 +284,10 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
         self.module.exit_json(msg="No changes have been made.", changed=update_required)
 
 
-if __name__ == '__main__':
+def main():
     nvmeof_interface = NetAppESeriesNvmeInterface()
     nvmeof_interface.update()
+
+
+if __name__ == "__main__":
+    main()

@@ -99,6 +99,7 @@
     search_base: "{{ item['value']['ldap_search_base'] | default(omit) }}"
     user_attribute: "{{ item['value']['ldap_user_attribute'] | default(omit) }}"
     role_mappings: "{{ item['value']['ldap_role_mappings'] | default(omit) }}"
+  ignore_errors: true
   loop: "{{ lookup('dict', proxy_admin, wantlist=True) }}"
   vars:
     proxy_admin: |-

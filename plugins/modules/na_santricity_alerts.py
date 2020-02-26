@@ -239,6 +239,10 @@ class NetAppESeriesAlerts(NetAppESeriesModule):
         self.module.exit_json(msg=msg, changed=update)
 
 
-if __name__ == '__main__':
+def main():
     alerts = NetAppESeriesAlerts()
     alerts.update()
+
+
+if __name__ == '__main__':
+    main()

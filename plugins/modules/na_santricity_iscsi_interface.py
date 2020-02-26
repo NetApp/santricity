@@ -322,6 +322,10 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
         self.module.exit_json(msg="The interface settings have been updated.", changed=update_required)
 
 
-if __name__ == "__main__":
+def main():
     iface = NetAppESeriesIscsiInterface()
     iface.update()
+
+
+if __name__ == "__main__":
+    main()

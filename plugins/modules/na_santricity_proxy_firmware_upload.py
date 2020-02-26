@@ -57,7 +57,6 @@ class NetAppESeriesProxyFirmwareUpload(NetAppESeriesModule):
 
         args = self.module.params
         self.firmware = args["firmware"]
-        
         self.files = None
         self.add_files = []
         self.remove_files = []
@@ -140,6 +139,10 @@ class NetAppESeriesProxyFirmwareUpload(NetAppESeriesModule):
         self.module.exit_json(changed=change_required, files_added=self.add_files, files_removed=self.remove_files)
 
 
-if __name__ == '__main__':
+def main():
     proxy_firmware_upload = NetAppESeriesProxyFirmwareUpload()
     proxy_firmware_upload.apply()
+
+
+if __name__ == "__main__":
+    main()

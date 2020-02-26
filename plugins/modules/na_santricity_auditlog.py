@@ -187,6 +187,10 @@ class NetAppESeriesAuditLog(NetAppESeriesModule):
             self.module.exit_json(msg="No audit-log changes required", changed=update)
 
 
-if __name__ == "__main__":
+def main():
     auditlog = NetAppESeriesAuditLog()
     auditlog.update()
+
+
+if __name__ == "__main__":
+    main()

@@ -43,11 +43,11 @@ options:
     minimum_password_length:
         description:
             - This option defines the minimum password length.
-        required: false 
+        required: false
 note:
     - Set I(ssid=="0") or I(ssid=="proxy") when attempting to change the password for SANtricity Web Services Proxy.
     - SANtricity Web Services Proxy storage password will be updated when changing the password on a managed storage system from the proxy; This is only true
-      when the storage system has been previously contacted.  
+      when the storage system has been previously contacted.
 """
 
 EXAMPLES = """
@@ -107,7 +107,8 @@ class NetAppESeriesAuth(NetAppESeriesModule):
                     rc, system_info = self.request("local-users/info", force_basic_auth=False)
 
                 elif self.is_embedded_available():
-                    rc, system_info = self.request("storage-systems/%s/forward/devmgr/v2/storage-systems/1/local-users/info" % self.ssid, force_basic_auth=False)
+                    rc, system_info = self.request("storage-systems/%s/forward/devmgr/v2/storage-systems/1/local-users/info" % self.ssid,
+                                                   force_basic_auth=False)
                 else:
                     return False    # legacy systems without embedded web services.
             else:
@@ -181,7 +182,8 @@ class NetAppESeriesAuth(NetAppESeriesModule):
                 if self.ssid == "0" or self.ssid.lower() == "proxy":
                     rc, system_info = self.request("local-users/info", force_basic_auth=False)
                 elif self.is_embedded_available():
-                    rc, system_info = self.request("storage-systems/%s/forward/devmgr/v2/storage-systems/1/local-users/info" % self.ssid, force_basic_auth=False)
+                    rc, system_info = self.request("storage-systems/%s/forward/devmgr/v2/storage-systems/1/local-users/info" % self.ssid,
+                                                   force_basic_auth=False)
                 else:
                     rc, response = self.request("storage-systems/%s/passwords" % self.ssid, ignore_errors=True)
                     system_info = {"minimumPasswordLength": 0, "adminPasswordSet": response["adminPasswordSet"]}
@@ -214,10 +216,9 @@ class NetAppESeriesAuth(NetAppESeriesModule):
                     if self.user == "admin":
                         rc, response = self.request("storage-systems/%s/stored-password/validate" % self.ssid, method="POST", log_request=False,
                                                     ignore_errors=True, data={"password": self.password})
-
                         if rc == 200:
                             change_required = not response["isValidPassword"]
-                        elif rc == 404: # endpoint did not exist, old proxy version
+                        elif rc == 404:     # endpoint did not exist, old proxy version
                             if self.is_web_services_version_met("04.10.0000.0000"):
                                 self.module.fail_json(msg="For platforms before E2800 use SANtricity Web Services Proxy 4.1 or later! Array Id [%s].")
                             self.module.fail_json(msg="Failed to validate stored password! Array Id [%s].")
@@ -327,6 +328,10 @@ class NetAppESeriesAuth(NetAppESeriesModule):
         self.module.exit_json(msg="Password has not been changed. Array [%s]." % self.ssid, changed=change_required)
 
 
-if __name__ == '__main__':
+def main():
     auth = NetAppESeriesAuth()
     auth.apply()
+
+
+if __name__ == "__main__":
+    main()

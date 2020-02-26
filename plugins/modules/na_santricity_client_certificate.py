@@ -2,12 +2,11 @@
 
 # (c) 2020, NetApp, Inc
 # BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
-from __future__ import absolute_import, division, print_function #, unicode_literals
+from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 
-DOCUMENTATION = '''
----
+DOCUMENTATION = """
 module: na_santricity_client_certificate
 short_description: NetApp E-Series manage remote server certificates.
 description: Manage NetApp E-Series storage array's remote server certificates.
@@ -22,17 +21,39 @@ options:
     required: false
 note:
   - Use M(ssid=0) or M(ssid=PROXY) to specifically reference SANtricity Web Services Proxy.
-'''
-EXAMPLES = '''
-'''
-RETURN = '''
----
-msg:
-    description: 
-    type: string
+"""
+EXAMPLES = """
+- name: Upload certificates
+  na_santricity_client_certificate:
+    ssid: 1
+    api_url: https://192.168.1.100:8443/devmgr/v2
+    api_username: admin
+    api_password: adminpass
+    certificates: ["/path/to/certificates.crt", "/path/to/another_certificate.crt"]
+- name: Remove all certificates
+  na_santricity_client_certificate:
+    ssid: 1
+    api_url: https://192.168.1.100:8443/devmgr/v2
+    api_username: admin
+    api_password: adminpass
+"""
+RETURN = """
+changed:
+    description: Whether changes have been made.
+    type: bool
     returned: always
-    sample: ""
-'''
+    sample: true
+add_certificates:
+    description: Any SSL certificates that were added.
+    type: list
+    returned: always
+    sample: ["added_cerificiate.crt"]
+removed_certificates:
+    description: Any SSL certificates that were removed.
+    type: list
+    returned: always
+    sample: ["removed_cerificiate.crt"]
+"""
 
 import binascii
 import os
@@ -193,6 +214,11 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
         self.module.exit_json(changed=changed, removed_certificates=self.remove_certificates, add_certificates=self.add_certificates)
 
 
-if __name__ == '__main__':
+def main():
     client_certs = NetAppESeriesClientCertificate()
     client_certs.apply()
+
+
+if __name__ == "__main__":
+    main()
+

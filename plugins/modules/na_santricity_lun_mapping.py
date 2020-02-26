@@ -234,6 +234,10 @@ class NetAppESeriesLunMapping(NetAppESeriesModule):
         self.module.exit_json(msg="Lun mapping is complete.", changed=update)
 
 
-if __name__ == '__main__':
+def main():
     mapping = NetAppESeriesLunMapping()
     mapping.update()
+
+
+if __name__ == "__main__":
+    main()

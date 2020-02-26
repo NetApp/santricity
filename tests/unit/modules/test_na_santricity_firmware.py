@@ -3,14 +3,10 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-try:
-    from unittest.mock import patch, mock_open
-except ImportError:
-    from mock import patch, mock_open
-
 from ansible.module_utils import six
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_firmware import NetAppESeriesFirmware
 from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
+from units.compat.mock import patch, mock_open
 
 if six.PY2:
     builtin_path = "__builtin__.open"

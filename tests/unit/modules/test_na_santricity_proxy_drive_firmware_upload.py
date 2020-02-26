@@ -3,14 +3,9 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-from ansible.module_utils import six
 from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_proxy_drive_firmware_upload import NetAppESeriesProxyDriveFirmwareUpload
-
-try:
-    from unittest.mock import patch, mock_open
-except ImportError:
-    from mock import patch, mock_open
+from units.compat.mock import patch, mock_open
 
 
 class StoragePoolTest(ModuleTestCase):
@@ -20,8 +15,10 @@ class StoragePoolTest(ModuleTestCase):
                        "ssid": "1",
                        "validate_certs": "no"}
 
-    REQUEST_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_proxy_drive_firmware_upload.NetAppESeriesProxyDriveFirmwareUpload.request"
-    CREATE_MULTIPART_FORMDATA_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_proxy_drive_firmware_upload.create_multipart_formdata"
+    REQUEST_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_proxy_drive_firmware_upload." \
+                   "NetAppESeriesProxyDriveFirmwareUpload.request"
+    CREATE_MULTIPART_FORMDATA_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules." \
+                                     "na_santricity_proxy_drive_firmware_upload.create_multipart_formdata"
     OS_PATH_EXISTS_FUNC = "os.path.exists"
     OS_PATH_ISDIR_FUNC = "os.path.isdir"
     OS_LISTDIR_FUNC = "os.listdir"
@@ -72,7 +69,7 @@ class StoragePoolTest(ModuleTestCase):
         """Ensure class constructor fails when file does not exist."""
         self._set_args({"firmware": ["/path/to/firmware1.dlp", "/path/to/firmware/directory"]})
         firmware = NetAppESeriesProxyDriveFirmwareUpload()
-        
+
         with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to retrieve proxy drive firmware file list."):
             with patch(self.REQUEST_FUNC, return_value=Exception()):
                 firmware.determine_changes()

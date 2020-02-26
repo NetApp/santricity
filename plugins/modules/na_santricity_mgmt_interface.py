@@ -507,6 +507,10 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
                               available_embedded_api_urls=self.available_embedded_api_urls if self.is_embedded() else [])
 
 
-if __name__ == '__main__':
+def main():
     interface = NetAppESeriesMgmtInterface()
     interface.update()
+
+
+if __name__ == "__main__":
+    main()

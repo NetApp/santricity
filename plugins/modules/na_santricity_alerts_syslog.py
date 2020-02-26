@@ -9,7 +9,7 @@ __metaclass__ = type
 DOCUMENTATION = """
 ---
 module: na_santricity_alerts_syslog
-short_description: NetApp E-Series manage syslog servers receiving storage system alerts. 
+short_description: NetApp E-Series manage syslog servers receiving storage system alerts.
 description:
     - Manage the list of syslog servers that will notifications on potentially critical events.
 author: Nathan Swartz (@ndswartz)
@@ -37,8 +37,6 @@ options:
             - Test will only be issued when a change is made.
         type: bool
         default: false
-    
-        
 notes:
     - Check mode is supported.
     - This API is currently only supported with the Embedded Web Services API v2.12 (bundled with
@@ -121,7 +119,7 @@ class NetAppESeriesAlertsSyslog(NetAppESeriesModule):
             for entry in current_config["syslogReceivers"]:
                 if entry["serverName"] not in self.servers.keys() or entry["portNumber"] != self.servers[entry["serverName"]]:
                     return True
-                
+
             for server, port in self.servers.items():
                 for entry in current_config["syslogReceivers"]:
                     if server == entry["serverName"] and port == entry["portNumber"]:
@@ -141,7 +139,7 @@ class NetAppESeriesAlertsSyslog(NetAppESeriesModule):
 
         for server, port in self.servers.items():
             body["syslogReceivers"].append({"serverName": server, "portNumber": port})
-            
+
         return body
 
     def test_configuration(self):
@@ -162,13 +160,17 @@ class NetAppESeriesAlertsSyslog(NetAppESeriesModule):
                                           method="POST", data=self.make_request_body())
             except Exception as error:
                 self.module.fail_json(msg="Failed to add syslog server! Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
-                
+
             if self.test and self.servers:
                 self.test_configuration()
 
         self.module.exit_json(msg="The syslog settings have been updated.", changed=change_required)
 
 
-if __name__ == "__main__":
+def main():
     settings = NetAppESeriesAlertsSyslog()
     settings.update()
+
+
+if __name__ == '__main__':
+    main()

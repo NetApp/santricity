@@ -376,7 +376,7 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
         except Exception as error:
             if retries:
                 sleep(1)
-                self.proxy_check_nvsram_compatibility(retries-1)
+                self.proxy_check_nvsram_compatibility(retries - 1)
             else:
                 self.module.fail_json(msg="Failed to receive NVSRAM compatibility information. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
@@ -605,6 +605,10 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
         self.module.exit_json(changed=self.upgrade_required, upgrade_in_process=self.upgrade_in_progress)
 
 
-if __name__ == '__main__':
+def main():
     firmware = NetAppESeriesFirmware()
     firmware.apply()
+
+
+if __name__ == "__main__":
+    main()

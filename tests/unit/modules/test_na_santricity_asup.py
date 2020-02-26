@@ -316,4 +316,3 @@ class AsupTest(ModuleTestCase):
             with self.assertRaisesRegexp(AnsibleFailJson, "Failed to store maintenance information."):
                 with mock.patch(self.REQ_FUNC, side_effect=[(200, None), (200, None), Exception()]):
                     asup.update_configuration()
-

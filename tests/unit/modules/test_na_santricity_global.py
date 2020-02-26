@@ -3,14 +3,9 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-try:
-    from unittest.mock import patch, mock_open
-except ImportError:
-    from mock import patch, mock_open
-
-from ansible.module_utils import six
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_global import NetAppESeriesGlobalSettings
 from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
+from units.compat.mock import patch, mock_open
 
 
 class GlobalSettingsTest(ModuleTestCase):
@@ -298,7 +293,6 @@ class GlobalSettingsTest(ModuleTestCase):
                                                       "host_type_options": {"windows": 1, "linux": 28}, "name": 'array1'}
         self.assertTrue(instance.change_host_connectivity_reporting_enabled_required())
 
-
     def test_change_name_required_pass(self):
         """Verify change_name_required passes successfully."""
         self._set_args({"cache_block_size": 32768, "cache_flush_threshold": 90, "default_host_type": "Windows", "automatic_load_balancing": "disabled",
@@ -480,7 +474,7 @@ class GlobalSettingsTest(ModuleTestCase):
         with self.assertRaisesRegexp(AnsibleExitJson, r"'changed': False"):
             with patch(self.REQ_FUNC, side_effect=[(200, {"productCapabilities": [], "featureParameters": {"cacheBlockSizes": []}}), (200, []),
                                                    (200, [{"defaultHostTypeIndex": 28, "cache": {"cacheBlkSize": 32768, "demandFlushThreshold": 90}}]),
-                                                   (200, {"autoLoadBalancingEnabled": True, "hostConnectivityReportingEnabled": True, "name": "array1"})]*2):
+                                                   (200, {"autoLoadBalancingEnabled": True, "hostConnectivityReportingEnabled": True, "name": "array1"})] * 2):
                 instance.update()
 
         self._set_args({"cache_block_size": 32768, "cache_flush_threshold": 90, "default_host_type": "Windows", "automatic_load_balancing": "disabled",
@@ -496,5 +490,5 @@ class GlobalSettingsTest(ModuleTestCase):
         with self.assertRaisesRegexp(AnsibleExitJson, r"'changed': True"):
             with patch(self.REQ_FUNC, side_effect=[(200, {"productCapabilities": [], "featureParameters": {"cacheBlockSizes": []}}), (200, []),
                                                    (200, [{"defaultHostTypeIndex": 28, "cache": {"cacheBlkSize": 32768, "demandFlushThreshold": 90}}]),
-                                                   (200, {"autoLoadBalancingEnabled": True, "hostConnectivityReportingEnabled": True, "name": "array1"})]*2):
+                                                   (200, {"autoLoadBalancingEnabled": True, "hostConnectivityReportingEnabled": True, "name": "array1"})] * 2):
                 instance.update()

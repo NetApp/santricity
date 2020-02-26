@@ -502,6 +502,10 @@ class NetAppESeriesAsup(NetAppESeriesModule):
             self.module.exit_json(msg="No ASUP changes required.", changed=update, asup=cfg["asupEnabled"], active=cfg["onDemandEnabled"], cfg=cfg)
 
 
-if __name__ == "__main__":
+def main():
     asup = NetAppESeriesAsup()
     asup.apply()
+
+
+if __name__ == "__main__":
+    main()

@@ -6,7 +6,6 @@ __metaclass__ = type
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_iscsi_target import NetAppESeriesIscsiTarget
 from units.modules.utils import AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
 from units.compat import mock
-from units.compat.mock import PropertyMock
 
 
 class IscsiTargetTest(ModuleTestCase):

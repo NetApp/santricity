@@ -3,10 +3,10 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-from units.compat import mock
 from ansible.module_utils import six
 from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_proxy_systems import NetAppESeriesProxySystems
+from units.compat import mock
 
 
 class StoragePoolTest(ModuleTestCase):
@@ -262,7 +262,8 @@ class StoragePoolTest(ModuleTestCase):
 
         system = {"ssid": "1", "serial": "1", "password": "password", "password_valid": None, "password_set": None, "stored_password_valid": None,
                   "meta_tags": [], "controller_addresses": ["192.168.1.5", "192.168.1.6"], "embedded_available": True, "accept_certificate": True,
-                  "current_info": {"managementPaths": ["192.168.1.5", "192.168.1.6"], "metaTags": [{"key": "key", "value": "1"}], "ip1": "192.168.1.5", "ip2": "192.168.1.6",
+                  "current_info": {"managementPaths": ["192.168.1.5", "192.168.1.6"], "metaTags": [{"key": "key", "value": "1"}], "ip1": "192.168.1.5",
+                                   "ip2": "192.168.1.6",
                                    "controllers": [{"certificateStatus": "trusted"}, {"certificateStatus": "trusted"}]},
                   "changes": {}, "updated_required": False, "failed": False, "discovered": True}
         self._set_args({"password": "password", "subnet_mask": "192.168.1.0/24",
@@ -272,7 +273,8 @@ class StoragePoolTest(ModuleTestCase):
         self.assertEquals(system["changes"], {"removeAllTags": True})
 
         system = {"ssid": "1", "serial": "1", "password": "password", "password_valid": None, "password_set": None, "stored_password_valid": None,
-                  "meta_tags": [{"key": "key", "value": "1"}], "controller_addresses": ["192.168.1.5", "192.168.1.6"], "embedded_available": True, "accept_certificate": True,
+                  "meta_tags": [{"key": "key", "value": "1"}], "controller_addresses": ["192.168.1.5", "192.168.1.6"], "embedded_available": True,
+                  "accept_certificate": True,
                   "current_info": {"managementPaths": ["192.168.1.5", "192.168.1.6"], "metaTags": [], "ip1": "192.168.1.5", "ip2": "192.168.1.6",
                                    "controllers": [{"certificateStatus": "trusted"}, {"certificateStatus": "trusted"}]},
                   "changes": {}, "updated_required": False, "failed": False, "discovered": True}
@@ -293,7 +295,7 @@ class StoragePoolTest(ModuleTestCase):
         with mock.patch(self.TIME_FUNC, return_value=None):
             with mock.patch(self.REQUEST_FUNC, side_effect=[(200, None), (200, None)]):
                 systems.add_system(system)
-                
+
         system = {"ssid": "1", "serial": "1", "password": "password", "meta_tags": [],
                   "controller_addresses": ["192.168.1.5", "192.168.1.6"], "accept_certificate": False}
         self._set_args({"password": "password", "subnet_mask": "192.168.1.0/24",
@@ -494,5 +496,3 @@ class StoragePoolTest(ModuleTestCase):
         systems.is_embedded = lambda: True
         with self.assertRaisesRegexp(AnsibleFailJson, "Cannot add/remove storage systems to SANtricity Web Services Embedded instance."):
             systems.apply()
-
-

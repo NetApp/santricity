@@ -1,14 +1,13 @@
 # (c) 2020, NetApp, Inc
 # BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import datetime
 import os
-from units.compat import mock
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_client_certificate import NetAppESeriesClientCertificate
 from units.modules.utils import AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
-
+from units.compat import mock
 
 
 class NetAppESeriesClientCertificateTest(ModuleTestCase):
@@ -58,13 +57,13 @@ class NetAppESeriesClientCertificateTest(ModuleTestCase):
                     f5:87
                 Exponent: 65537 (0x10001)
         X509v3 extensions:
-            X509v3 Basic Constraints: 
+            X509v3 Basic Constraints:
                 CA:FALSE
-            Netscape Comment: 
+            Netscape Comment:
                 OpenSSL Generated Certificate
-            X509v3 Subject Key Identifier: 
+            X509v3 Subject Key Identifier:
                 08:21:10:B9:3E:A5:AF:63:02:88:F3:9D:77:74:FC:BB:AE:A0:BE:6F
-            X509v3 Authority Key Identifier: 
+            X509v3 Authority Key Identifier:
                 keyid:B8:CC:D9:8C:03:C6:06:C3:C4:22:DD:04:64:70:79:0C:93:3F:5C:E8
 
     Signature Algorithm: sha256WithRSAEncryption
@@ -372,5 +371,3 @@ toSuYG5pK8sBIlWk5T5iNL0g+BITbyWNSYh0umFRvLyKxvsCMc5bhd9V0FWb
             certificate.module.check_mode = False
             with self.assertRaises(AnsibleExitJson):
                 certificate.apply()
-
-            
