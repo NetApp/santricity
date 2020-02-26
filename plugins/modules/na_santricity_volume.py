@@ -22,7 +22,7 @@ options:
         description:
             - Whether the specified volume should exist
         choices: ["present", "absent"]
-        default: "present
+        default: "present"
     name:
         description:
             - The name of the volume to manage.
