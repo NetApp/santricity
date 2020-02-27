@@ -288,13 +288,17 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
             i += 1
         return controllers_dict
 
-    def update_target_interface_info(self):
+    def update_target_interface_info(self, retries=60):
         """Discover and update cached interface info."""
         net_interfaces = list()
         try:
             rc, net_interfaces = self.request("storage-systems/%s/configuration/ethernet-interfaces" % self.ssid)
         except Exception as error:
-            self.module.fail_json(msg="Failed to retrieve defined management interfaces. Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
+            if retries > 0:
+                self.update_target_interface_info(retries = retries - 1)
+                return
+            else:
+                self.module.fail_json(msg="Failed to retrieve defined management interfaces. Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
         iface = None
         channels = {}
@@ -304,13 +308,9 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
         for net in net_interfaces:
             if net["controllerRef"] == controller_ref:
                 channels.update({net["channel"]: net["linkStatus"]})
-
             if net["ipv4Enabled"] and net["linkStatus"] == "up":
                 self.all_interface_addresses.append(net["ipv4Address"])
-
             if net["controllerRef"] == controller_ref and net["channel"] == self.channel:
-                if net["ipv4Address"] in self.url:
-                    self.use_alternate_address = True
                 iface = net
             elif net["ipv4Enabled"] and net["linkStatus"] == "up":
                 self.alt_interface_addresses.append(net["ipv4Address"])
@@ -353,6 +353,8 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
         change_required = False
         if self.config_method == "dhcp":
             if self.interface_info["config_method"] != "configDhcp":
+                if self.interface_info["address"] in self.url:
+                    self.use_alternate_address = True
                 change_required = True
             self.body.update({"ipv4AddressConfigMethod": "configDhcp"})
         else:
@@ -360,6 +362,8 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
             if self.interface_info["config_method"] != "configStatic":
                 change_required = True
             if self.address and self.interface_info["address"] != self.address:
+                if self.interface_info["address"] in self.url:
+                    self.use_alternate_address = True
                 change_required = True
             if self.subnet_mask and self.interface_info["subnet_mask"] != self.subnet_mask:
                 change_required = True
@@ -450,15 +454,24 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
         self.module.log("update_request_body change_required: %s" % change_required)
         return change_required
 
-    def update_url(self):
+    def update_url(self, retries=60):
         """Update eseries base class url if on is available."""
-        if self.alt_interface_addresses and self.alt_interface_addresses[0] not in self.url:
-            parsed_url = urlparse.urlparse(self.url)
-            location = parsed_url.netloc.split(":")
-            location[0] = self.alt_interface_addresses[0]
-            self.url = "%s://%s/" % (parsed_url.scheme, ":".join(location))
-            self.available_embedded_api_urls = [self.url]
-            self.module.warn("Using alternate url [%s]" % self.url)
+        for address in self.alt_interface_addresses:
+            if address not in self.url and address != "0.0.0.0":
+                parsed_url = urlparse.urlparse(self.url)
+                location = parsed_url.netloc.split(":")
+                location[0] = address
+                self.url = "%s://%s/" % (parsed_url.scheme, ":".join(location))
+                self.available_embedded_api_urls = ["%s://%s/%s" % (parsed_url.scheme, ":".join(location), self.DEFAULT_REST_API_PATH)]
+                self.module.warn("Using alternate address [%s]" % self.available_embedded_api_urls[0])
+                break
+        else:
+            if retries > 0:
+                sleep(1)
+                self.update_target_interface_info()
+                self.update_url(retries=retries - 1)
+            else:
+                self.module.warn("Unable to obtain an alternate url!")
 
     def update(self):
         """Update controller with new interface, dns service, ntp service and/or remote ssh access information."""
@@ -470,7 +483,7 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
         location = parsed_url.netloc.split(":")
         for address in self.all_interface_addresses:
             location[0] = address
-            self.available_embedded_api_urls.append("%s://%s/%s" % (parsed_url.scheme, ":".join(location), self.DEFAULT_REST_API_PATH))
+            self.available_embedded_api_urls = ["%s://%s/%s" % (parsed_url.scheme, ":".join(location), self.DEFAULT_REST_API_PATH)]
 
         if change_required and not self.module.check_mode:
 
@@ -478,14 +491,13 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
             if self.is_embedded():
                 if self.use_alternate_address:
                     self.update_url()
-
-                # Rebuild list of available web services rest api urls
-                self.available_embedded_api_urls = []
-                parsed_url = urlparse.urlparse(self.url)
-                location = parsed_url.netloc.split(":")
-                self.available_embedded_api_urls.append("%s://%s/%s" % (parsed_url.scheme, ":".join(location), self.DEFAULT_REST_API_PATH))
+                if self.address:
+                    parsed_url = urlparse.urlparse(self.url)
+                    location = parsed_url.netloc.split(":")
+                    location[0] = self.address
+                    self.available_embedded_api_urls.append("%s://%s/%s" % (parsed_url.scheme, ":".join(location), self.DEFAULT_REST_API_PATH))
             else:
-                self.available_embedded_api_urls = []
+                self.available_embedded_api_urls = ["%s/%s" % (self.url, self.DEFAULT_REST_API_PATH)]
 
             # Update management interface
             try:
@@ -500,7 +512,6 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
                 sleep(1)
             else:
                 self.module.fail_json(msg="Changes failed to complete! Timeout waiting for management interface to update. Array [%s]." % self.ssid)
-
             self.module.exit_json(msg="The interface settings have been updated.", changed=change_required,
                                   available_embedded_api_urls=self.available_embedded_api_urls)
         self.module.exit_json(msg="No changes are required.", changed=change_required,
