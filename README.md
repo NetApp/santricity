@@ -78,7 +78,7 @@ Example Playbook
 ----------------
     - hosts: eseries_storage_systems
       gather_facts: false
-      collection:
+      collections:
         - netapp_eseries.santricity
       tasks:
         - name: Ensure all management related policies are enforced
@@ -226,9 +226,9 @@ Example Storage System Inventory File
     eseries_initiator_protocol: iscsi
     
     # Controller port definitions
-    eseries_controller_port_config_method: static
-    eseries_controller_port_subnet_mask: 255.255.255.0
-    eseries_controller_port:
+    eseries_controller_iscsi_port_config_method: static
+    eseries_controller_iscsi_port_subnet_mask: 255.255.255.0
+    eseries_controller_iscsi_port:
       controller_a:
         ports:
           - address: 192.168.2.100
