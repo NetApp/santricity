@@ -23,6 +23,7 @@ options:
             - Set the name of the E-Series storage-system
             - This label/name doesn't have to be unique.
             - May be up to 30 characters in length.
+        type: str
         aliases:
             - label
     cache_block_size:
@@ -48,6 +49,7 @@ options:
         description:
             - Enable automatic load balancing to allow incoming traffic from the hosts to be dynamically managed and balanced across both controllers.
             - Automatic load balancing requires host connectivity reporting to be enabled.
+        type: str
         choices:
             - enabled
             - disabled
@@ -56,6 +58,7 @@ options:
         description:
             - Enable host connectivity reporting to allow host connections to be monitored for connection and multipath driver problems.
             - When M(automatic_load_balancing==enabled) then M(host_connectivity_reporting) must be enabled
+        type: str
         choices:
             - enabled
             - disabled

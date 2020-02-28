@@ -18,9 +18,10 @@ options:
     description:
       - List of certificate files
       - Each item must include the path to the file
+    type: list
     required: false
-note:
-  - Use M(ssid=0) or M(ssid=PROXY) to specifically reference SANtricity Web Services Proxy.
+notes:
+  - Set I(ssid=="0") or I(ssid=="proxy") to specifically reference SANtricity Web Services Proxy.
 """
 EXAMPLES = """
 - name: Upload certificates
@@ -221,4 +222,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

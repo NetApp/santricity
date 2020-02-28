@@ -20,17 +20,19 @@ options:
     state:
         description:
             - Whether the specified host group should exist or not.
+        type: str
         choices: ["present", "absent"]
         default: present
     name:
-        required: false
         description:
             - Name of the host group to manage
-            - This option is mutually exclusive with I(id).
-    hosts:
+        type: str
         required: false
+    hosts:
         description:
             - List of host names/labels to add to the group
+        type: list
+        required: false
 """
 EXAMPLES = """
     - name: Configure Hostgroup

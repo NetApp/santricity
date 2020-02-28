@@ -22,37 +22,48 @@ options:
             - Existing syslog server configuration will be removed or updated when its address matches I(address).
             - Fully qualified hostname that resolve to an IPv4 address that matches I(address) will not be
               treated as a match.
+        type: str
         choices:
             - present
             - absent
         default: present
+        required: false
     address:
         description:
             - The syslog server's IPv4 address or a fully qualified hostname.
             - All existing syslog configurations will be removed when I(state=absent) and I(address=None).
+        type: str
+        required: false
     port:
         description:
             - This is the port the syslog server is using.
+        type: int
         default: 514
+        required: false
     protocol:
         description:
             - This is the transmission protocol the syslog server's using to receive syslog messages.
+        type: str
+        default: udp
         choices:
             - udp
             - tcp
             - tls
-        default: udp
+        required: false
     components:
         description:
             - The e-series logging components define the specific logs to transfer to the syslog server.
             - At the time of writing, 'auditLog' is the only logging component but more may become available.
+        type: list
         default: ["auditLog"]
+        required: false
     test:
         description:
             - This forces a test syslog message to be sent to the stated syslog server.
             - Only attempts transmission when I(state=present).
         type: bool
-        default: no
+        default: false
+        required: false
 notes:
     - Check mode is supported.
     - This API is currently only supported with the Embedded Web Services API v2.12 (bundled with

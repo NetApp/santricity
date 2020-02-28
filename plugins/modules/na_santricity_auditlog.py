@@ -20,23 +20,27 @@ options:
         description:
             - The maximum number log messages audit-log will retain.
             - Max records must be between and including 100 and 50000.
+        type: int
         default: 50000
     log_level:
         description: Filters the log messages according to the specified log level selection.
         choices:
             - all
             - writeOnly
+        type: str
         default: writeOnly
     full_policy:
         description: Specifies what audit-log should do once the number of entries approach the record limit.
         choices:
             - overWrite
             - preventSystemAccess
+        type: str
         default: overWrite
     threshold:
         description:
             - This is the memory full percent threshold that audit-log will start issuing warning messages.
             - Percent range must be between and including 60 and 90.
+        type: int
         default: 90
     force:
         description:
@@ -48,7 +52,7 @@ options:
         default: no
 notes:
     - Check mode is supported.
-    - Use M(ssid=="0" or ssid=="proxy") to configure SANtricity Web Services Proxy auditlog settings otherwise.
+    - Use I(ssid=="0") or I(ssid=="proxy") to configure SANtricity Web Services Proxy auditlog settings otherwise.
 """
 
 EXAMPLES = """

@@ -53,7 +53,8 @@ class NetAppESeriesProxyFirmwareUpload(NetAppESeriesModule):
         ansible_options = dict(firmware=dict(type="list", required=False))
         super(NetAppESeriesProxyFirmwareUpload, self).__init__(ansible_options=ansible_options,
                                                                web_services_version="02.00.0000.0000",
-                                                               supports_check_mode=True)
+                                                               supports_check_mode=True,
+                                                               proxy_specific_task=True)
 
         args = self.module.params
         self.firmware = args["firmware"]

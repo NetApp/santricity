@@ -25,6 +25,7 @@ options:
              the second as B, and so on.
             - Current hardware models have either 1 or 2 available controllers, but that is not a guaranteed hard
              limitation and could change in the future.
+        type: str
         required: true
         choices:
             - A
@@ -39,6 +40,7 @@ options:
         description:
             - When enabled, the provided configuration will be utilized.
             - When disabled, the IPv4 configuration will be cleared and IPv4 connectivity disabled.
+        type: str
         choices:
             - enabled
             - disabled
@@ -48,24 +50,31 @@ options:
             - The IPv4 address to assign to the interface.
             - Should be specified in xx.xx.xx.xx form.
             - Mutually exclusive with I(config_method=dhcp)
+        type: str
+        required: false
     subnet_mask:
         description:
             - The subnet mask to utilize for the interface.
             - Should be specified in xx.xx.xx.xx form.
             - Mutually exclusive with I(config_method=dhcp)
+        type: str
     gateway:
         description:
             - The IPv4 gateway address to utilize for the interface.
             - Should be specified in xx.xx.xx.xx form.
             - Mutually exclusive with I(config_method=dhcp)
+        type: str
+        required: false
     config_method:
         description:
             - The configuration method type to use for this interface.
             - dhcp is mutually exclusive with I(address), I(subnet_mask), and I(gateway).
+        type: str
         choices:
             - dhcp
             - static
         default: dhcp
+        required: false
     mtu:
         description:
             - The maximum transmission units (MTU), in bytes.
@@ -74,7 +83,9 @@ options:
             - Generally, it is necessary to have your host, switches, and other components not only support jumbo
               frames, but also have it configured properly. Therefore, unless you know what you're doing, it's best to
               leave this at the default.
+        type: int
         default: 1500
+        required: false
         aliases:
             - max_frame_size
 notes:

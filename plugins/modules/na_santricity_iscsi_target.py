@@ -21,6 +21,8 @@ options:
         description:
             - The name/alias to assign to the iSCSI target.
             - This alias is often used by the initiator software in order to make an iSCSI target easier to identify.
+        type: str
+        required: false
         aliases:
             - alias
     ping:
@@ -28,6 +30,7 @@ options:
             - Enable ICMP ping responses from the configured iSCSI ports.
         type: bool
         default: true
+        required: false
     chap_secret:
         description:
             - Enable Challenge-Handshake Authentication Protocol (CHAP), utilizing this value as the password.
@@ -36,6 +39,8 @@ options:
             - The chap secret may only use ascii characters with values between 32 and 126 decimal.
             - The chap secret must be no less than 12 characters, but no greater than 57 characters in length.
             - The chap secret is cleared when not specified or an empty string.
+        type: str
+        required: false
         aliases:
             - chap
             - password
@@ -46,6 +51,7 @@ options:
             - This option may be disabled to increase security if desired.
         type: bool
         default: true
+        required: false
 notes:
     - Check mode is supported.
     - Some of the settings are dependent on the settings applied to the iSCSI interfaces. These can be configured using

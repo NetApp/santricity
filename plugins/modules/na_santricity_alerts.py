@@ -20,6 +20,7 @@ options:
     state:
         description:
             - Enable/disable the sending of email-based alerts.
+        type: str
         default: enabled
         required: false
         choices:
@@ -31,29 +32,33 @@ options:
             - To use a fully qualified domain name, you must configure a DNS server on both controllers using
              M(na_santricity_mgmt_interface).
              - Required when I(state=enabled).
-        required: no
+        type: str
+        required: false
     sender:
         description:
             - This is the sender that the recipient will see. It doesn't necessarily need to be a valid email account.
             - Required when I(state=enabled).
-        required: no
+        type: str
+        required: false
     contact:
         description:
             - Allows the owner to specify some free-form contact information to be included in the emails.
             - This is typically utilized to provide a contact phone number.
-        required: no
+        type: str
+        required: false
     recipients:
         description:
             - The email addresses that will receive the email notifications.
             - Required when I(state=enabled).
-        required: no
+        type: list
+        required: false
     test:
         description:
             - When a change is detected in the configuration, a test email will be sent.
             - This may take a few minutes to process.
             - Only applicable if I(state=enabled).
-        default: no
         type: bool
+        default: false
 notes:
     - Check mode is supported.
     - Alertable messages are a subset of messages shown by the Major Event Log (MEL), of the storage-system. Examples

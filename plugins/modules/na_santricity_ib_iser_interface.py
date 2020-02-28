@@ -25,6 +25,7 @@ options:
              the second as B, and so on.
             - Current hardware models have either 1 or 2 available controllers, but that is not a guaranteed hard
              limitation and could change in the future.
+        type: str
         required: true
         choices:
             - A

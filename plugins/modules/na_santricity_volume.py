@@ -21,20 +21,24 @@ options:
     state:
         description:
             - Whether the specified volume should exist
+        type: str
         choices: ["present", "absent"]
         default: "present"
     name:
         description:
             - The name of the volume to manage.
+        type: str
         required: true
     storage_pool_name:
         description:
             - Required only when requested I(state=="present").
             - Name of the storage pool wherein the volume should reside.
+        type: str
         required: false
     size_unit:
         description:
             - The unit used to interpret the size parameter
+        type: str
         choices: ["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb"]
         default: "gb"
     size:
@@ -44,17 +48,19 @@ options:
             - Size of the virtual volume in the case of a thin volume in I(size_unit).
             - Maximum virtual volume size of a thin provisioned volume is 256tb; however other OS-level restrictions may
               exist.
+        type: float
         required: true
     segment_size_kb:
         description:
             - Segment size of the volume
             - All values are in kibibytes.
-            - Some common choices include "8", "16", "32", "64", "128", "256", and "512" but options are system
+            - Some common choices include 8, 16, 32, 64, 128, 256, and 512 but options are system
               dependent.
             - Retrieve the definitive s ystem list from M(na_santricity_facts) under segment_sizes.
             - When the storage pool is a raidDiskPool then the segment size must be 128kb.
             - Segment size migrations are not allowed in this module
-        default: "128"
+        type: int
+        default: 128
     thin_provision:
         description:
             - Whether the volume should be thin provisioned.
@@ -62,6 +68,7 @@ options:
             - Generally, use of thin-provisioning is not recommended due to performance impacts.
         type: bool
         default: false
+        required: false
     thin_volume_repo_size:
         description:
             - This value (in size_unit) sets the allocated space for the thin provisioned repository.
@@ -69,6 +76,7 @@ options:
             - During expansion operations the increase must be between or equal to 4gb and 256gb in increments of 4gb.
             - This option has no effect during expansion if I(thin_volume_expansion_policy=="automatic").
             - Generally speaking you should almost always use I(thin_volume_expansion_policy=="automatic).
+        type: int
         required: false
     thin_volume_max_repo_size:
         description:
@@ -79,7 +87,9 @@ options:
               the I(thin_volume_expansion_policy) policy.
             - Expansion operations when I(thin_volume_expansion_policy=="automatic") will increase the maximum
               repository size.
-        default: same as size (in size_unit)
+            - Default will be the same as I(size).
+        type: float
+        required: false
     thin_volume_expansion_policy:
         description:
             - This is the thin volume expansion policy.
@@ -89,38 +99,46 @@ options:
               storage system will wait for manual intervention.
             - The thin volume_expansion policy can not be modified on existing thin volumes in this module.
             - Generally speaking you should almost always use I(thin_volume_expansion_policy=="automatic).
+        type: str
         choices: ["automatic", "manual"]
         default: "automatic"
+        required: false
     thin_volume_growth_alert_threshold:
         description:
             - This is the thin provision repository utilization threshold (in percent).
             - When the percentage of used storage of the maximum repository size exceeds this value then a alert will
               be issued and the I(thin_volume_expansion_policy) will be executed.
             - Values must be between or equal to 10 and 99.
+        type: int
         default: 95
+        required: false
     owning_controller:
         description:
             - Specifies which controller will be the primary owner of the volume
             - Not specifying will allow the controller to choose ownership.
-        required: false
+        type: str
         choices: ["A", "B"]
+        required: false
     ssd_cache_enabled:
         description:
             - Whether an existing SSD cache should be enabled on the volume (fails if no SSD cache defined)
             - The default value is to ignore existing SSD cache setting.
         type: bool
         default: false
+        required: false
     data_assurance_enabled:
         description:
             - Determines whether data assurance (DA) should be enabled for the volume
             - Only available when creating a new volume and on a storage pool with drives supporting the DA capability.
         type: bool
         default: false
+        required: false
     read_cache_enable:
         description:
             - Indicates whether read caching should be enabled for the volume.
         type: bool
         default: true
+        required: false
     read_ahead_enable:
         description:
             - Indicates whether or not automatic cache read-ahead is enabled.
@@ -128,17 +146,20 @@ options:
               benefit from read ahead caching.
         type: bool
         default: true
+        required: false
     write_cache_enable:
         description:
             - Indicates whether write-back caching should be enabled for the volume.
         type: bool
         default: true
+        required: false
     cache_without_batteries:
         description:
             - Indicates whether caching should be used without battery backup.
             - Warning, M(cache_without_batteries==true) and the storage system looses power and there is no battery backup, data will be lost!
         type: bool
         default: false
+        required: false
     workload_name:
         description:
             - Label for the workload defined by the metadata.
@@ -147,6 +168,7 @@ options:
             - When I(workload_name) exists on the storage array but the metadata is different then the workload
               definition will be updated. (Changes will update all associated volumes!)
             - Existing workloads can be retrieved using M(na_santricity_facts).
+        type: str
         required: false
     metadata:
         description:
@@ -162,6 +184,7 @@ options:
             - Forces the module to wait for expansion operations to complete before continuing.
         type: bool
         default: false
+        required: false
 """
 EXAMPLES = """
 - name: Create simple volume with workload tags (volume meta data)
@@ -263,14 +286,14 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             storage_pool_name=dict(type="str"),
             size_unit=dict(default="gb", choices=["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb"], type="str"),
             size=dict(type="float"),
-            segment_size_kb=dict(type="int", default=128),
-            owning_controller=dict(required=False, choices=['A', 'B']),
+            segment_size_kb=dict(type="int", default=128, required=False),
+            owning_controller=dict(type="str", choices=["A", "B"], required=False),
             ssd_cache_enabled=dict(type="bool", default=False),
             data_assurance_enabled=dict(type="bool", default=False),
             thin_provision=dict(type="bool", default=False),
-            thin_volume_repo_size=dict(type="int"),
-            thin_volume_max_repo_size=dict(type="float"),
-            thin_volume_expansion_policy=dict(type="str", choices=["automatic", "manual"]),
+            thin_volume_repo_size=dict(type="int", required=False),
+            thin_volume_max_repo_size=dict(type="float", required=False),
+            thin_volume_expansion_policy=dict(type="str", choices=["automatic", "manual"], default="automatic", required=False),
             thin_volume_growth_alert_threshold=dict(type="int", default=95),
             read_cache_enable=dict(type="bool", default=True),
             read_ahead_enable=dict(type="bool", default=True),

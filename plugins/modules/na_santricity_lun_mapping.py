@@ -21,6 +21,7 @@ options:
   state:
     description:
       - Present will ensure the mapping exists, absent will remove the mapping.
+    type: str
     required: False
     choices: ["present", "absent"]
     default: "present"
@@ -29,11 +30,13 @@ options:
       - The name of host or hostgroup you wish to assign to the mapping
       - If omitted, the default hostgroup is used.
       - If the supplied I(volume_name) is associated with a different target, it will be updated to what is supplied here.
+    type: str
     required: False
   volume_name:
     description:
       - The name of the volume you wish to include in the mapping.
       - Use ACCESS_VOLUME to reference the in-band access management volume.
+    type: str
     required: True
     aliases:
         - volume
@@ -42,7 +45,8 @@ options:
       - The LUN value you wish to give the mapping.
       - If the supplied I(volume_name) is associated with a different LUN, it will be updated to what is supplied here.
       - LUN value will be determine by the storage-system when not specified.
-    required: no
+    type: int
+    required: false
 '''
 
 EXAMPLES = '''

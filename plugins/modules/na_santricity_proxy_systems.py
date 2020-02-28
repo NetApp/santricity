@@ -20,6 +20,7 @@ options:
     add_discovered_systems:
         description:
             - This flag will force all discovered storage systems to be added to SANtricity Web Services Proxy.
+        type: bool
         required: false
         default: false
     systems:
@@ -86,6 +87,7 @@ options:
             - Accept the storage system's certificate automatically even when it is self-signed.
             - Use M(na_santricity_certificates) to add certificates to SANtricity Web Services Proxy.
             - SANtricity Web Services Proxy will fail to add any untrusted storage system.
+        type: bool
         required: false
         default: true
 """

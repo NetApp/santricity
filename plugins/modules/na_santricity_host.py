@@ -21,6 +21,7 @@ options:
         description:
             - If the host doesn't yet exist, the label/name to assign at creation time.
             - If the hosts already exists, this will be used to uniquely identify the host to make any required changes
+        type: str
         required: True
         aliases:
             - label
@@ -28,6 +29,7 @@ options:
         description:
             - Set to absent to remove an existing host
             - Set to present to modify or create a new host definition
+        type: str
         choices:
             - absent
             - present
@@ -62,6 +64,7 @@ options:
             - A list of host ports you wish to associate with the host.
             - Host ports are uniquely identified by their WWN or IQN. Their assignments to a particular host are
              uniquely identified by a label and these must be unique.
+        type: list
         required: False
         suboptions:
             type:

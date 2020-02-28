@@ -18,21 +18,28 @@ options:
     address:
         description:
             - The IPv4 address to assign to the NVMe interface
+        type: str
+        required: false
     subnet_mask:
         description:
             - The subnet mask to utilize for the interface.
             - Only applicable when configuring RoCE
             - Mutually exclusive with I(config_method=dhcp)
+        type: str
+        required: false
     gateway:
         description:
             - The IPv4 gateway address to utilize for the interface.
             - Only applicable when configuring RoCE
             - Mutually exclusive with I(config_method=dhcp)
+        type: str
+        required: false
     config_method:
         description:
             - The configuration method type to use for this interface.
             - Only applicable when configuring RoCE
             - dhcp is mutually exclusive with I(address), I(subnet_mask), and I(gateway).
+        type: str
         choices:
             - dhcp
             - static
@@ -47,7 +54,9 @@ options:
             - Generally, it is necessary to have your host, switches, and other components not only support jumbo
               frames, but also have it configured properly. Therefore, unless you know what you're doing, it's best to
               leave this at the default.
+        type: int
         default: 1500
+        required: false
         aliases:
             - max_frame_size
     speed:
@@ -66,6 +75,7 @@ options:
         choices:
             - enabled
             - disabled
+        type: str
         required: false
         default: enabled
     channel:
@@ -75,11 +85,13 @@ options:
               that are available in the system.
             - The numerical value represents the number of the channel (typically from left to right on the HIC),
               beginning with a value of 1.
+        type: int
         required: false
     controller:
         description:
             - The controller that owns the port you want to configure.
             - Controller names are presented alphabetically, with the first controller as A and the second as B.
+        type: str
         required: false
         choices: [A, B]
 """

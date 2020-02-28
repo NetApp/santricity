@@ -20,58 +20,68 @@ options:
     description:
       - Whether the specified storage pool should exist or not.
       - Note that removing a storage pool currently requires the removal of all defined volumes first.
+    type: str
     choices: ["present", "absent"]
     default: "present"
   name:
     description:
       - The name of the storage pool to manage
+    type: str
     required: true
   criteria_drive_count:
     description:
       - The number of disks to use for building the storage pool.
       - When I(state=="present") then I(criteria_drive_count) or I(criteria_min_usable_capacity) must be specified.
       - The pool will be expanded if this number exceeds the number of disks already in place (See expansion note below)
-    required: false
     type: int
+    required: false
   criteria_min_usable_capacity:
     description:
       - The minimum size of the storage pool (in size_unit).
       - When I(state=="present") then I(criteria_drive_count) or I(criteria_min_usable_capacity) must be specified.
       - The pool will be expanded if this value exceeds its current size. (See expansion note below)
-    required: false
     type: float
+    required: false
   criteria_drive_type:
     description:
       - The type of disk (hdd or ssd) to use when searching for candidates to use.
       - When not specified each drive type will be evaluated until successful drive candidates are found starting with
         the most prevalent drive type.
-    required: false
+    type: str
     choices: ["hdd","ssd"]
+    required: false
   criteria_size_unit:
     description:
       - The unit used to interpret size parameters
+    type: str
     choices: ["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb"]
     default: "gb"
+    required: false
   criteria_drive_min_size:
     description:
       - The minimum individual drive size (in size_unit) to consider when choosing drives for the storage pool.
+    type: float
+    required: false
   criteria_drive_interface_type:
     description:
       - The interface type to use when selecting drives for the storage pool
       - If not provided then all interface types will be considered.
+    type: str
     choices: ["sas", "sas4k", "fibre", "fibre520b", "scsi", "sata", "pata"]
     required: false
   criteria_drive_require_da:
     description:
       - Ensures the storage pool will be created with only data assurance (DA) capable drives.
       - Only available for new storage pools; existing storage pools cannot be converted.
-    default: false
     type: bool
+    default: false
+    required: false
   criteria_drive_require_fde:
     description:
      - Whether full disk encryption ability is required for drives to be added to the storage pool
-    default: false
     type: bool
+    default: false
+    required: false
   raid_level:
     description:
       - The RAID level of the storage pool to be created.
@@ -84,31 +94,36 @@ options:
       - When I(raid_level=="raid5") then I(3<=criteria_drive_count<=30) is required.
       - When I(raid_level=="raid6") then I(5<=criteria_drive_count<=30) is required.
       - Note that raidAll will be treated as raidDiskPool and raid3 as raid5.
-    required: false
-    choices: ["raidAll", "raid0", "raid1", "raid3", "raid5", "raid6", "raidDiskPool"]
+    type: str
     default: "raidDiskPool"
+    choices: ["raidAll", "raid0", "raid1", "raid3", "raid5", "raid6", "raidDiskPool"]
+    required: false
   secure_pool:
     description:
       - Enables security at rest feature on the storage pool.
       - Will only work if all drives in the pool are security capable (FDE, FIPS, or mix)
       - Warning, once security is enabled it is impossible to disable without erasing the drives.
-    required: false
     type: bool
+    required: false
   reserve_drive_count:
     description:
       - Set the number of drives reserved by the storage pool for reconstruction operations.
       - Only valid on raid disk pools.
+    type: int
     required: false
   remove_volumes:
     description:
-    - Prior to removing a storage pool, delete all volumes in the pool.
+        - Prior to removing a storage pool, delete all volumes in the pool.
+    type: bool
     default: true
+    required: false
   erase_secured_drives:
     description:
       - If I(state=="absent") then all storage pool drives will be erase
       - If I(state=="present") then delete all available storage array drives that have security enabled.
-    default: true
     type: bool
+    default: true
+    required: false
 notes:
   - The expansion operations are non-blocking due to the time consuming nature of expanding volume groups
   - Traditional volume groups (raid0, raid1, raid5, raid6) are performed in steps dictated by the storage array. Each

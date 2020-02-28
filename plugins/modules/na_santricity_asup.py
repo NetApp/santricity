@@ -27,6 +27,7 @@ options:
             - The maintenance state enables the maintenance window which allows maintenance activities to be performed on the storage array without
               generating support cases.
             - Maintenance mode cannot be enabled unless ASUP has previously been enabled.
+        type: str
         default: enabled
         choices:
             - enabled
@@ -47,17 +48,20 @@ options:
             - A start hour may be specified in a range from 0 to 23 hours.
             - ASUP bundles will be sent daily between the provided start and end time (UTC).
             - I(start) must be less than I(end).
+        type: int
         default: 0
     end:
         description:
             - An end hour may be specified in a range from 1 to 24 hours.
             - ASUP bundles will be sent daily between the provided start and end time (UTC).
             - I(start) must be less than I(end).
+        type: int
         default: 24
     days:
         description:
             - A list of days of the week that ASUP bundles will be sent. A larger, weekly bundle will be sent on one
               of the provided days.
+        type: list
         choices:
             - monday
             - tuesday
@@ -67,6 +71,9 @@ options:
             - saturday
             - sunday
         required: false
+        aliases:
+            - schedule_days
+            - days_of_week
     method:
         description:
             - AutoSupport dispatch delivery method.
@@ -145,11 +152,14 @@ options:
             - Permittable range is between 1 and 72 hours.
             - Required when I(state==maintenance_enabled).
         type: int
+        default: 24
         required: false
     maintenance_emails:
         description:
             - List of email addresses for maintenance notifications.
             - Required when I(state==maintenance_enabled).
+        type: list
+        required: false
     validate:
         description:
             - Validate ASUP configuration.
@@ -267,7 +277,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
             email=dict(type="dict", required=False, options=dict(server=dict(type="str", required=False),
                                                                  sender=dict(type="str", required=False),
                                                                  test_recipient=dict(type="str", required=False))),
-            maintenance_duration=dict(type="int", required=False, default=72),
+            maintenance_duration=dict(type="int", required=False, default=24),
             maintenance_emails=dict(type="list", required=False),
             validate=dict(type="bool", require=False, default=False))
 

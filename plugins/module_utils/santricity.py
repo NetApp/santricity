@@ -45,7 +45,6 @@ def eseries_proxy_argument_spec():
         api_username=dict(type="str", required=True),
         api_password=dict(type="str", required=True, no_log=True),
         api_url=dict(type="str", required=True),
-        ssid=dict(type="str", required=False, default="1"),
         validate_certs=dict(type="bool", required=False, default=True)
     ))
     return argument_spec

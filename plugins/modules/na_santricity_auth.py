@@ -43,8 +43,9 @@ options:
     minimum_password_length:
         description:
             - This option defines the minimum password length.
+        type: int
         required: false
-note:
+notes:
     - Set I(ssid=="0") or I(ssid=="proxy") when attempting to change the password for SANtricity Web Services Proxy.
     - SANtricity Web Services Proxy storage password will be updated when changing the password on a managed storage system from the proxy; This is only true
       when the storage system has been previously contacted.

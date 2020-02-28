@@ -29,7 +29,7 @@ options:
         required: false
     proxy_url:
         description:
-            - Web Services Proxy REST API URL. example: https://192.168.1.100:8443/devmgr/v2/
+            - Web Services Proxy REST API URL. Example https://192.168.1.100:8443/devmgr/v2/
         type: str
         required: false
     proxy_username:

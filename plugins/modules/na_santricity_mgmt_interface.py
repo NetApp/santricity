@@ -295,7 +295,7 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
             rc, net_interfaces = self.request("storage-systems/%s/configuration/ethernet-interfaces" % self.ssid)
         except Exception as error:
             if retries > 0:
-                self.update_target_interface_info(retries = retries - 1)
+                self.update_target_interface_info(retries=retries - 1)
                 return
             else:
                 self.module.fail_json(msg="Failed to retrieve defined management interfaces. Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))

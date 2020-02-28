@@ -23,76 +23,83 @@ options:
             - When I(state=="present") the defined LDAP domain will be added to the storage system.
             - When I(state=="absent") the domain specified will be removed from the storage system.
             - I(state=="disabled") will result in deleting all existing LDAP domains on the storage system.
+        type: str
         choices:
             - present
             - absent
             - disabled
-        default: enabled
-        identifier:
-            description:
-                - This is a unique identifier for the configuration (for cases where there are multiple domains configured).
-            default: default
-            required: false
-        bind_user:
-            description:
-                - This is the user account that will be used for querying the LDAP server.
-                - Required when I(bind_password) is specified.
-                - "Example: CN=MyBindAcct,OU=ServiceAccounts,DC=example,DC=com"
-            required: false
-        bind_password:
-            description:
-                - This is the password for the bind user account.
-                - Required when I(bind_user) is specified.
-            required: false
-        server_url:
-            description:
-                - This is the LDAP server url.
-                - The connection string should be specified as using the ldap or ldaps protocol along with the port
-                  information.
-            required: false
-        names:
-            description:
-                - The domain name[s] that will be utilized when authenticating to identify which domain to utilize.
-                - Default to use the DNS name of the I(server).
-                - The only requirement is that the name[s] be resolvable.
-                - "Example: user@example.com"
-            required: false
-        search_base:
-            description:
-                - The search base is used to find group memberships of the user.
-                - "Example: ou=users,dc=example,dc=com"
-            required: false
-        role_mappings:
-            description:
-                - This is where you specify which groups should have access to what permissions for the
-                  storage-system.
-                - For example, all users in group A will be assigned all 4 available roles, which will allow access
-                  to all the management functionality of the system (super-user). Those in group B only have the
-                  storage.monitor role, which will allow only read-only access.
-                - This is specified as a mapping of regular expressions to a list of roles. See the examples.
-                - The roles that will be assigned to to the group/groups matching the provided regex.
-                - storage.admin allows users full read/write access to storage objects and operations.
-                - storage.monitor allows users read-only access to storage objects and operations.
-                - support.admin allows users access to hardware, diagnostic information, the Major Event
-                  Log, and other critical support-related functionality, but not the storage configuration.
-                - security.admin allows users access to authentication/authorization configuration, as well
-                  as the audit log configuration, and certification management.
-            required: false
-        group_attributes:
-            description:
-                - The user attributes that should be considered for the group to role mapping.
-                - Typically this is used with something like "memberOf", and a user"s access is tested against group
-                  membership or lack thereof.
-            type: list
-            default: memberOf
-            required: false
-        user_attribute:
-            description:
-                - This is the attribute we will use to match the provided username when a user attempts to
-                  authenticate.
-            type: str
-            default: sAMAccountName
-            required: false
+        default: present
+    identifier:
+        description:
+            - This is a unique identifier for the configuration (for cases where there are multiple domains configured).
+        type: str
+        default: "default"
+        required: false
+    bind_user:
+        description:
+            - This is the user account that will be used for querying the LDAP server.
+            - Required when I(bind_password) is specified.
+            - "Example: CN=MyBindAcct,OU=ServiceAccounts,DC=example,DC=com"
+        type: str
+        required: false
+    bind_password:
+        description:
+            - This is the password for the bind user account.
+            - Required when I(bind_user) is specified.
+        type: str
+        required: false
+    server_url:
+        description:
+            - This is the LDAP server url.
+            - The connection string should be specified as using the ldap or ldaps protocol along with the port information.
+        type: str
+        required: false
+    names:
+        description:
+            - The domain name[s] that will be utilized when authenticating to identify which domain to utilize.
+            - Default to use the DNS name of the I(server).
+            - The only requirement is that the name[s] be resolvable.
+            - "Example: user@example.com"
+        type: list
+        required: false
+    search_base:
+        description:
+            - The search base is used to find group memberships of the user.
+            - "Example: ou=users,dc=example,dc=com"
+        type: str
+        required: false
+    role_mappings:
+        description:
+            - This is where you specify which groups should have access to what permissions for the
+              storage-system.
+            - For example, all users in group A will be assigned all 4 available roles, which will allow access
+              to all the management functionality of the system (super-user). Those in group B only have the
+              storage.monitor role, which will allow only read-only access.
+            - This is specified as a mapping of regular expressions to a list of roles. See the examples.
+            - The roles that will be assigned to to the group/groups matching the provided regex.
+            - storage.admin allows users full read/write access to storage objects and operations.
+            - storage.monitor allows users read-only access to storage objects and operations.
+            - support.admin allows users access to hardware, diagnostic information, the Major Event
+              Log, and other critical support-related functionality, but not the storage configuration.
+            - security.admin allows users access to authentication/authorization configuration, as well
+              as the audit log configuration, and certification management.
+        type: dict
+        required: false
+    group_attributes:
+        description:
+            - The user attributes that should be considered for the group to role mapping.
+            - Typically this is used with something like "memberOf", and a user"s access is tested against group
+              membership or lack thereof.
+        type: list
+        default: ["memberOf"]
+        required: false
+    user_attribute:
+        description:
+            - This is the attribute we will use to match the provided username when a user attempts to
+              authenticate.
+        type: str
+        default: "sAMAccountName"
+        required: false
 notes:
     - Check mode is supported
     - This module allows you to define one or more LDAP domains identified uniquely by I(identifier) to use for
