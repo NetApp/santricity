@@ -308,13 +308,14 @@ Collection Variables
     eseries_system_autoload_balance:               # Whether automatic load balancing should be enabled. Choices: enabled, disabled
     eseries_system_host_connectivity_reporting:    # Whether host connectivity reporting should be enabled. Choices: enabled, disabled
     eseries_system_default_host_type:              # Only required when using something other than Linux kernel 3.10 or later with DM-MP (Linux DM-MP),
-                                                   #     non-clustered Windows (Windows), or the storage system default host type is incorrect. Common definitions below:
+                                                   #    non-clustered Windows (Windows), or the storage system default host type is incorrect.
+                                                   # Common host type definitions:
                                                    #     - AIX MPIO: The Advanced Interactive Executive (AIX) OS and the native MPIO driver
-                                                   #     - AVT 4M: Silicon Graphics, Inc. (SGI) proprietary multipath driver; refer to the SGI installation documentation for more information
+                                                   #     - AVT 4M: Silicon Graphics, Inc. (SGI) proprietary multipath driver
                                                    #     - HP-UX: The HP-UX OS with native multipath driver
                                                    #     - Linux ATTO: The Linux OS and the ATTO Technology, Inc. driver (must use ATTO FC HBAs)
                                                    #     - Linux DM-MP: The Linux OS and the native DM-MP driver
-                                                   #     - Linux Pathmanager: The Linux OS and the SGI proprietary multipath driver; refer to the SGI installation documentation for more information
+                                                   #     - Linux Pathmanager: The Linux OS and the SGI proprietary multipath drive
                                                    #     - Mac: The Mac OS and the ATTO Technology, Inc. driver
                                                    #     - ONTAP: FlexArray
                                                    #     - Solaris 11 or later: The Solaris 11 or later OS and the native MPxIO driver
@@ -332,7 +333,7 @@ Collection Variables
     eseries_system_support_password:     # Storage system support username password
 
     # Storage management interface defaults
-        Note:  eseries_management_* variables have the lowest priority and will be overwritten by those found in eseries_management_interfaces; use these to defined host group defaults.
+        Note:  eseries_management_* variables have the lowest priority and will be overwritten by those found in eseries_management_interfaces
     eseries_management_config_method:         # Default config method for all management interfaces. Choices: static, dhcp
     eseries_management_subnet_mask:           # Default subnet mask for all management interfaces
     eseries_management_gateway_mask:          # Default gateway for all management interfaces
@@ -376,8 +377,8 @@ Collection Variables
     eseries_alerts_sender:              # Sender email. This does not necessarily need to be a valid e-mail.
     eseries_alerts_server:              # Fully qualified domain name, IPv4 address, or IPv6 address of the mail server.
     eseries_alerts_test: false          # When changes are made to the storage system alert configuration a test e-mail will be sent. Choices: true, false
-    eseries_alert_syslog_servers:       # List of dictionaries where each dictionary contains a syslog server entry. [{"address": <syslog_address>, "port": 514}]
-    eseries_alert_syslog_test: false    # When changes are made to the alerts syslog servers configuration a test message will be sent to them. Choices: true, false
+    eseries_alert_syslog_servers:       # List of dictionaries where each dictionary contains a syslog server entry. [{"address": <address>, "port": <port>}]
+    eseries_alert_syslog_test: false    # Whether alerts syslog servers configuration test message should be sent. Choices: true, false
 
     # LDAP configuration defaults
     eseries_ldap_state:             # Whether LDAP should be configured
@@ -409,7 +410,7 @@ Collection Variables
 
     # Auto-Support configuration defaults
     eseries_asup_state:              # Whether auto support (ASUP) should be enabled. Choices: enabled, disabled
-    eseries_asup_active:             # Enables active monitoring which allows NetApp support personnel to request support data to resolve issues. Choices: true, false
+    eseries_asup_active:             # Allows NetApp support personnel to request support data to resolve issues. Choices: true, false
     eseries_asup_days:               # List of days of the week. Choices: monday, tuesday, wednesday, thursday, friday, saturday, sunday
     eseries_asup_start:              # Hour of the day(s) to start ASUP bundle transmissions. Start time must be less than end time. Choices: 0-23
     eseries_asup_end:                # Hour of the day(s) to end ASUP bundle transmissions. Start time must be less than end time. Choices: 1-24
@@ -429,7 +430,7 @@ Collection Variables
 
     # Audit-log configuration defaults
     eseries_auditlog_enforce_policy:    # Whether to make audit-log policy changes. Choices: true, false
-    eseries_auditlog_force:             # Forces audit-log to delete log messages when fullness threshold has been exceeded. Applicable when eseries_auditlog_full_policy=preventSystemAccess. Choices: true, false
+    eseries_auditlog_force:             # Forces audit-log to delete log messages when fullness threshold has been exceeded. Choices: true, false
     eseries_auditlog_full_policy:       # Policy for what to do when record limit has been reached. Choices: overWrite, preventSystemAccess
     eseries_auditlog_log_level:         # Filters logs based on the specified level. Choices: all, writeOnly
     eseries_auditlog_max_records:       # Maximum number of audit-log messages retained. Choices: 100-50000.
@@ -449,9 +450,9 @@ Collection Variables
     eseries_iscsi_target_ping: True                   # Enables ICMP ping response from the configured iSCSI ports (boolean)
     eseries_iscsi_target_unnamed_discovery: True      # Whether the iSCSI target iqn should be returned when an initiator performs a discovery session.
     eseries_iscsi_target_chap_secret:                 # iSCSI chap secret. When left blank, the chap secret will be removed from the storage system.
-    eseries_iscsi_target_chap_secret_update: False    # DO NOT REMOVE! Since na_santricity_iscsi_target cannot compare the chap secret with the current and chooses to always
-                                                      #     return changed=True, this flag is used to force the module to update the chap secret. It is preferable to
-                                                      #     leave this value False and to add the --extra-vars "eseries_target_chap_secret_update=True".
+    eseries_iscsi_target_chap_secret_update: False    # DO NOT REMOVE! Since na_santricity_iscsi_target cannot compare the chap secret with the current and
+                                                      #     will always return changed=True, this flag is used to force the module to update the chap secret.
+                                                      #     Leave this value False and to add the --extra-vars "eseries_target_chap_secret_update=True".
 
     # Controller iSCSI Interface Port Default Policy Specifications
     eseries_controller_iscsi_port_state: enabled         # Generally specifies whether a controller port definition should be applied Choices: enabled, disabled
@@ -492,12 +493,12 @@ Collection Variables
       controller_b:    # Ordered list of controller B channel address definition.
 
     # Controller NVMe RoCE Interface Port Default Policy Specifications
-    eseries_controller_nvme_roce_port_state: enabled         # Generally specifies whether a controller port definition should be applied Choices: enabled, disabled
-    eseries_controller_nvme_roce_port_config_method: dhcp    # General port configuration method definition for both controllers. Choices: static, dhcp
-    eseries_controller_nvme_roce_port_gateway:               # General port IPv4 gateway for both controllers.
-    eseries_controller_nvme_roce_port_subnet_mask:           # General port IPv4 subnet mask for both controllers.
-    eseries_controller_nvme_roce_port_mtu: 9000              # General port maximum transfer units (MTU). Any value greater than 1500 (bytes).
-    eseries_controller_nvme_roce_port_speed: auto            # General interface speed. Value must be a supported speed or auto for automatically negotiating the speed with the port.
+    eseries_controller_nvme_roce_port_state: enabled         # Specifies whether a controller port definition should be applied. Choices: enabled, disabled
+    eseries_controller_nvme_roce_port_config_method: dhcp    # Port configuration method definition for both controllers. Choices: static, dhcp
+    eseries_controller_nvme_roce_port_gateway:               # Port IPv4 gateway for both controllers.
+    eseries_controller_nvme_roce_port_subnet_mask:           # Port IPv4 subnet mask for both controllers.
+    eseries_controller_nvme_roce_port_mtu: 9000              # Port maximum transfer units (MTU). Any value greater than 1500 (bytes).
+    eseries_controller_nvme_roce_port_speed: auto            # Interface speed. Value must be a supported speed or auto to negotiate the speed with the port.
     eseries_controller_nvme_roce_port:
       controller_a:           # Controller A port definition.
         state:                # General definitions for all ports on controller A. Any option specified in the ports definition can be
@@ -556,10 +557,8 @@ Collection Variables
     eseries_volume_thin_volume_expansion_policy:          # Default thin volume expansion policy. Choices: automatic, manual
     eseries_volume_thin_volume_growth_alert_threshold:    # Default thin volume growth alert threshold; this is the threshold for when the thin volume expansion
                                                           #    policy will be enacted. Allowable values are between and including 10% and 99%
-    eseries_volume_ssd_cache_enabled:                     # Default for ssd cache which will enable the volume to use an existing SSD cache on the storage array.
-    eseries_volume_host:                                  # Default host for all volumes; the value can be any host from the Ansible inventory. Any initiator may be
-                                                          #    used whether connected or not since the storage array does not require connectivity in order to create
-                                                          #    host objects.
+    eseries_volume_ssd_cache_enabled:                     # Default for ssd cache which will enable the volume to use an existing SSD cache on the storage array
+    eseries_volume_host:                                  # Default host for all volumes; the value can be any host from the Ansible inventory.
     eseries_volume_workload_name:                         # Default workload tag name
     eseries_volume_metadata:                              # Default metadata
     eseries_volume_owning_controller                      # Default preferred owning controller
@@ -573,73 +572,74 @@ Collection Variables
                                           #    eseries_storage_pool_configuration.
 
     # Storage Pool-Volume Default Policy Specifications
-       Name schemes: Storage pool and volume names can be used to specify a naming scheme to produce a list of storage pools and volumes. The scheme are defined by
+       Name schemes: Storage pool and volume names can be used to specify a naming scheme to produce a list of storage pools and volumes. Schemes are defined by
                      brackets and can be used to specify a range of lowercase letters, uppercase letters, range of single digit numbers, any top-level inventory
-                     variables, and the current defined storage pool (volume only).
+                     variables, and [pool] to use the current defined storage pool (volume only).
     eseries_storage_pool_configuration:
       - name:                                      # Name or name scheme (see above) for the storage pool.
-        state:                                     # Specifies whether the storage pool should exist (present, absent). When removing an existing storage array all of the
-                                                   #    volumes must be defined with state=absent.
+        state:                                     # Specifies whether the storage pool should exist. Choices: present, absent
         raid_level                                 # Volume group raid level. Choices: raid0, raid1, raid5, raid6, raidDiskPool (Default: raidDiskPool)
-        secure_pool:                               # Default for storage pool drive security. This flag will enable the security at rest feature. There must be sufficient FDE
-                                                   #    or FIPS security capable drives. Choices: true, false
+        secure_pool:                               # Default for storage pool drive security. This flag will enable the security at rest feature. There must be
+                                                   #    sufficient FDE or FIPS security capable drives. Choices: true, false
         criteria_drive_count:                      # Default storage pool drive count.
-        reserve_drive_count:                       # Default reserve drive count for drive reconstruction for storage pools using dynamic disk pool and the raid level must be
-                                                   #    set for raidDiskPool.
+        reserve_drive_count:                       # Default reserve drive count for drive reconstruction for storage pools using dynamic disk pool and the raid
+                                                   #    level must be set for raidDiskPool.
         criteria_min_usable_capacity:              # Default minimum required capacity for storage pools.
         criteria_drive_type:                       # Default drive type for storage pools. Choices: hdd, ssd
         criteria_size_unit:                        # Default unit size for all storage pool related sizing. Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
         criteria_drive_min_size:                   # Default minimum drive size for storage pools.
-        criteria_drive_require_da:                 # Default for whether storage pools are required to have data assurance (DA) compatible drives. Choices: true, false
-        criteria_drive_require_fde:                # Default for whether storage pools are required to have drive security compatible drives. Choices: true, false
-        remove_volumes:                            # Default policy for deleting volumes prior to removing storage pools.
-        erase_secured_drives:                      # Default policy for erasing the content drives during create and delete storage pool operations. Choices: true, false
-        common_volume_configuration:               # Any option that can be specified at the volume level can be generalized here at the storage pool level. This is useful when
-                                                   #    all volumes share common configuration definitions.
+        criteria_drive_require_da:                 # Ensures storage pools have data assurance (DA) compatible drives. Choices: true, false
+        criteria_drive_require_fde:                # Ensures storage pools have drive security compatible drives. Choices: true, false
+        remove_volumes:                            # Ensures volumes are deleted prior to removing storage pools.
+        erase_secured_drives:                      # Ensures data is erased during create and delete storage pool operations. Choices: true, false
+        common_volume_configuration:               # Any option that can be specified at the volume level can be generalized here at the storage pool level.
         volumes:                                   # List of volumes associated the storage pool.
           - state:                                 # Specifies whether the volume should exist (present, absent)
             name:                                  # (required) Name or name scheme (see above) for the volume(s) to be created in the storage pool(s)
             host:                                  # host or host group for the volume should be mapped to.
             host_type:                             # Only required when using something other than Linux kernel 3.10 or later with DM-MP (Linux DM-MP),
-                                                   #     non-clustered Windows (Windows), or the storage system default host type is incorrect. Common definitions below:
-                                                   #     - AIX MPIO: The Advanced Interactive Executive (AIX) OS and the native MPIO driver
-                                                   #     - AVT 4M: Silicon Graphics, Inc. (SGI) proprietary multipath driver; refer to the SGI installation documentation for more information
-                                                   #     - HP-UX: The HP-UX OS with native multipath driver
-                                                   #     - Linux ATTO: The Linux OS and the ATTO Technology, Inc. driver (must use ATTO FC HBAs)
-                                                   #     - Linux DM-MP: The Linux OS and the native DM-MP driver
-                                                   #     - Linux Pathmanager: The Linux OS and the SGI proprietary multipath driver; refer to the SGI installation documentation for more information
-                                                   #     - Mac: The Mac OS and the ATTO Technology, Inc. driver
-                                                   #     - ONTAP: FlexArray
-                                                   #     - Solaris 11 or later: The Solaris 11 or later OS and the native MPxIO driver
-                                                   #     - Solaris 10 or earlier: The Solaris 10 or earlier OS and the native MPxIO driver
-                                                   #     - SVC: IBM SAN Volume Controller
-                                                   #     - VMware: ESXi OS
-                                                   #     - Windows: Windows Server OS and Windows MPIO with a DSM driver
-                                                   #     - Windows Clustered: Clustered Windows Server OS and Windows MPIO with a DSM driver
-                                                   #     - Windows ATTO: Windows OS and the ATTO Technology, Inc. driver
+                                                   #    non-clustered Windows (Windows), or the storage system default host type is incorrect.
+                                                   # Common host type definitions:
+                                                   #    - AIX MPIO: The Advanced Interactive Executive (AIX) OS and the native MPIO driver
+                                                   #    - AVT 4M: Silicon Graphics, Inc. (SGI) proprietary multipath driver
+                                                   #    - HP-UX: The HP-UX OS with native multipath driver
+                                                   #    - Linux ATTO: The Linux OS and the ATTO Technology, Inc. driver (must use ATTO FC HBAs)
+                                                   #    - Linux DM-MP: The Linux OS and the native DM-MP driver
+                                                   #    - Linux Pathmanager: The Linux OS and the SGI proprietary multipath driver
+                                                   #    - Mac: The Mac OS and the ATTO Technology, Inc. driver
+                                                   #    - ONTAP: FlexArray
+                                                   #    - Solaris 11 or later: The Solaris 11 or later OS and the native MPxIO driver
+                                                   #    - Solaris 10 or earlier: The Solaris 10 or earlier OS and the native MPxIO driver
+                                                   #    - SVC: IBM SAN Volume Controller
+                                                   #    - VMware: ESXi OS
+                                                   #    - Windows: Windows Server OS and Windows MPIO with a DSM driver
+                                                   #    - Windows Clustered: Clustered Windows Server OS and Windows MPIO with a DSM driver
+                                                   #    - Windows ATTO: Windows OS and the ATTO Technology, Inc. driver
+            metadata:                              # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.
+            owning_controller:                     # Specifies which controller will be the primary owner of the volume. Not specifying will allow the
+                                                   #    controller to choose ownership. (Choices: A, B)
+            read_ahead_enable:                     # Enables read ahead caching; this is good for sequential workloads to cache subsequent blocks.
+            read_cache_enable:                     # Enables read caching which will cache all read requests.
             size:                                  # Size of the volume or presented size of the thinly provisioned volume.
             size_unit:                             # Unit size for the size, thin_volume_repo_size, and thin_volume_max_repo_size
                                                    #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
-            segment_size_kb:                       # Indicates the amount of data stored on a drive before moving on to the next drive in the volume group. Does not apply to pool volumes.
+            segment_size_kb:                       # Indicates the amount of data stored on a drive before moving on to the next drive in the volume group.
+            ssd_cache_enabled:                     # Enables ssd cache which will enable the volume to use an existing SSD cache on the storage array.
             thin_provision:                        # Whether volumes should be thinly provisioned.
             thin_volume_repo_size:                 # Actually allocated space for thinly provisioned volumes.
             thin_volume_max_repo_size:             # Maximum allocated space allowed for thinly provisioned volumes.
             thin_volume_expansion_policy:          # Thin volume expansion policy. Choices: automatic, manual
             thin_volume_growth_alert_threshold:    # Thin volume growth alert threshold; this is the threshold for when the thin volume expansion
                                                    #    policy will be enacted. Allowable values are between and including 10% and 99%
-            ssd_cache_enabled:                     # Enables ssd cache which will enable the volume to use an existing SSD cache on the storage array.
             data_assurance_enabled:                # Enables whether data assurance(DA) is required to be enabled.
-            read_cache_enable:                     # Enables read caching which will cache all read requests.
-            read_ahead_enable:                     # Enables read ahead caching; this is good for sequential workloads to cache subsequent blocks.
-            write_cache_enable:                    # Enables write caching which will cache all writes.
-            workload_name:                         # Name of the volume's workload. This can be defined using the metadata option or, if already defined, specify one already
-                                                   #    created on the storage array.
-            metadata:                              # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.
             wait_for_initialization:               # Whether volume creation with wait for initialization to complete
+            workload_name:                         # Name of the volume's workload
+            write_cache_enable:                    # Enables write caching which will cache all writes.
+                                                   #    created on the storage array.
 
     # Initiator-Target Protocol Variable Defaults
         Note that the following commands need to produce a unique list of IQNs or WWNs of the interfaces used, line separated. Overwrite as necessary.
-    eseries_initiator_protocol: fc     # This variable defines which protocol the storage array will use. Choices: fc, iscsi, sas, ib_iser, ib_srp, nvme_ib, nvme_roce
+    eseries_initiator_protocol: fc     # Storage system protocol. Choices: fc, iscsi, sas, ib_iser, ib_srp, nvme_ib, nvme_roce
     eseries_initiator_command:
       fc:
         linux: "systool -c fc_host -v | grep port_name | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"
@@ -682,13 +682,14 @@ Collection Variables
             port:     # Port initiator (iqn, wwn, etc)
         group:        # Host's host group
         host_type:    # Only required when using something other than Linux kernel 3.10 or later with DM-MP (Linux DM-MP),
-                      #     non-clustered Windows (Windows), or the storage system default host type is incorrect. Common definitions below:
+                      #     non-clustered Windows (Windows), or the storage system default host type is incorrect.
+                      # Common host type definitions:
                       #     - AIX MPIO: The Advanced Interactive Executive (AIX) OS and the native MPIO driver
-                      #     - AVT 4M: Silicon Graphics, Inc. (SGI) proprietary multipath driver; refer to the SGI installation documentation for more information
+                      #     - AVT 4M: Silicon Graphics, Inc. (SGI) proprietary multipath driver
                       #     - HP-UX: The HP-UX OS with native multipath driver
                       #     - Linux ATTO: The Linux OS and the ATTO Technology, Inc. driver (must use ATTO FC HBAs)
                       #     - Linux DM-MP: The Linux OS and the native DM-MP driver
-                      #     - Linux Pathmanager: The Linux OS and the SGI proprietary multipath driver; refer to the SGI installation documentation for more information
+                      #     - Linux Pathmanager: The Linux OS and the SGI proprietary multipath driver
                       #     - Mac: The Mac OS and the ATTO Technology, Inc. driver
                       #     - ONTAP: FlexArray
                       #     - Solaris 11 or later: The Solaris 11 or later OS and the native MPxIO driver
