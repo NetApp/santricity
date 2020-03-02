@@ -3,7 +3,7 @@ ssid: "1"
 base_url: https://192.168.1.100:8443/devmgr/v2/
 username: admin
 password: adminPass
-validate_cert: true
+validate_cert: false
 
 # proxy url and credentials - modules that require special api testing will use this information
 proxy_ssid: "10"
@@ -11,7 +11,16 @@ proxy_legacy_ssid: "20"
 proxy_base_url: https://192.168.1.200:8443/devmgr/v2/
 proxy_username: admin
 proxy_password: adminPass
-proxy_validate_cert: true
+proxy_validate_cert: false
+
+# na_santricity_auth module variable requirements in addition to both embedded and proxy credentials
+proxy_discover_subnet: 192.168.1.0/24
+systems:
+  - ssid: 10  # should match proxy_ssid above
+    addresses: ["192.168.1.110"]
+  - ssid: 20  # should match proxy_legacy_ssid above
+    addresses: ["192.168.1.120"]
+
 
 # na_santricity_ldap module variable requirements
 #bind_user: "CN=bind_user,OU=accounts,DC=test,DC=example,DC=com"
