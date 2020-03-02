@@ -22,14 +22,13 @@ options:
             - The current admin password.
             - When making changes to the embedded web services's login passwords, api_password will be used and current_admin_password will be ignored.
             - When making changes to the proxy web services's login passwords, api_password will be used and current_admin_password will be ignored.
-            - Only required when the password has been set.
+            - Only required when the password has been set and will be ignored if not set.
         type: str
         required: false
     password:
         description:
             - The password you would like to set.
             - Cannot be more than 30 characters.
-            - Clearing the admin password will clear the read-only password
         type: str
         required: false
     user:
@@ -39,7 +38,8 @@ options:
             - For systems prior to E2800, all choices except admin will be ignored.
         type: str
         choices: ["admin", "monitor", "support", "security", "storage"]
-        required: true
+        default: "admin"
+        required: false
     minimum_password_length:
         description:
             - This option defines the minimum password length.
@@ -81,7 +81,7 @@ class NetAppESeriesAuth(NetAppESeriesModule):
         version = "02.00.0000.0000"
         ansible_options = dict(current_admin_password=dict(type="str", required=False, no_log=True),
                                password=dict(type="str", required=False, no_log=True),
-                               user=dict(type="str", choices=["admin", "monitor", "support", "security", "storage"], required=True),
+                               user=dict(type="str", choices=["admin", "monitor", "support", "security", "storage"], default="admin", required=False),
                                minimum_password_length=dict(type="int", required=False, no_log=True))
 
         super(NetAppESeriesAuth, self).__init__(ansible_options=ansible_options, web_services_version=version, supports_check_mode=True)
@@ -98,10 +98,7 @@ class NetAppESeriesAuth(NetAppESeriesModule):
 
     def minimum_password_length_change_required(self):
         """Retrieve the current storage array's global configuration."""
-        if self.minimum_password_length is None:
-            return False
-
-        changed_required = False
+        change_required = False
         try:
             if self.is_proxy():
                 if self.ssid == "0" or self.ssid.lower() == "proxy":
@@ -118,14 +115,14 @@ class NetAppESeriesAuth(NetAppESeriesModule):
             self.module.fail_json(msg="Failed to determine minimum password length. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
         self.is_admin_password_set = system_info["adminPasswordSet"]
-        if self.minimum_password_length != system_info["minimumPasswordLength"]:
-            changed_required = True
+        if self.minimum_password_length is not None and self.minimum_password_length != system_info["minimumPasswordLength"]:
+            change_required = True
 
-        if (self.password is not None and ((changed_required and self.minimum_password_length > len(self.password)) or
-                                           (not changed_required and system_info["minimumPasswordLength"] > len(self.password)))):
+        if (self.password is not None and ((change_required and self.minimum_password_length > len(self.password)) or
+                                           (not change_required and system_info["minimumPasswordLength"] > len(self.password)))):
             self.module.fail_json(msg="Password does not meet the length requirement [%s]. Array Id [%s]." % (system_info["minimumPasswordLength"], self.ssid))
 
-        return changed_required
+        return change_required
 
     def update_minimum_password_length(self):
         """Update automatic load balancing state."""
@@ -325,8 +322,14 @@ class NetAppESeriesAuth(NetAppESeriesModule):
                 else:
                     self.set_array_password()
 
-            self.module.exit_json(msg="Password has been changed. Array [%s]." % self.ssid, changed=change_required)
-        self.module.exit_json(msg="Password has not been changed. Array [%s]." % self.ssid, changed=change_required)
+            if password_change_required and minimum_password_length_change_required:
+                self.module.exit_json(msg="'%s' password and required password length has been changed. Array [%s]."
+                                          % (self.user, self.ssid), changed=change_required)
+            elif password_change_required:
+                self.module.exit_json(msg="'%s' password has been changed. Array [%s]." % (self.user, self.ssid), changed=change_required)
+            elif minimum_password_length_change_required:
+                self.module.exit_json(msg="Required password length has been changed. Array [%s]." % self.ssid, changed=change_required)
+        self.module.exit_json(msg="No changes have been made. Array [%s]." % self.ssid, changed=change_required)
 
 
 def main():
