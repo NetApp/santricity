@@ -481,14 +481,6 @@ class MgmtInterfaceTest(ModuleTestCase):
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.url = "https://192.168.1.100:8443/devmgr/v2/"
-        mgmt_interface.alt_interface_addresses = []
-        mgmt_interface.update_url()
-        self.assertTrue(mgmt_interface.url, "https://192.168.1.100:8443/devmgr/v2/")
-
-        initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp", "ssh": False}
-        self._set_args(initial)
-        mgmt_interface = NetAppESeriesMgmtInterface()
-        mgmt_interface.url = "https://192.168.1.100:8443/devmgr/v2/"
         mgmt_interface.alt_interface_addresses = ["192.168.1.102"]
         mgmt_interface.update_url()
         self.assertTrue(mgmt_interface.url, "https://192.168.1.102:8443/devmgr/v2/")
