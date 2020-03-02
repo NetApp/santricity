@@ -69,17 +69,25 @@ EXAMPLES = """
 """
 
 RETURN = """
-msg:
+systems_found:
     description: Success message
     returned: on success
-    type: str
-    sample: The discover E-Series storage systems.
+    type: dict
+    sample: {"012341234123": {
+                "addresses": ["192.168.1.184", "192.168.1.185"],
+                "api_urls": ["https://192.168.1.184:8443/devmgr/v2/", "https://192.168.1.185:8443/devmgr/v2/"],
+                "label": "ExampleArray01",
+                "proxy_required": false},
+             "012341234567": {
+                "addresses": ["192.168.1.23", "192.168.1.24"],
+                "api_urls": ["https://192.168.1.100:8443/devmgr/v2/"],
+                "label": "ExampleArray02",
+                "proxy_required": true}}
 """
 import ipaddress
 import json
 import multiprocessing
 import threading
-from os import system
 from time import sleep
 
 from ansible.module_utils.basic import AnsibleModule
