@@ -13,7 +13,6 @@ class StoragePoolTest(ModuleTestCase):
     REQUIRED_PARAMS = {"api_username": "username",
                        "api_password": "password",
                        "api_url": "http://localhost/devmgr/v2",
-                       "ssid": "1",
                        "validate_certs": "no"}
 
     REQUEST_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_proxy_systems.NetAppESeriesProxySystems.request"
