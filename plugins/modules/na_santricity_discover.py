@@ -154,8 +154,8 @@ class NetAppESeriesDiscover:
             try:
                 rc, sa_data = request(url + "symbol/getSAData", validate_certs=False, force_basic_auth=False, ignore_errors=True)
                 if rc == 401:   # Unauthorized
-                    self.module.warn("Fail over and discover any storage system without a set admin password."
-                                     " This will discover systems without a set password such as newly deployed storage systems.")
+                    self.module.warn("Fail over and discover any storage system without a set admin password. This will discover systems without a set password"
+                                     " such as newly deployed storage systems. Address [%s]." % address)
                     # Fail over and discover any storage system without a set admin password. This will cover newly deployed systems.
                     rc, graph = request(url + "graph", validate_certs=False, url_username="admin", url_password="", timeout=self.SEARCH_TIMEOUT)
                     sa_data = graph["sa"]["saData"]

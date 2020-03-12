@@ -10,10 +10,13 @@ proxy_ssid: "10"
 proxy_legacy_ssid: "20"
 proxy_base_url: https://192.168.1.200:8443/devmgr/v2/
 proxy_username: admin
-proxy_password: adminPass
+proxy_password: ""
 proxy_validate_cert: false
 
 # na_santricity_auth module variable requirements in addition to both embedded and proxy credentials
+expected_serial_with_proxy_legacy: "711214012345"
+expected_serial_with_proxy_embedded: "021633012345"
+expected_serial_without_proxy: "021628012345"
 proxy_discover_subnet: 192.168.1.0/24
 systems:
   - ssid: 10  # should match proxy_ssid above
