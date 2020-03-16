@@ -136,10 +136,10 @@ class NetAppESeriesDiscover:
             self.proxy_validate_certs = args["proxy_validate_certs"]
 
         for port in args["ports"]:
-            if str(port).isdigit():
+            if str(port).isdigit() and 0 < port < 2 ** 16:
                 self.ports.append(str(port))
             else:
-                self.module.fail_json(msg="Invalid port! Ports must be numbers.")
+                self.module.fail_json(msg="Invalid port! Ports must be positive numbers between 0 and 65536.")
 
         self.systems_found = {}
 
@@ -150,7 +150,6 @@ class NetAppESeriesDiscover:
                 url = "http://%s:%s/devmgr/v2/storage-systems/1/" % (address, port)
             else:
                 url = "https://%s:%s/devmgr/v2/storage-systems/1/" % (address, port)
-
             try:
                 rc, sa_data = request(url + "symbol/getSAData", validate_certs=False, force_basic_auth=False, ignore_errors=True)
                 if rc == 401:   # Unauthorized
@@ -193,7 +192,7 @@ class NetAppESeriesDiscover:
             if not about["runningAsProxy"]:
                 self.module.fail_json(msg="Web Services is not running as a proxy!")
         except Exception as error:
-            self.module.fail_json(msg="Proxy is not available! Check proxy_url.")
+            self.module.fail_json(msg="Proxy is not available! Check proxy_url. Error [%s]." % to_native(error))
 
     def test_systems_found(self, systems_found, serial, label, addresses):
         """Verify and build api urls."""
@@ -230,9 +229,7 @@ class NetAppESeriesDiscover:
                     rc, discovered_systems = request(self.proxy_url + "discovery?requestId=%s" % request_id["requestId"],
                                                      validate_certs=self.proxy_validate_certs,
                                                      force_basic_auth=True, url_username=self.proxy_username, url_password=self.proxy_password)
-
                     if not discovered_systems["discoverProcessRunning"]:
-
                         thread_pool = []
                         for discovered_system in discovered_systems["storageSystems"]:
                             addresses = []
