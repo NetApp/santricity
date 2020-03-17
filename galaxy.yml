@@ -1,6 +1,6 @@
 namespace: "netapp_eseries"
 name: "santricity"
-version: "1.0.1"
+version: "1.0.2"
 readme: "README.md"
 authors:
   - Nathan Swartz (@ndswartz)
@@ -14,4 +14,4 @@ tags:
   - eseries
   - santricity
 homepage: "https://www.github.com/netapp-eseries/santricity"
-issues: ""
+issues: "https://github.com/netappeseries/santricity/issues"
