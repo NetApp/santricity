@@ -274,7 +274,7 @@ class AuthTest(ModuleTestCase):
         with self.assertRaisesRegexp(AnsibleFailJson, "SAML enabled! SAML disables default role based login."):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, {"minimumPasswordLength": 8, "adminPasswordSet": True}), (422, None)]):
                 auth.password_change_required()
-                
+
         self._set_args({"ssid": "10", "user": "admin", "password": "adminpass"})
         auth = NetAppESeriesAuth()
         auth.is_proxy = lambda: True
