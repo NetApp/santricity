@@ -390,12 +390,10 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
                 for result in response["results"][0]["nvsramFiles"]:
                     if result["filename"] == self.nvsram_name:
                         return
-                else:
-                    self.module.fail_json(msg="NVSRAM is not compatible. NVSRAM [%s]. Array [%s]." % (self.nvsram_name, self.ssid))
-
+                self.module.fail_json(msg="NVSRAM is not compatible. NVSRAM [%s]. Array [%s]." % (self.nvsram_name, self.ssid))
             sleep(5)
-        else:
-            self.module.fail_json(msg="Failed to retrieve NVSRAM status update from proxy. Array [%s]." % self.ssid)
+
+        self.module.fail_json(msg="Failed to retrieve NVSRAM status update from proxy. Array [%s]." % self.ssid)
 
     def proxy_check_firmware_compatibility(self, retries=10):
         """Verify firmware is compatible with E-Series storage system."""
@@ -419,11 +417,10 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
                 for result in response["results"][0]["cfwFiles"]:
                     if result["filename"] == self.firmware_name:
                         return
-                else:
-                    self.module.fail_json(msg="Firmware bundle is not compatible. firmware [%s]. Array [%s]." % (self.firmware_name, self.ssid))
+                self.module.fail_json(msg="Firmware bundle is not compatible. firmware [%s]. Array [%s]." % (self.firmware_name, self.ssid))
             sleep(5)
-        else:
-            self.module.fail_json(msg="Failed to retrieve firmware status update from proxy. Array [%s]." % self.ssid)
+
+        self.module.fail_json(msg="Failed to retrieve firmware status update from proxy. Array [%s]." % self.ssid)
 
     def proxy_upload_and_check_compatibility(self):
         """Ensure firmware is uploaded and verify compatibility."""
