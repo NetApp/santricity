@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # (c) 2020, NetApp, Inc
-# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
