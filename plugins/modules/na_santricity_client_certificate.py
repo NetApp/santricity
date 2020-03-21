@@ -22,6 +22,8 @@ options:
     required: false
 notes:
   - Set I(ssid=="0") or I(ssid=="proxy") to specifically reference SANtricity Web Services Proxy.
+requirements:
+  - cryptography
 """
 EXAMPLES = """
 - name: Upload certificates
@@ -61,10 +63,16 @@ import os
 import re
 
 from datetime import datetime
-from cryptography import x509
-from cryptography.hazmat.backends import default_backend
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata
 from ansible.module_utils._text import to_native
+
+try:
+    from cryptography import x509
+    from cryptography.hazmat.backends import default_backend
+except ImportError:
+    HAS_CRYPTOGRAPHY = False
+else:
+    HAS_CRYPTOGRAPHY = True
 
 
 class NetAppESeriesClientCertificate(NetAppESeriesModule):
