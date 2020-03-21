@@ -29,25 +29,30 @@ options:
         required: true
         description:
             - Whether the specified host group should exist or not.
+        type: str
         choices: ["present", "absent"]
     name:
         required: false
         description:
             - Name of the host group to manage
             - This option is mutually exclusive with I(id).
+        type: str
     new_name:
         required: false
         description:
             - Specify this when you need to update the name of a host group
+        type: str
     id:
         required: false
         description:
             - Host reference identifier for the host group to manage.
             - This option is mutually exclusive with I(name).
+        type: str
     hosts:
         required: false
         description:
             - List of host names/labels to add to the group
+        type: list
 """
 EXAMPLES = """
     - name: Configure Hostgroup

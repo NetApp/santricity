@@ -22,15 +22,18 @@ options:
   api_username:
     description:
     - The username to authenticate with the SANtricity WebServices Proxy or embedded REST API.
+    type: str
     required: true
   api_password:
     description:
     - The password to authenticate with the SANtricity WebServices Proxy or embedded REST API.
+    type: str
     required: true
   api_url:
     description:
     - The url to the SANtricity WebServices Proxy or embedded REST API.
     required: true
+    type: str
   validate_certs:
     description:
     - Should https certificates be validated?
@@ -39,23 +42,28 @@ options:
   ssid:
     description:
     - The ID of the array to manage. This value must be unique for each array.
+    type: str
     required: true
   state:
     description:
     - Whether the specified array should be configured on the Web Services Proxy or not.
     required: true
+    type: str
     choices: ['present', 'absent']
   controller_addresses:
     description:
     - The list addresses for the out-of-band management adapter or the agent host. Mutually exclusive of array_wwn parameter.
+    type: list
     required: true
   array_wwn:
     description:
     - The WWN of the array to manage. Only necessary if in-band managing multiple arrays on the same agent host.  Mutually exclusive of
       controller_addresses parameter.
+    type: str
   array_password:
     description:
     - The management password of the array to manage, if set.
+    type: str
   enable_trace:
     description:
     - Enable trace logging for SYMbol calls to the storage system.
@@ -64,6 +72,12 @@ options:
   meta_tags:
     description:
     - Optional meta tags to associate to this storage system
+    type: list
+  array_status_timeout_sec:
+    description:
+    - Array status timeout measured in seconds
+    default: 60
+    type: int
 author: Kevin Hulquest (@hulquest)
 '''
 

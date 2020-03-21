@@ -29,21 +29,25 @@ options:
             - present
             - absent
         default: present
+        type: str
     identifier:
         description:
             - This is a unique identifier for the configuration (for cases where there are multiple domains configured).
             - If this is not specified, but I(state=present), we will utilize a default value of 'default'.
+        type: str
     username:
         description:
             - This is the user account that will be used for querying the LDAP server.
             - "Example: CN=MyBindAcct,OU=ServiceAccounts,DC=example,DC=com"
         required: yes
+        type: str
         aliases:
             - bind_username
     password:
         description:
             - This is the password for the bind user account.
         required: yes
+        type: str
         aliases:
             - bind_password
     attributes:
@@ -52,6 +56,7 @@ options:
             - Typically this is used with something like 'memberOf', and a user's access is tested against group
               membership or lack thereof.
         default: memberOf
+        type: list
     server:
         description:
             - This is the LDAP server url.
@@ -60,6 +65,7 @@ options:
         aliases:
             - server_url
         required: yes
+        type: str
     name:
         description:
             - The domain name[s] that will be utilized when authenticating to identify which domain to utilize.
@@ -67,11 +73,13 @@ options:
             - The only requirement is that the name[s] be resolvable.
             - "Example: user@example.com"
         required: no
+        type: list
     search_base:
         description:
             - The search base is used to find group memberships of the user.
             - "Example: ou=users,dc=example,dc=com"
         required: yes
+        type: str
     role_mappings:
         description:
             - This is where you specify which groups should have access to what permissions for the
@@ -87,16 +95,19 @@ options:
               Log, and other critical support-related functionality, but not the storage configuration.
             - security.admin allows users access to authentication/authorization configuration, as well
               as the audit log configuration, and certification management.
+        type: dict
         required: yes
     user_attribute:
         description:
             - This is the attribute we will use to match the provided username when a user attempts to
               authenticate.
+        type: str
         default: sAMAccountName
     log_path:
         description:
             - A local path to a file to be used for debug logging
         required: no
+        type: str
 notes:
     - Check mode is supported.
     - This module allows you to define one or more LDAP domains identified uniquely by I(identifier) to use for

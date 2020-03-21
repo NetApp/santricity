@@ -26,6 +26,7 @@ options:
         description:
             - The name/alias to assign to the iSCSI target.
             - This alias is often used by the initiator software in order to make an iSCSI target easier to identify.
+        type: str
         aliases:
             - alias
     ping:
@@ -41,6 +42,7 @@ options:
             - The chap secret may only use ascii characters with values between 32 and 126 decimal.
             - The chap secret must be no less than 12 characters, but no greater than 57 characters in length.
             - The chap secret is cleared when not specified or an empty string.
+        type: str
         aliases:
             - chap
             - password
@@ -54,6 +56,7 @@ options:
     log_path:
         description:
             - A local path (on the Ansible controller), to a file to be used for debug logging.
+        type: str
         required: no
 notes:
     - Check mode is supported.

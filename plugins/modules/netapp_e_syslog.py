@@ -31,15 +31,18 @@ options:
         choices:
             - present
             - absent
+        type: str
         default: present
     address:
         description:
             - The syslog server's IPv4 address or a fully qualified hostname.
             - All existing syslog configurations will be removed when I(state=absent) and I(address=None).
+        type: str
     port:
         description:
             - This is the port the syslog server is using.
         default: 514
+        type: int
     protocol:
         description:
             - This is the transmission protocol the syslog server's using to receive syslog messages.
@@ -48,11 +51,13 @@ options:
             - tcp
             - tls
         default: udp
+        type: str
     components:
         description:
             - The e-series logging components define the specific logs to transfer to the syslog server.
             - At the time of writing, 'auditLog' is the only logging component but more may become available.
         default: ["auditLog"]
+        type: list
     test:
         description:
             - This forces a test syslog message to be sent to the stated syslog server.
@@ -62,6 +67,7 @@ options:
     log_path:
         description:
             - This argument specifies a local path for logging purposes.
+        type: str
         required: no
 notes:
     - Check mode is supported.

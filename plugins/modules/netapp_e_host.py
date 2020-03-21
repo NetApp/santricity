@@ -28,6 +28,7 @@ options:
             - If the host doesn't yet exist, the label/name to assign at creation time.
             - If the hosts already exists, this will be used to uniquely identify the host to make any required changes
         required: True
+        type: str
         aliases:
             - label
     state:
@@ -38,6 +39,7 @@ options:
             - absent
             - present
         default: present
+        type: str
         version_added: 2.7
     host_type:
         description:
@@ -54,6 +56,7 @@ options:
             - Host ports are uniquely identified by their WWN or IQN. Their assignments to a particular host are
              uniquely identified by a label and these must be unique.
         required: False
+        type: list
         suboptions:
             type:
                 description:
@@ -85,12 +88,14 @@ options:
         description:
             - The unique identifier of the host-group you want the host to be a member of; this is used for clustering.
         required: False
+        type: str
         aliases:
             - cluster
     log_path:
         description:
             - A local path to a file to be used for debug logging
         required: False
+        type: str
         version_added: 2.7
 """
 
@@ -182,7 +187,7 @@ class Host(object):
             ports=dict(type='list', required=False),
             force_port=dict(type='bool', default=False),
             name=dict(type='str', required=True, aliases=['label']),
-            host_type_index=dict(type='str', aliases=['host_type']),
+            host_type=dict(type='str', aliases=['host_type_index']),
             log_path=dict(type='str', required=False),
         ))
 

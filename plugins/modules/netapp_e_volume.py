@@ -28,20 +28,24 @@ options:
         description:
             - Whether the specified volume should exist
         required: true
+        type: str
         choices: ['present', 'absent']
     name:
         description:
             - The name of the volume to manage.
+        type: str
         required: true
     storage_pool_name:
         description:
             - Required only when requested I(state=='present').
             - Name of the storage pool wherein the volume should reside.
+        type: str
         required: false
     size_unit:
         description:
             - The unit used to interpret the size parameter
         choices: ['bytes', 'b', 'kb', 'mb', 'gb', 'tb', 'pb', 'eb', 'zb', 'yb']
+        type: str
         default: 'gb'
     size:
         description:
@@ -50,6 +54,7 @@ options:
             - Size of the virtual volume in the case of a thin volume in I(size_unit).
             - Maximum virtual volume size of a thin provisioned volume is 256tb; however other OS-level restrictions may
               exist.
+        type: float
         required: true
     segment_size_kb:
         description:
@@ -60,6 +65,7 @@ options:
             - Retrieve the definitive system list from M(netapp_e_facts) under segment_sizes.
             - When the storage pool is a raidDiskPool then the segment size must be 128kb.
             - Segment size migrations are not allowed in this module
+        type: int
         default: '128'
     thin_provision:
         description:
@@ -75,6 +81,7 @@ options:
             - During expansion operations the increase must be between or equal to 4gb and 256gb in increments of 4gb.
             - This option has no effect during expansion if I(thin_volume_expansion_policy=="automatic").
             - Generally speaking you should almost always use I(thin_volume_expansion_policy=="automatic).
+        type: int
         required: false
     thin_volume_max_repo_size:
         description:
@@ -85,7 +92,8 @@ options:
               the I(thin_volume_expansion_policy) policy.
             - Expansion operations when I(thin_volume_expansion_policy=="automatic") will increase the maximum
               repository size.
-        default: same as size (in size_unit)
+            - The default will be the same as size (in size_unit)
+        type: float
     thin_volume_expansion_policy:
         description:
             - This is the thin volume expansion policy.
@@ -97,6 +105,7 @@ options:
             - Generally speaking you should almost always use I(thin_volume_expansion_policy=="automatic).
         choices: ["automatic", "manual"]
         default: "automatic"
+        type: str
         version_added: 2.8
     thin_volume_growth_alert_threshold:
         description:
@@ -105,6 +114,7 @@ options:
               be issued and the I(thin_volume_expansion_policy) will be executed.
             - Values must be between or equal to 10 and 99.
         default: 95
+        type: int
         version_added: 2.8
     owning_controller:
         description:
@@ -112,6 +122,7 @@ options:
             - Not specifying will allow the controller to choose ownership.
         required: false
         choices: ["A", "B"]
+        type: str
         version_added: 2.9
     ssd_cache_enabled:
         description:
@@ -161,6 +172,7 @@ options:
               definition will be updated. (Changes will update all associated volumes!)
             - Existing workloads can be retrieved using M(netapp_e_facts).
         required: false
+        type: str
         version_added: 2.8
     metadata:
         description:
@@ -288,7 +300,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             thin_provision=dict(type="bool", default=False),
             thin_volume_repo_size=dict(type="int"),
             thin_volume_max_repo_size=dict(type="float"),
-            thin_volume_expansion_policy=dict(type="str", choices=["automatic", "manual"]),
+            thin_volume_expansion_policy=dict(type="str", choices=["automatic", "manual"], default="automatic"),
             thin_volume_growth_alert_threshold=dict(type="int", default=95),
             read_cache_enable=dict(type="bool", default=True),
             read_ahead_enable=dict(type="bool", default=True),

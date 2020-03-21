@@ -23,14 +23,17 @@ author: Kevin Hulquest (@hulquest)
 options:
     api_username:
         required: true
+        type: str
         description:
         - The username to authenticate with the SANtricity WebServices Proxy or embedded REST API.
     api_password:
         required: true
+        type: str
         description:
         - The password to authenticate with the SANtricity WebServices Proxy or embedded REST API.
     api_url:
         required: true
+        type: str
         description:
         - The url to the SANtricity WebServices Proxy or embedded REST API.
     validate_certs:
@@ -43,10 +46,17 @@ options:
         description:
             - The ID of the primary storage array for the async mirror action
         required: yes
+        type: str
+    name:
+        description:
+            - Name of the role
+        required: yes
+        type: str
     role:
         description:
             - Whether the array should be the primary or secondary array for the AMG
         required: yes
+        type: str
         choices: ['primary', 'secondary']
     noSync:
         description:

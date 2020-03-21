@@ -30,6 +30,7 @@ options:
             - Current hardware models have either 1 or 2 available controllers, but that is not a guaranteed hard
              limitation and could change in the future.
         required: yes
+        type: str
         choices:
             - A
             - B
@@ -41,6 +42,7 @@ options:
             - The numerical value represents the number of the channel (typically from left to right on the HIC),
               beginning with a value of 1.
         required: yes
+        type: int
         aliases:
             - channel
     state:
@@ -51,21 +53,25 @@ options:
             - enabled
             - disabled
         default: enabled
+        type: str
     address:
         description:
             - The IPv4 address to assign to the interface.
             - Should be specified in xx.xx.xx.xx form.
             - Mutually exclusive with I(config_method=dhcp)
+        type: str
     subnet_mask:
         description:
             - The subnet mask to utilize for the interface.
             - Should be specified in xx.xx.xx.xx form.
             - Mutually exclusive with I(config_method=dhcp)
+        type: str
     gateway:
         description:
             - The IPv4 gateway address to utilize for the interface.
             - Should be specified in xx.xx.xx.xx form.
             - Mutually exclusive with I(config_method=dhcp)
+        type: str
     config_method:
         description:
             - The configuration method type to use for this interface.
@@ -74,6 +80,7 @@ options:
             - dhcp
             - static
         default: dhcp
+        type: str
     mtu:
         description:
             - The maximum transmission units (MTU), in bytes.
@@ -83,11 +90,13 @@ options:
               frames, but also have it configured properly. Therefore, unless you know what you're doing, it's best to
               leave this at the default.
         default: 1500
+        type: int
         aliases:
             - max_frame_size
     log_path:
         description:
             - A local path to a file to be used for debug logging
+        type: str
         required: no
 notes:
     - Check mode is supported.

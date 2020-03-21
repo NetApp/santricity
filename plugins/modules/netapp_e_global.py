@@ -27,12 +27,14 @@ options:
             - Set the name of the E-Series storage-system
             - This label/name doesn't have to be unique.
             - May be up to 30 characters in length.
+        type: str
         aliases:
             - label
     log_path:
         description:
             - A local path to a file to be used for debug logging
         required: no
+        type: str
 notes:
     - Check mode is supported.
     - This module requires Web Services API v1.3 or newer.

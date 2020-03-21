@@ -27,60 +27,68 @@ options:
     api_username:
         required: true
         description:
-        - The username to authenticate with the SANtricity WebServices Proxy or embedded REST API.
+          - The username to authenticate with the SANtricity WebServices Proxy or embedded REST API.
+        type: str
     api_password:
         required: true
         description:
-        - The password to authenticate with the SANtricity WebServices Proxy or embedded REST API.
+          - The password to authenticate with the SANtricity WebServices Proxy or embedded REST API.
+        type: str
     api_url:
         required: true
         description:
-        - The url to the SANtricity WebServices Proxy or embedded REST API.
+          - The url to the SANtricity WebServices Proxy or embedded REST API.
+        type: str
     validate_certs:
         required: false
         default: true
         description:
-        - Should https certificates be validated?
+          - Should https certificates be validated?
         type: bool
     ssid:
-      description:
+        description:
           - storage array ID
-      required: True
+        type: str
+        required: true
     snapshot_image_id:
-      required: True
-      description:
+        required: True
+        type: str
+        description:
           - The identifier of the snapshot image used to create the new snapshot volume.
           - "Note: You'll likely want to use the M(netapp_e_facts) module to find the ID of the image you want."
     full_threshold:
-      description:
+        description:
           - The repository utilization warning threshold percentage
-      default: 85
+        default: 85
+        type: int
     name:
-      required: True
-      description:
+        required: True
+        description:
           - The name you wish to give the snapshot volume
+        type: str
     view_mode:
-      required: True
-      description:
+        required: True
+        type: str
+        description:
           - The snapshot volume access mode
-      choices:
-          - modeUnknown
-          - readWrite
-          - readOnly
-          - __UNDEFINED
+        choices: ['readOnly', 'readWrite', 'modeUnknown', '__Undefined']
+        default: 'readOnly'
     repo_percentage:
-      description:
+        description:
           - The size of the view in relation to the size of the base volume
-      default: 20
+        default: 20
+        type: int
     storage_pool_name:
-      description:
+        description:
           - Name of the storage pool on which to allocate the repository volume.
-      required: True
+        type: str
+        required: True
     state:
-      description:
+        description:
           - Whether to create or remove the snapshot volume
-      required: True
-      choices:
+        required: True
+        type: str
+        choices:
           - absent
           - present
 """

@@ -22,14 +22,17 @@ description:
 options:
   api_username:
       required: true
+      type: str
       description:
       - The username to authenticate with the SANtricity WebServices Proxy or embedded REST API.
   api_password:
       required: true
+      type: str
       description:
       - The password to authenticate with the SANtricity WebServices Proxy or embedded REST API.
   api_url:
       required: true
+      type: str
       description:
       - The url to the SANtricity WebServices Proxy or embedded REST API.
   validate_certs:
@@ -40,16 +43,19 @@ options:
       type: bool
   ssid:
     required: true
+    type: str
     description:
     - The ID of the array to manage (as configured on the web services proxy).
   state:
     required: true
+    type: str
     description:
     - Whether the specified SSD cache should exist or not.
     choices: ['present', 'absent']
     default: present
   name:
     required: true
+    type: str
     description:
     - The name of the SSD cache to manage
   io_type:
@@ -57,17 +63,38 @@ options:
     - The type of workload to optimize the cache for.
     choices: ['filesystem','database','media']
     default: filesystem
+    type: str
   disk_count:
+    type: int
     description:
     - The minimum number of disks to use for building the cache. The cache will be expanded if this number exceeds the number of disks already in place
+  disk_refs:
+    description:
+    - List of disk references
+    type: list
   size_unit:
     description:
     - The unit to be applied to size arguments
     choices: ['bytes', 'b', 'kb', 'mb', 'gb', 'tb', 'pb', 'eb', 'zb', 'yb']
     default: gb
+    type: str
   cache_size_min:
     description:
     - The minimum size (in size_units) of the ssd cache. The cache will be expanded if this exceeds the current size of the cache.
+    type: int
+  criteria_disk_phy_type:
+    description:
+      - Type of physical disk
+    choices: ['sas', 'sas4k', 'fibre', 'fibre520b', 'scsi', 'sata', 'pata']
+    type: str
+  log_mode:
+    type: str
+    description:
+      - Log mode
+  log_path:
+    type: str
+    description:
+      - Log path
 '''
 
 EXAMPLES = """

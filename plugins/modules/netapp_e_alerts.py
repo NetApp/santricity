@@ -28,6 +28,7 @@ options:
             - Enable/disable the sending of email-based alerts.
         default: enabled
         required: false
+        type: str
         choices:
             - enabled
             - disabled
@@ -37,21 +38,25 @@ options:
             - To use a fully qualified domain name, you must configure a DNS server on both controllers using
              M(netapp_e_mgmt_interface).
              - Required when I(state=enabled).
+        type: str
         required: no
     sender:
         description:
             - This is the sender that the recipient will see. It doesn't necessarily need to be a valid email account.
             - Required when I(state=enabled).
+        type: str
         required: no
     contact:
         description:
             - Allows the owner to specify some free-form contact information to be included in the emails.
             - This is typically utilized to provide a contact phone number.
+        type: str
         required: no
     recipients:
         description:
             - The email addresses that will receive the email notifications.
             - Required when I(state=enabled).
+        type: list
         required: no
     test:
         description:
@@ -63,6 +68,7 @@ options:
     log_path:
         description:
             - Path to a file on the Ansible control node to be used for debug logging
+        type: str
         required: no
 notes:
     - Check mode is supported.

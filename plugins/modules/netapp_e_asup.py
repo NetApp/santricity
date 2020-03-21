@@ -29,6 +29,7 @@ options:
               to NetApp to help better support your system. No personally identifiable information, passwords, etc, will
               be collected.
         default: enabled
+        type: str
         choices:
             - enabled
             - disabled
@@ -53,6 +54,7 @@ options:
         aliases:
             - start_time
         default: 0
+        type: int
     end:
         description:
             - An end hour may be specified in a range from 1 to 24 hours.
@@ -61,6 +63,7 @@ options:
         aliases:
             - end_time
         default: 24
+        type: int
     days:
         description:
             - A list of days of the week that ASUP bundles will be sent. A larger, weekly bundle will be sent on one
@@ -74,6 +77,7 @@ options:
             - saturday
             - sunday
         required: no
+        type: list
         aliases:
             - days_of_week
             - schedule_days
@@ -86,6 +90,7 @@ options:
     log_path:
         description:
             - A local path to a file to be used for debug logging
+        type: str
         required: no
 notes:
     - Check mode is supported.

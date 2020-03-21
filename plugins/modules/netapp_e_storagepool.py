@@ -28,10 +28,12 @@ options:
       - Whether the specified storage pool should exist or not.
       - Note that removing a storage pool currently requires the removal of all defined volumes first.
     required: true
+    type: str
     choices: ["present", "absent"]
   name:
     description:
       - The name of the storage pool to manage
+    type: str
     required: true
   criteria_drive_count:
     description:
@@ -53,20 +55,24 @@ options:
       - When not specified each drive type will be evaluated until successful drive candidates are found starting with
         the most prevalent drive type.
     required: false
+    type: str
     choices: ["hdd","ssd"]
   criteria_size_unit:
     description:
       - The unit used to interpret size parameters
     choices: ["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb"]
+    type: str
     default: "gb"
   criteria_drive_min_size:
     description:
       - The minimum individual drive size (in size_unit) to consider when choosing drives for the storage pool.
+    type: float
   criteria_drive_interface_type:
     description:
       - The interface type to use when selecting drives for the storage pool
       - If not provided then all interface types will be considered.
     choices: ["sas", "sas4k", "fibre", "fibre520b", "scsi", "sata", "pata"]
+    type: str
     required: false
   criteria_drive_require_da:
     description:
@@ -94,6 +100,7 @@ options:
       - Note that raidAll will be treated as raidDiskPool and raid3 as raid5.
     required: false
     choices: ["raidAll", "raid0", "raid1", "raid3", "raid5", "raid6", "raidDiskPool"]
+    type: str
     default: "raidDiskPool"
   secure_pool:
     description:
@@ -106,11 +113,13 @@ options:
     description:
       - Set the number of drives reserved by the storage pool for reconstruction operations.
       - Only valid on raid disk pools.
+    type: int
     required: false
   remove_volumes:
     description:
     - Prior to removing a storage pool, delete all volumes in the pool.
     default: true
+    type: bool
   erase_secured_drives:
     description:
       - If I(state=="absent") then all storage pool drives will be erase

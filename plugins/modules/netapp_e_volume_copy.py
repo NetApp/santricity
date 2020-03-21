@@ -22,21 +22,30 @@ author: Kevin Hulquest (@hulquest)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries
 options:
+    ssid:
+        description:
+        - Storage system identifier
+        type: str
+        default: '1'
     api_username:
         required: true
         description:
         - The username to authenticate with the SANtricity WebServices Proxy or embedded REST API.
+        type: str
     api_password:
         required: true
         description:
         - The password to authenticate with the SANtricity WebServices Proxy or embedded REST API.
+        type: str
     api_url:
         required: true
         description:
         - The url to the SANtricity WebServices Proxy or embedded REST API, for example C(https://prod-1.wahoo.acme.com/devmgr/v2).
+        type: str
     validate_certs:
         required: false
         default: true
+        type: bool
         description:
         - Should https certificates be validated?
     source_volume_id:
@@ -44,22 +53,26 @@ options:
             - The id of the volume copy source.
             - If used, must be paired with destination_volume_id
             - Mutually exclusive with volume_copy_pair_id, and search_volume_id
+        type: str
     destination_volume_id:
         description:
             - The id of the volume copy destination.
             - If used, must be paired with source_volume_id
             - Mutually exclusive with volume_copy_pair_id, and search_volume_id
+        type: str
     volume_copy_pair_id:
         description:
             - The id of a given volume copy pair
             - Mutually exclusive with destination_volume_id, source_volume_id, and search_volume_id
             - Can use to delete or check presence of volume pairs
             - Must specify this or (destination_volume_id and source_volume_id)
+        type: str
     state:
         description:
             - Whether the specified volume copy pair should exist or not.
         required: True
         choices: ['present', 'absent']
+        type: str
     create_copy_pair_if_does_not_exist:
         description:
             - Defines if a copy pair will be created if it does not exist.
@@ -71,10 +84,31 @@ options:
             - starts a re-copy or stops a copy in progress
             - "Note: If you stop the initial file copy before it it done the copy pair will be destroyed"
             - Requires volume_copy_pair_id
+        type: str
+        choices: ['start', 'stop']
     search_volume_id:
         description:
             - Searches for all valid potential target and source volumes that could be used in a copy_pair
             - Mutually exclusive with volume_copy_pair_id, destination_volume_id and source_volume_id
+        type: str
+    copy_priority:
+        description:
+            - Copy priority level
+        required: False
+        default: 0
+        type: int
+    onlineCopy:
+        description:
+            - Whether copy should be online
+        required: False
+        default: False
+        type: bool
+    targetWriteProtected:
+        description:
+            - Whether target should be write protected
+        required: False
+        default: True
+        type: bool
 """
 EXAMPLES = """
 ---
@@ -245,15 +279,15 @@ def main():
         source_volume_id=dict(type='str'),
         destination_volume_id=dict(type='str'),
         copy_priority=dict(required=False, default=0, type='int'),
-        ssid=dict(required=True, type='str'),
+        ssid=dict(type='str', default='1'),
         api_url=dict(required=True),
         api_username=dict(required=False),
         api_password=dict(required=False, no_log=True),
-        validate_certs=dict(required=False, default=True),
+        validate_certs=dict(required=False, default=True, type='bool'),
         targetWriteProtected=dict(required=False, default=True, type='bool'),
         onlineCopy=dict(required=False, default=False, type='bool'),
         volume_copy_pair_id=dict(type='str'),
-        status=dict(required=True, choices=['present', 'absent'], type='str'),
+        state=dict(required=True, choices=['present', 'absent'], type='str'),
         create_copy_pair_if_does_not_exist=dict(required=False, default=True, type='bool'),
         start_stop_copy=dict(required=False, choices=['start', 'stop'], type='str'),
         search_volume_id=dict(type='str'),
@@ -332,7 +366,7 @@ def main():
                     module.fail_json(msg="Could not stop volume copy pair Error: %s" % info)
 
     # If we want the copy pair to exist we do this stuff
-    if params['status'] == 'present':
+    if params['state'] == 'present':
 
         # We need to check if it exists first
         if params['volume_copy_pair_id'] is None:

@@ -28,17 +28,20 @@ options:
     description:
       - Present will ensure the mapping exists, absent will remove the mapping.
     required: True
+    type: str
     choices: ["present", "absent"]
   target:
     description:
       - The name of host or hostgroup you wish to assign to the mapping
       - If omitted, the default hostgroup is used.
       - If the supplied I(volume_name) is associated with a different target, it will be updated to what is supplied here.
+    type: str
     required: False
   volume_name:
     description:
       - The name of the volume you wish to include in the mapping.
     required: True
+    type: str
     aliases:
         - volume
   lun:
@@ -47,6 +50,7 @@ options:
       - If the supplied I(volume_name) is associated with a different LUN, it will be updated to what is supplied here.
       - LUN value will be determine by the storage-system when not specified.
     version_added: 2.7
+    type: int
     required: no
   target_type:
     description:
@@ -56,6 +60,7 @@ options:
       - host
       - group
     version_added: 2.7
+    type: str
     required: no
 '''
 

@@ -23,14 +23,17 @@ author: Kevin Hulquest (@hulquest)
 options:
     api_username:
         required: true
+        type: str
         description:
         - The username to authenticate with the SANtricity WebServices Proxy or embedded REST API.
     api_password:
         required: true
+        type: str
         description:
         - The password to authenticate with the SANtricity WebServices Proxy or embedded REST API.
     api_url:
         required: true
+        type: str
         description:
         - The url to the SANtricity WebServices Proxy or embedded REST API.
     validate_certs:
@@ -42,9 +45,11 @@ options:
     ssid:
         description:
             - The ID of the storage array containing the AMG you wish to target
+        type: str
     name:
         description:
             - The name of the async mirror group you wish to target
+        type: str
         required: yes
     state:
         description:
@@ -52,6 +57,7 @@ options:
             - If C(running) then it will begin syncing if there is no active sync or will resume a suspended sync. If there is already a sync in
               progress, it will return with an OK status.
             - If C(suspended) it will suspend any ongoing sync action, but return OK if there is no active sync or if the sync is already suspended
+        type: str
         choices:
             - running
             - suspended

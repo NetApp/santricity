@@ -23,31 +23,41 @@ description:
 version_added: '2.2'
 author: Kevin Hulquest (@hulquest)
 options:
+    ssid:
+        description:
+        - Storage system identifier
+        type: str
     api_username:
         required: true
         description:
         - The username to authenticate with the SANtricity WebServices Proxy or embedded REST API.
+        type: str
     api_password:
         required: true
         description:
         - The password to authenticate with the SANtricity WebServices Proxy or embedded REST API.
+        type: str
     api_url:
         required: true
         description:
         - The url to the SANtricity WebServices Proxy or embedded REST API.
+        type: str
     validate_certs:
         required: false
         default: true
         description:
         - Should https certificates be validated?
+        type: bool
     snapshot_group:
         description:
             - The name of the snapshot group in which you want to create a snapshot image.
         required: True
+        type: str
     state:
         description:
             - Whether a new snapshot image should be created or oldest be deleted.
         required: True
+        type: str
         choices: ['create', 'remove']
 """
 EXAMPLES = """
@@ -207,7 +217,7 @@ def main():
         api_url=dict(required=True),
         api_username=dict(required=False),
         api_password=dict(required=False, no_log=True),
-        validate_certs=dict(required=False, default=True),
+        validate_certs=dict(required=False, type='bool', default=True),
         state=dict(required=True, choices=['create', 'remove'], type='str'),
     ))
     module = AnsibleModule(argument_spec)

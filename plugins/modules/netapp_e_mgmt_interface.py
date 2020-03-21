@@ -33,6 +33,7 @@ options:
             - enable
             - disable
         required: no
+        type: str
         aliases:
             - enable_interface
     controller:
@@ -43,6 +44,7 @@ options:
             - Current hardware models have either 1 or 2 available controllers, but that is not a guaranteed hard
              limitation and could change in the future.
         required: yes
+        type: str
         choices:
             - A
             - B
@@ -54,6 +56,7 @@ options:
             - The name represents the port number (typically from left to right on the controller),
               beginning with a value of 1.
             - Mutually exclusive with I(channel).
+        type: str
         aliases:
             - port
             - iface
@@ -63,23 +66,27 @@ options:
             - The channel represents the port number (typically from left to right on the controller),
               beginning with a value of 1.
             - Mutually exclusive with I(name).
+        type: int
     address:
         description:
             - The IPv4 address to assign to the interface.
             - Should be specified in xx.xx.xx.xx form.
             - Mutually exclusive with I(config_method=dhcp)
+        type: str
         required: no
     subnet_mask:
         description:
             - The subnet mask to utilize for the interface.
             - Should be specified in xx.xx.xx.xx form.
             - Mutually exclusive with I(config_method=dhcp)
+        type: str
         required: no
     gateway:
         description:
             - The IPv4 gateway address to utilize for the interface.
             - Should be specified in xx.xx.xx.xx form.
             - Mutually exclusive with I(config_method=dhcp)
+        type: str
         required: no
     config_method:
         description:
@@ -88,6 +95,7 @@ options:
         choices:
             - dhcp
             - static
+        type: str
         required: no
     dns_config_method:
         description:
@@ -96,15 +104,18 @@ options:
         choices:
             - dhcp
             - static
+        type: str
         required: no
     dns_address:
         description:
             - Primary IPv4 DNS server address
+        type: str
         required: no
     dns_address_backup:
         description:
             - Backup IPv4 DNS server address
             - Queried when primary DNS server fails
+        type: str
         required: no
     ntp_config_method:
         description:
@@ -115,16 +126,19 @@ options:
             - disable
             - dhcp
             - static
+        type: str
         required: no
     ntp_address:
         description:
             - Primary IPv4 NTP server address
+        type: str
         required: no
     ntp_address_backup:
         description:
             - Backup IPv4 NTP server address
             - Queried when primary NTP server fails
         required: no
+        type: str
     ssh:
         type: bool
         description:
@@ -135,6 +149,7 @@ options:
     log_path:
         description:
             - A local path to a file to be used for debug logging
+        type: str
         required: no
 notes:
     - Check mode is supported.

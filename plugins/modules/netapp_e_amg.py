@@ -26,14 +26,22 @@ options:
         description:
             - The name of the async array you wish to target, or create.
             - If C(state) is present and the name isn't found, it will attempt to create.
+        type: str
         required: yes
+    new_name:
+        description:
+            - New async array name
+        type: str
+        required: no
     secondaryArrayId:
         description:
             - The ID of the secondary array to be used in mirroring process
+        type: str
         required: yes
     syncIntervalMinutes:
         description:
             - The synchronization interval in minutes
+        type: int
         default: 10
     manualSync:
         description:
@@ -43,14 +51,17 @@ options:
     recoveryWarnThresholdMinutes:
         description:
             - Recovery point warning threshold (minutes). The user will be warned when the age of the last good failures point exceeds this value
+        type: int
         default: 20
     repoUtilizationWarnThreshold:
         description:
             - Recovery point warning threshold
+        type: int
         default: 80
     interfaceType:
         description:
             - The intended protocol to use if both Fibre and iSCSI are available.
+        type: str
         choices:
             - iscsi
             - fibre
@@ -58,10 +69,12 @@ options:
         description:
             - The threshold (in minutes) for notifying the user that periodic synchronization has taken too long to complete.
         default: 10
+        type: int
     state:
         description:
             - A C(state) of present will either create or update the async mirror group.
             - A C(state) of absent will remove the async mirror group.
+        type: str
         choices: [ absent, present ]
         required: yes
 """
