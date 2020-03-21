@@ -60,6 +60,8 @@ notes:
     - All E-Series storage systems with SANtricity version 11.62 or later will be discovered.
     - Only E-Series storage systems without a set admin password running SANtricity versions prior to 11.62 will be discovered.
     - Use SANtricity Web Services Proxy to discover all systems regardless of SANricity version or password.
+requirements:
+    - ipaddress
 """
 
 EXAMPLES = """
@@ -84,7 +86,7 @@ systems_found:
                 "label": "ExampleArray02",
                 "proxy_required": true}}
 """
-import ipaddress
+
 import json
 import multiprocessing
 import threading
@@ -98,6 +100,13 @@ try:
     import urlparse
 except ImportError:
     import urllib.parse as urlparse
+
+try:
+    import ipaddress
+except ImportError:
+    HAS_IPADDRESS = False
+else:
+    HAS_IPADDRESS = True
 
 
 class NetAppESeriesDiscover:
