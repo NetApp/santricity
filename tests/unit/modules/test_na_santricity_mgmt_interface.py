@@ -511,24 +511,3 @@ class MgmtInterfaceTest(ModuleTestCase):
         with self.assertRaisesRegexp(AnsibleExitJson, "The interface settings have been updated."):
             with mock.patch(self.REQ_FUNC, return_value=(200, None)):
                 mgmt_interface.update()
-
-    def test_update_fail(self):
-        """Verify update method throws expected exception."""
-        def update_request_body():
-            if update_request_body.value:
-                update_request_body.value = False
-                return True
-            return False
-
-        update_request_body.value = True
-
-        initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp", "ssh": False}
-        self._set_args(initial)
-        mgmt_interface = NetAppESeriesMgmtInterface()
-        mgmt_interface.update_request_body = lambda: update_request_body
-        mgmt_interface.is_embedded = lambda: False
-        mgmt_interface.use_alternate_address = False
-        with mock.patch(self.TIME_FUNC, return_value=None):
-            with self.assertRaisesRegexp(AnsibleFailJson, "Changes failed to complete! Timeout waiting for management interface to update."):
-                with mock.patch(self.REQ_FUNC, return_value=(200, None)):
-                    mgmt_interface.update()
