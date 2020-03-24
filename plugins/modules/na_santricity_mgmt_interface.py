@@ -512,7 +512,7 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
                     break
                 sleep(1)
             else:
-                self.module.fail_json(msg="Changes failed to complete! Timeout waiting for management interface to update. Array [%s]." % self.ssid)
+                self.module.warn("Changes failed to complete! Timeout waiting for management interface to update. Array [%s]." % self.ssid)
             self.module.exit_json(msg="The interface settings have been updated.", changed=change_required,
                                   available_embedded_api_urls=self.available_embedded_api_urls)
         self.module.exit_json(msg="No changes are required.", changed=change_required,
