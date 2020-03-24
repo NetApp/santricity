@@ -8,7 +8,7 @@
     controller: A
     channel: "{{ channel + 1 }}"
     address: "{{ item }}"
-  loop: "{{ lookup('list', eseries_controller_nvme_ib_port['controller_a']['channel']) }}"
+  loop: "{{ lookup('list', eseries_controller_nvme_ib_port['controller_a']) }}"
   loop_control:
     index_var: channel
   when: eseries_controller_nvme_ib_port is defined and eseries_controller_nvme_ib_port['controller_a'] is defined
@@ -23,7 +23,7 @@
     controller: B
     channel: "{{ channel + 1 }}"
     address: "{{ item }}"
-  loop: "{{ lookup('list', eseries_controller_nvme_ib_port['controller_b']['channel']) }}"
+  loop: "{{ lookup('list', eseries_controller_nvme_ib_port['controller_b']) }}"
   loop_control:
     index_var: channel
   when: eseries_controller_nvme_ib_port is defined and eseries_controller_nvme_ib_port['controller_b'] is defined

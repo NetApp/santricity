@@ -8,10 +8,10 @@
     controller: A
     channel: "{{ channel + 1 }}"
     address: "{{ item }}"
-  loop: "{{ lookup('list', eseries_controller_port['controller_a']['ports']) }}"
+  loop: "{{ lookup('list', eseries_controller_ib_iser_port['controller_a']) }}"
   loop_control:
     index_var: channel
-  when: eseries_controller_port is defined and eseries_controller_port['controller_a'] is defined
+  when: eseries_controller_ib_iser_port is defined and eseries_controller_ib_iser_port['controller_a'] is defined
 
 - name: Configure controller B inventory-defined controller port definitions for InfiniBand iSER
   na_santricity_ib_iser_interface:
@@ -23,7 +23,7 @@
     controller: B
     channel: "{{ channel + 1 }}"
     address: "{{ item }}"
-  loop: "{{ lookup('list', eseries_controller_port['controller_b']['ports']) }}"
+  loop: "{{ lookup('list', eseries_controller_ib_iser_port['controller_b']) }}"
   loop_control:
     index_var: channel
-  when: eseries_controller_port is defined and eseries_controller_port['controller_b'] is defined
+  when: eseries_controller_ib_iser_port is defined and eseries_controller_ib_iser_port['controller_b'] is defined

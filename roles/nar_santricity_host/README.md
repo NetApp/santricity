@@ -110,20 +110,20 @@ Role Variables
             gateway:          # Port IPv4 gateway
             subnet_mask:      # Port IPv4 subnet_mask
       controller_b:           # Controller B port definition.
-          (...)               # Same as controller A but for controller B
+        (...)                 # Same as controller A but for controller B
 
     # Controller InfiniBand iSER Interface Channel
     eseries_controller_ib_iser_port:
       controller_a:    # Ordered list of controller A channel address definition.
-          -            # Port IPv4 address for channel 1
-          - (...)      # So on and so forth
+        -              # Port IPv4 address for channel 1
+        - (...)        # So on and so forth
       controller_b:    # Ordered list of controller B channel address definition.
 
     # Controller NVMe over InfiniBand Interface Channel
     eseries_controller_nvme_ib_port:
       controller_a:    # Ordered list of controller A channel address definition.
-          -            # Port IPv4 address for channel 1
-          - (...)      # So on and so forth
+        -              # Port IPv4 address for channel 1
+        - (...)        # So on and so forth
       controller_b:    # Ordered list of controller B channel address definition.
 
     # Controller NVMe RoCE Interface Port Default Policy Specifications
@@ -134,25 +134,16 @@ Role Variables
     eseries_controller_nvme_roce_port_mtu: 9000              # General port maximum transfer units (MTU). Any value greater than 1500 (bytes).
     eseries_controller_nvme_roce_port_speed: auto            # General interface speed. Value must be a supported speed or auto for automatically negotiating the speed with the port.
     eseries_controller_nvme_roce_port:
-      controller_a:           # Controller A port definition.
-        state:                # General definitions for all ports on controller A. Any option specified in the ports definition can be
-                              #     specified here to generalize for all controller A ports.
-        config_method:        # Port configuration method Choices: static, dhcp
-        address:              # Port IPv4 address
-        gateway:              # Port IPv4 gateway
-        subnet_mask:          # Port IPv4 subnet_mask
-        mtu:                  # Port IPv4 mtu
-        speed:                # Port IPv4 speed
-        ports:                # List containing ports definitions
-          - channel:          # Channel of the port to modify. This will be a numerical value that represents the port; typically read
-                              #     left to right on the HIC.
-            state:            # Whether the port should be enabled.
-            config_method:    # Port configuration method Choices: static, dhcp
-            address:          # Port IPv4 address
-            gateway:          # Port IPv4 gateway
-            subnet_mask:      # Port IPv4 subnet_mask
-      controller_b:           # Controller B port definition.
-        (...)                 # Same as controller A but for controller B
+      controller_a:         # Ordered list of controller A channel definition.
+        - state:            # Whether the port should be enabled.
+          config_method:    # Port configuration method Choices: static, dhcp
+          address:          # Port IPv4 address
+          subnet_mask:      # Port IPv4 subnet_mask
+          gateway:          # Port IPv4 gateway
+          mtu:              # Port IPv4 mtu
+          speed:            # Port IPv4 speed
+      controller_b:         # Ordered list of controller B channel definition.
+        - (...)             # Same as controller A but for controller B
 
     # Target discovery specifications
         Note: add the following to ansible-playbook command to update the chap secret: --extra-vars "eseries_target_chap_secret_update=True
