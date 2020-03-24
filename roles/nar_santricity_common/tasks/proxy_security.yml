@@ -9,6 +9,7 @@
     user: admin
     password: "{{ item['value']['proxy_password'] }}"
   loop: "{{ lookup('dict', proxy_admin, wantlist=True) }}"
+  no_log: true
   vars:
     proxy_admin: |-
       {#- Build a dictionary of all inventoried proxies keyed by their api url #}
@@ -38,6 +39,7 @@
     user: "{{ item['value']['proxy_username'] }}"
     password: "{{ item['value']['proxy_password'] }}"
   loop: "{{ lookup('dict', proxy_non_admin, wantlist=True) }}"
+  no_log: true
   vars:
     proxy_non_admin: |-
       {#- Build a dictionary of all inventoried proxies keyed by their api url containing non-admin usernames/passwords #}
