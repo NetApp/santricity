@@ -151,13 +151,19 @@ msg:
     returned: always
     sample: "Storage systems [system1, system2, 1144FG123018, 721716500123, 123540006043, 112123001239] were added."
 """
-import ipaddress
 import json
 import threading
 
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 from time import sleep
+
+try:
+    import ipaddress
+except ImportError:
+    HAS_IPADDRESS = False
+else:
+    HAS_IPADDRESS = True
 
 
 class NetAppESeriesProxySystems(NetAppESeriesModule):
