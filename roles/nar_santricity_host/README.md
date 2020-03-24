@@ -95,22 +95,15 @@ Role Variables
     eseries_controller_iscsi_port_subnet_mask:           # General port IPv4 subnet mask for both controllers.
     eseries_controller_iscsi_port_mtu: 9000              # General port maximum transfer units (MTU) for both controllers. Any value greater than 1500 (bytes).
     eseries_controller_iscsi_port:
-      controller_a:           # Controller A port definition.
-        state:                # General definitions for all ports on controller A. Any option specified in the ports definition can be
-                              #     specified here to generalize for all controller A ports. Choices: enabled, disabled
-        config_method:        # Port configuration method Choices: static, dhcp
-        address:              # Port IPv4 address
-        gateway:              # Port IPv4 gateway
-        subnet_mask:          # Port IPv4 subnet_mask
-        mtu:                  # Port IPv4 mtu
-        ports:                # Ordered list of port definitions reading iSCSI ports left to right
-          - state:            # Whether the port should be enabled. Choices: enabled, disabled
-            config_method:    # Port configuration method Choices: static, dhcp
-            address:          # Port IPv4 address
-            gateway:          # Port IPv4 gateway
-            subnet_mask:      # Port IPv4 subnet_mask
-      controller_b:           # Controller B port definition.
-        (...)                 # Same as controller A but for controller B
+      controller_a:         # Ordered list of controller A channel definition.
+        - state:            # Whether the port should be enabled. Choices: enabled, disabled
+          config_method:    # Port configuration method Choices: static, dhcp
+          address:          # Port IPv4 address
+          gateway:          # Port IPv4 gateway
+          subnet_mask:      # Port IPv4 subnet_mask
+          mtu:              # Port IPv4 mtu
+      controller_b:         # Ordered list of controller B channel definition.
+        - (...)             # Same as controller A but for controller B
 
     # Controller InfiniBand iSER Interface Channel
     eseries_controller_ib_iser_port:
