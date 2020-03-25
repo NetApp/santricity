@@ -89,7 +89,7 @@ class LookupModule(LookupBase):
         if self.access_volume_lun is not None:
             used_luns.append(self.access_volume_lun)
 
-        lun = 0
+        lun = 1
         while lun in used_luns:
             lun += 1
 
