@@ -209,17 +209,18 @@ class NetAppESeriesHost(NetAppESeriesModule):
             for port in self.ports:
                 port["label"] = port["label"].lower()
                 port["type"] = port["type"].lower()
-                port["port"] = port["port"].lower()
+                port["address"] = port["port"].lower()
+                port.pop("port")
 
                 if port["type"] not in self.PORT_TYPES:
                     self.module.fail_json(msg="Invalid port type! Port interface type must be one of [%s]." % ", ".join(self.PORT_TYPES))
 
                 # Determine whether address is 16-byte WWPN and, if so, remove
-                if re.match(r"^(0x)?[0-9a-f]{16}$", port["port"].replace(":", "")):
-                    port["port"] = port["port"].replace(":", '').replace("0x", "")
+                if re.match(r"^(0x)?[0-9a-f]{16}$", port["address"].replace(":", "")):
+                    port["address"] = port["address"].replace(":", '').replace("0x", "")
 
                     if port["type"] == "ib":
-                        port["port"] = "0" * (32 - len(port["port"])) + port["port"]
+                        port["address"] = "0" * (32 - len(port["address"])) + port["address"]
 
     @property
     def default_host_type(self):
@@ -252,13 +253,13 @@ class NetAppESeriesHost(NetAppESeriesModule):
             for port in self.ports:
                 for interface in interfaces:
 
-                    # Check for IB iSER, older firmware treats iSER as a type of iscsi
-                    if (port["type"] == "ib" and "iqn" in port["address"] and
-                            interface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and
-                            interface["ioInterfaceTypeData"]["interfaceData"]["type"] == "infiniband" and
-                            interface["ioInterfaceTypeData"]["interfaceData"]["infinibandData"]["isIser"]):
-                        port["type"] = "iscsi"
-                        break
+                    # Check for IB iSER
+                    if port["type"] == "ib" and "iqn" in port["address"]:
+                        if (interface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and
+                                interface["ioInterfaceTypeData"]["iscsi"]["interfaceData"]["type"] == "infiniband" and
+                                interface["ioInterfaceTypeData"]["iscsi"]["interfaceData"]["infinibandData"]["isIser"]):
+                            port["type"] = "iscsi"
+                            break
                     elif port["type"] == interface["ioInterfaceTypeData"]["interfaceType"]:
                         break
                 else:
@@ -273,7 +274,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
             if host["label"] != self.name:
                 for host_port in host["hostSidePorts"]:
                     for port in self.ports:
-                        if port["port"] == host_port["address"] or port["label"] == host_port["label"]:
+                        if port["address"] == host_port["address"] or port["label"] == host_port["label"]:
                             if not self.force_port:
                                 self.module.fail_json(msg="There are no host ports available OR there are not enough"
                                                           " unassigned host ports")
@@ -292,8 +293,8 @@ class NetAppESeriesHost(NetAppESeriesModule):
             else:
                 for host_port in host["hostSidePorts"]:
                     for port in self.ports:
-                        if ((host_port["label"] == port["label"] and host_port["address"] != port["port"]) or
-                                (host_port["label"] != port["label"] and host_port["address"] == port["port"])):
+                        if ((host_port["label"] == port["label"] and host_port["address"] != port["address"]) or
+                                (host_port["label"] != port["label"] and host_port["address"] == port["address"])):
                             if not self.force_port:
                                 self.module.fail_json(msg="There are no host ports available OR there are not enough"
                                                           " unassigned host ports")
@@ -368,7 +369,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
         if self.host_obj["hostTypeIndex"] != self.host_type_index:
             changed = True
 
-        current_host_ports = dict((port["id"], {"type": port["type"], "port": port["address"], "label": port["label"]})
+        current_host_ports = dict((port["id"], {"type": port["type"], "address": port["address"], "label": port["label"]})
                                   for port in self.host_obj["hostSidePorts"])
 
         if self.ports:
@@ -378,7 +379,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
                         current_host_ports.pop(current_host_port_id)
                         break
 
-                    elif port["port"] == current_host_ports[current_host_port_id]["port"]:
+                    elif port["address"] == current_host_ports[current_host_port_id]["address"]:
                         if self.port_on_diff_host(port) and not self.force_port:
                             self.module.fail_json(msg="The port you specified [%s] is associated with a different host."
                                                       " Specify force_port as True or try a different port spec" % port)
@@ -386,7 +387,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
                         if (port["label"] != current_host_ports[current_host_port_id]["label"] or
                                 port["type"] != current_host_ports[current_host_port_id]["type"]):
                             current_host_ports.pop(current_host_port_id)
-                            self.portsForUpdate.append({"portRef": current_host_port_id, "port": port["port"],
+                            self.portsForUpdate.append({"portRef": current_host_port_id, "port": port["address"],
                                                         "label": port["label"], "hostRef": self.host_obj["hostRef"]})
                             break
                 else:
@@ -404,7 +405,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
             if host["name"] != self.name:
                 for port in host["hostSidePorts"]:
                     # Check if the port label is found in the port dict list of each host
-                    if arg_port["label"] == port["label"] or arg_port["port"] == port["address"]:
+                    if arg_port["label"] == port["label"] or arg_port["address"] == port["address"]:
                         self.other_host = host
 
                         return True
@@ -465,7 +466,6 @@ class NetAppESeriesHost(NetAppESeriesModule):
     def build_success_payload(self, host=None):
         keys = ["id"]
         if host:
-            self.module.log("%s" % host)
             result = dict((key, host[key]) for key in keys)
         else:
             result = dict()
@@ -478,6 +478,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
             if self.host_type_index is None:
                 self.host_type_index = self.default_host_type
 
+            self.check_port_types()
             if self.host_exists:
                 if self.needs_update and self.valid_host_type:
                     self.update_host()
