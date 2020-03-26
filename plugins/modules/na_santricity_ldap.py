@@ -180,7 +180,7 @@ class NetAppESeriesLdap(NetAppESeriesModule):
                                names=dict(type="list", required=False),
                                server_url=dict(type="str", required=False),
                                search_base=dict(type="str", required=False),
-                               role_mappings=dict(type="dict", required=False),
+                               role_mappings=dict(type="dict", required=False, no_log=True),
                                group_attributes=dict(type="list", default=["memberOf"], required=False),
                                user_attribute=dict(type="str", required=False, default="sAMAccountName"))
 
