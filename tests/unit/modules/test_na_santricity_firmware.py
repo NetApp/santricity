@@ -259,18 +259,6 @@ class FirmwareTest(ModuleTestCase):
                 with patch(self.BASE_REQUEST_FUNC, return_value=Exception()):
                     firmware.wait_for_web_services()
 
-    def test_embedded_upgrade_pass(self):
-        """Verify embedded upgrade function."""
-        with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
-            with patch(self.SLEEP_FUNC, return_value=None):
-
-                self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-                firmware = NetAppESeriesFirmware()
-                with patch(self.REQUEST_FUNC, return_value=(200, "")):
-                    with patch(self.BASE_REQUEST_FUNC, side_effect=[Exception(), Exception(), (200, "")]):
-                        firmware.embedded_upgrade()
-                        self.assertTrue(firmware.upgrade_in_progress)
-
     def test_check_nvsram_compatibility_pass(self):
         """Verify proxy nvsram compatibility."""
         self._set_args({"firmware": "test.dlp", "nvsram": "test_nvsram.dlp"})
@@ -477,7 +465,6 @@ class FirmwareTest(ModuleTestCase):
             firmware = NetAppESeriesFirmware()
 
             with patch(self.REQUEST_FUNC, side_effect=[(200, {"running": True}),
-                                                       (200, []),
                                                        (200, {"running": False, "activationCompletionTime": "completion_time"})]):
                 firmware.proxy_wait_for_upgrade()
 
