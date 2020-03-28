@@ -77,6 +77,7 @@ msg:
 """
 import os
 import multiprocessing
+import threading
 
 from time import sleep
 from ansible.module_utils import six
@@ -120,7 +121,7 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
         if self.firmware:
             self.firmware_name = os.path.basename(self.firmware)
 
-        self.start_mel_event = -1
+        self.last_known_event = -1
         self.is_firmware_activation_started_mel_event_count = 1
         self.is_nvsram_download_completed_mel_event_count = 1
         self.proxy_wait_for_upgrade_mel_event_count = 1
@@ -270,47 +271,84 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
             # Update bundle info
             self.module_info.update({module["module"]: {"onboard_version": module["onboardVersion"], "bundled_version": module["bundledVersion"]}})
 
-    def embedded_start_firmware_download(self):
+    def embedded_firmware_activate(self):
+        """Activate firmware."""
+        rc, response = self.request("firmware/embedded-firmware/activate", method="POST", ignore_errors=True, timeout=10)
+        if rc == "422":
+            self.module.fail_json(msg="Failed to activate the staged firmware. Array Id [%s]. Error [%s]" % (self.ssid, response))
+
+    def embedded_firmware_download(self):
         """Execute the firmware download."""
         if self.nvsram:
-            headers, data = create_multipart_formdata(files=[("nvsramfile", self.nvsram_name, self.nvsram), ("dlpfile", self.firmware_name, self.firmware)])
+            firmware_url = "firmware/embedded-firmware?nvsram=true&staged=true"
+            headers, data = create_multipart_formdata(files=[("nvsramfile", self.nvsram_name, self.nvsram),
+                                                             ("dlpfile", self.firmware_name, self.firmware)])
         else:
+            firmware_url = "firmware/embedded-firmware?nvsram=false&staged=true"
             headers, data = create_multipart_formdata(files=[("dlpfile", self.firmware_name, self.firmware)])
 
+        # Stage firmware and nvsram
         try:
-            rc, response = self.request("firmware/embedded-firmware?staged=false", method="POST", data=data, headers=headers, timeout=(30 * 60))
-            self.upgrade_in_progress = True
-        except Exception as error:
-            self.module.fail_json(msg="Failed to upload and activate firmware. Array Id [%s]. Error[%s]." % (self.ssid, to_native(error)))
 
-    def is_firmware_activation_started(self):
+            rc, response = self.request(firmware_url, method="POST", data=data, headers=headers, timeout=(30 * 60))
+        except Exception as error:
+            self.module.fail_json(msg="Failed to stage firmware. Array Id [%s]. Error[%s]." % (self.ssid, to_native(error)))
+
+        # Activate firmware
+        activate_thread = threading.Thread(target=self.embedded_firmware_activate)
+        activate_thread.start()
+        self.wait_for_reboot()
+
+    def wait_for_reboot(self):
+        """Wait for controller A to fully reboot and web services running"""
+        reboot_started = False
+        reboot_completed = False
+        self.module.log("Controller firmware: Reboot commencing. Array Id [%s]." % self.ssid)
+        while self.wait_for_completion and not (reboot_started and reboot_completed):
+            try:
+                rc, response = self.request("storage-systems/%s/symbol/pingController?controller=a&verboseErrorResponse=true"
+                                            % self.ssid, method="POST", timeout=10, log_request=False)
+
+                if reboot_started and response == "ok":
+                    self.module.log("Controller firmware: Reboot completed. Array Id [%s]." % self.ssid)
+                    reboot_completed = True
+                sleep(2)
+            except Exception as error:
+                if not reboot_started:
+                    self.module.log("Controller firmware: Reboot started. Array Id [%s]." % self.ssid)
+                    reboot_started = True
+                continue
+
+    def firmware_event_logger(self):
         """Determine if firmware activation has started."""
+        # Determine the last known event
         try:
-            rc, events = self.request("storage-systems/%s/mel-events?startSequenceNumber=%s&count=%s&cacheOnly=false&critical=false&includeDebug=false"
-                                      % (self.ssid, self.start_mel_event, self.is_firmware_activation_started_mel_event_count), log_request=False)
+            rc, events = self.request("storage-systems/%s/events" % self.ssid)
             for event in events:
-                controller_label = event["componentLocation"]["componentRelativeLocation"]["componentLabel"]
-                self.start_mel_event = int(event["sequenceNumber"]) + 1
-
-                if event["description"] == "Controller firmware download started":
-                    self.module.log("(Controller %s) Controller firmware download started" % controller_label)
-                elif event["description"] == "Controller firmware download completed":
-                    self.module.log("(Controller %s) Controller firmware download completed" % controller_label)
-                elif event["description"] == "Activate controller firmware started":
-                    self.module.log("(Controller %s) Activate controller firmware started" % controller_label)
-                    return True
-                elif event["description"] == "Start-of-day routine begun":
-                    self.module.log("(Controller %s) Start-of-day routine begun" % controller_label)
-                elif event["description"] == "Controller reset":
-                    self.module.log("(Controller %s) Controller reset" % controller_label)
-                elif event["description"] == "Start-of-day routine completed":
-                    self.module.log("(Controller %s) Start-of-day routine completed" % controller_label)
-
-            if self.is_firmware_activation_started_mel_event_count == 1:
-                self.is_firmware_activation_started_mel_event_count = 100
+                if int(event["eventNumber"]) > int(self.last_known_event):
+                    self.last_known_event = event["eventNumber"]
         except Exception as error:
-            pass
-        return False
+            self.module.fail_json(msg="Failed to determine last known event. Array Id [%s]. Error[%s]." % (self.ssid, to_native(error)))
+
+        while True:
+            try:
+                rc, events = self.request("storage-systems/%s/events?lastKnown=%s&wait=1" % (self.ssid, self.last_known_event), log_request=False)
+                for event in events:
+                    if int(event["eventNumber"]) > int(self.last_known_event):
+                        self.last_known_event = event["eventNumber"]
+
+                    # Log firmware events
+                    if event["eventType"] == "firmwareDownloadEvent":
+                        self.module.log("%s" % event["status"])
+                        if event["status"] == "informational" and event["statusMessage"]:
+                            self.module.log("Controller firmware: %s Array Id [%s]." % (event["statusMessage"], self.ssid))
+
+                        # When activation is successful, finish thread
+                        if event["status"] == "activate_success":
+                            self.module.log("Controller firmware activated. Array Id [%s]." % self.ssid)
+                            return
+            except Exception as error:
+                pass
 
     def wait_for_web_services(self):
         """Wait for web services to report firmware and nvsram upgrade."""
@@ -353,19 +391,12 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
 
     def embedded_upgrade(self):
         """Upload and activate both firmware and NVSRAM."""
-        self.module.log("(embedded) firmware upgrade commencing...")
-
-        process = multiprocessing.Process(target=self.embedded_start_firmware_download)
-        process.start()
-        while process.is_alive():
-            activation_started = self.is_firmware_activation_started()
-            if not self.wait_for_completion and activation_started:
-                process.terminate()
-            sleep(5)
-
-        self.upgrade_in_progress = True
-        if self.wait_for_completion:
-            self.wait_for_web_services()
+        download_thread = threading.Thread(target=self.embedded_firmware_download)
+        event_thread = threading.Thread(target=self.firmware_event_logger)
+        download_thread.start()
+        event_thread.start()
+        download_thread.join()
+        event_thread.join()
 
     def proxy_check_nvsram_compatibility(self, retries=10):
         """Verify nvsram is compatible with E-Series storage system."""
@@ -518,35 +549,6 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
                     break
                 else:
                     self.module.fail_json(msg="Failed to complete upgrade. Array [%s]." % self.ssid)
-
-            try:
-                rc, events = self.request("storage-systems/%s/mel-events?startSequenceNumber=%s&count=%s&critical=false&includeDebug=false"
-                                          % (self.ssid, self.start_mel_event, self.proxy_wait_for_upgrade_mel_event_count), log_request=False)
-
-                for event in events:
-                    controller_label = event["componentLocation"]["componentRelativeLocation"]["componentLabel"]
-                    self.start_mel_event = int(event["sequenceNumber"]) + 1
-
-                    if event["description"] == "Controller firmware download started":
-                        self.module.log("(Controller %s) Controller firmware download started" % controller_label)
-                    elif event["description"] == "Controller firmware download completed":
-                        self.module.log("(Controller %s) Controller firmware download completed" % controller_label)
-                    elif event["description"] == "Activate controller firmware started":
-                        self.module.log("(Controller %s) Activate controller firmware started" % controller_label)
-                    elif event["description"] == "Controller NVSRAM download completed":
-                        self.module.log("(Controller %s) Controller NVSRAM download completed" % controller_label)
-                    elif event["description"] == "Start-of-day routine begun":
-                        self.module.log("(Controller %s) Start-of-day routine begun" % controller_label)
-                    elif event["description"] == "Controller reset":
-                        self.module.log("(Controller %s) Controller reset" % controller_label)
-                    elif event["description"] == "Start-of-day routine completed":
-                        self.module.log("(Controller %s) Start-of-day routine completed" % controller_label)
-
-                if self.proxy_wait_for_upgrade_mel_event_count == 1:
-                    self.proxy_wait_for_upgrade_mel_event_count = 100
-            except Exception as error:
-                pass
-
             sleep(5)
 
     def delete_mel_events(self):
