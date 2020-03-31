@@ -208,6 +208,7 @@ RETURN = """
                                        "meta_data": {"filetype": "xfs", "public": true},
                                        "name": "some_volume",
                                        "workload_name": "test2_volumes",
+                                       "eui": "0000139A3885FA4500A0980000EAA272V",
                                        "wwn": "600A098000A4B9D1000015FD5C8F7F9E"}]}
             snapshot_images:
                 description: snapshot image list that contains identification, capacity, and status information for each
@@ -622,6 +623,7 @@ class Facts(NetAppESeriesModule):
                                 dict(name=volume['name'],
                                      id=volume['id'],
                                      wwn=volume['wwn'],
+                                     eui=volume['extendedUniqueIdentifier'],
                                      workload_name=workload_name,
                                      meta_data=metadata,
                                      raid_level=volume['raidLevel'],
