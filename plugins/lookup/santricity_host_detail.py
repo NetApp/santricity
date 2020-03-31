@@ -96,11 +96,11 @@ class LookupModule(LookupBase):
                     elif protocol == "nvme_ib":
                         for index, address in enumerate(interface["stdout_lines"]):
                             label = "%s_%s" % (sanitized_hostname, index)
-                            hosts["expected_hosts"][host]["ports"].append({"type": "nvme", "label": label, "port": address})
+                            hosts["expected_hosts"][host]["ports"].append({"type": "nvmeof", "label": label, "port": address})
                     elif protocol == "nvme_roce":
                         for index, address in enumerate(interface["stdout_lines"]):
                             label = "%s_%s" % (sanitized_hostname, index)
-                            hosts["expected_hosts"][host]["ports"].append({"type": "nvme", "label": label, "port": address})
+                            hosts["expected_hosts"][host]["ports"].append({"type": "nvmeof", "label": label, "port": address})
                     else:
                         for index, address in enumerate(interface["stdout_lines"]):
                             label = "%s_%s" % (sanitized_hostname, index)

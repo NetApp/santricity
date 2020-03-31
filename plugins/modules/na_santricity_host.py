@@ -78,7 +78,6 @@ options:
                   - fc
                   - ib
                   - nvmeof
-                  - ethernet
             label:
                 description:
                     - A unique label to assign to this port assignment.
@@ -154,14 +153,13 @@ api_url:
     sample: https://webservices.example.com:8443
 """
 import re
-from pprint import pformat
 
 from ansible.module_utils._text import to_native
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 
 
 class NetAppESeriesHost(NetAppESeriesModule):
-    PORT_TYPES = ["iscsi", "sas", "fc", "ib", "nvmeof", "ethernet"]
+    PORT_TYPES = ["iscsi", "sas", "fc", "ib", "nvmeof"]
 
     def __init__(self):
         ansible_options = dict(state=dict(type="str", default="present", choices=["absent", "present"]),
@@ -259,7 +257,15 @@ class NetAppESeriesHost(NetAppESeriesModule):
                                 interface["ioInterfaceTypeData"]["iscsi"]["interfaceData"]["infinibandData"]["isIser"]):
                             port["type"] = "iscsi"
                             break
-                    elif port["type"] == interface["ioInterfaceTypeData"]["interfaceType"]:
+                    # Check for NVMe
+                    elif (port["type"] == "nvmeof" and "commandProtocolPropertiesList" in interface and
+                          "commandProtocolProperties" in interface["commandProtocolPropertiesList"] and
+                          interface["commandProtocolPropertiesList"]["commandProtocolProperties"]):
+                        if interface["commandProtocolPropertiesList"]["commandProtocolProperties"][0]["commandProtocol"] == "nvme":
+                            break
+                    # Check SAS, FC, iSCSI
+                    elif ((port["type"] == "fc" and interface["ioInterfaceTypeData"]["interfaceType"] == "fibre") or
+                          (port["type"] == interface["ioInterfaceTypeData"]["interfaceType"])):
                         break
                 else:
                     self.module.fail_json(msg="Invalid port type! Type [%s]. Port [%s]." % (port["type"], port["label"]))
