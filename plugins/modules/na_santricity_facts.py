@@ -621,6 +621,7 @@ class Facts(NetAppESeriesModule):
 
                             facts['netapp_volumes_by_initiators'][host['name']].append(
                                 dict(name=volume['name'],
+                                     host_types=[port['type'] for port in host['ports']],
                                      id=volume['id'],
                                      wwn=volume['wwn'],
                                      eui=volume['extendedUniqueIdentifier'],
