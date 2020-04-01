@@ -285,8 +285,8 @@ eseries_initiator_command:
     linux: "ibstat -p"
     windows: ""   # add windows command for determining host guid
   nvme_ib:
-    linux: ""
+    linux: "cat /etc/nvme/hostnqn"
     windows: ""   # add windows command for determining host nqn address(es)
   nvme_roce:
-    linux: ""
+    linux: "cat /etc/nvme/hostnqn"
     windows: ""   # add windows command for determining host nqn address(es)
