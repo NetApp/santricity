@@ -208,6 +208,7 @@ RETURN = """
                                        "meta_data": {"filetype": "xfs", "public": true},
                                        "name": "some_volume",
                                        "workload_name": "test2_volumes",
+                                       "host_types": ["nvmeof"],
                                        "eui": "0000139A3885FA4500A0980000EAA272V",
                                        "wwn": "600A098000A4B9D1000015FD5C8F7F9E"}]}
             snapshot_images:
