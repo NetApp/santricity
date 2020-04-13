@@ -1,6 +1,6 @@
 namespace: "netapp_eseries"
 name: "santricity"
-version: "1.0.7"
+version: "1.0.8"
 readme: "README.md"
 authors:
   - Nathan Swartz (@ndswartz)
