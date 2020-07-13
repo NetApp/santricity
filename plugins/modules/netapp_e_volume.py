@@ -62,7 +62,7 @@ options:
             - All values are in kibibytes.
             - Some common choices include '8', '16', '32', '64', '128', '256', and '512' but options are system
               dependent.
-            - Retrieve the definitive system list from M(netapp_e_facts) under segment_sizes.
+            - Retrieve the definitive system list from M(netapp_eseries.santricity.netapp_e_facts) under segment_sizes.
             - When the storage pool is a raidDiskPool then the segment size must be 128kb.
             - Segment size migrations are not allowed in this module
         type: int
@@ -159,7 +159,7 @@ options:
     cache_without_batteries:
         description:
             - Indicates whether caching should be used without battery backup.
-            - Warning, M(cache_without_batteries==true) and the storage system looses power and there is no battery backup, data will be lost!
+            - Warning, C(cache_without_batteries) == true and the storage system looses power and there is no battery backup, data will be lost!
         type: bool
         default: false
         version_added: 2.9
@@ -170,7 +170,7 @@ options:
               array.
             - When I(workload_name) exists on the storage array but the metadata is different then the workload
               definition will be updated. (Changes will update all associated volumes!)
-            - Existing workloads can be retrieved using M(netapp_e_facts).
+            - Existing workloads can be retrieved using M(netapp_eseries.santricity.netapp_e_facts).
         required: false
         type: str
         version_added: 2.8
@@ -193,7 +193,7 @@ options:
     initialization_timeout:
         description:
             - Duration in seconds before the wait_for_initialization operation will terminate.
-            - M(wait_for_initialization==True) to have any effect on module's operations.
+            - C(wait_for_initialization) == True to have any effect on module's operations.
         type: int
         required: false
         version_added: 2.9

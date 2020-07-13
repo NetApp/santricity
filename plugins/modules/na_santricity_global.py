@@ -30,7 +30,7 @@ options:
         description:
             - Size of the cache's block size.
             - All volumes on the storage system share the same cache space; therefore, the volumes can have only one cache block size.
-            - See M(na_santricity_facts) for available sizes.
+            - See M(netapp_eseries.santricity.na_santricity_facts) for available sizes.
         type: int
         required: False
     cache_flush_threshold:
@@ -42,7 +42,7 @@ options:
         description:
             - Default host type for the storage system.
             - Either one of the following names can be specified, Linux DM-MP, VMWare, Windows, Windows Clustered, or a
-              host type index which can be found in M(na_santricity_facts)
+              host type index which can be found in M(netapp_eseries.santricity.na_santricity_facts)
         type: str
         required: False
     automatic_load_balancing:
@@ -57,7 +57,7 @@ options:
     host_connectivity_reporting:
         description:
             - Enable host connectivity reporting to allow host connections to be monitored for connection and multipath driver problems.
-            - When M(automatic_load_balancing==enabled) then M(host_connectivity_reporting) must be enabled
+            - When C(automatic_load_balancing)==enabled then C(host_connectivity_reporting) must be enabled
         type: str
         choices:
             - enabled

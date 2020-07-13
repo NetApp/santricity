@@ -47,7 +47,7 @@ notes:
     - The E-Series Ansible modules require either an instance of the Web Services Proxy (WSP), to be available to manage
         the storage-system, or an E-Series storage-system that supports the Embedded Web Services API.
     - Embedded Web Services is currently available on the E2800, E5700, EF570, and newer hardware models.
-    - M(netapp_e_storage_system) may be utilized for configuring the systems managed by a WSP instance.
+    - M(netapp_eseries.santricity.netapp_e_storage_system) may be utilized for configuring the systems managed by a WSP instance.
 """
 
     # Documentation fragment for E-Series
@@ -86,5 +86,5 @@ notes:
     - The E-Series Ansible modules require either an instance of the Web Services Proxy (WSP), to be available to manage
         the storage-system, or an E-Series storage-system that supports the Embedded Web Services API.
     - Embedded Web Services is currently available on the E2800, E5700, EF570, and newer hardware models.
-    - M(netapp_e_storage_system) may be utilized for configuring the systems managed by a WSP instance.
+    - M(netapp_eseries.santricity.netapp_e_storage_system) may be utilized for configuring the systems managed by a WSP instance.
 """

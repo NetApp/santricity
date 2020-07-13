@@ -37,8 +37,8 @@ options:
     host_type:
         description:
             - Host type includes operating system and multipath considerations.
-            - If not specified, the default host type will be utilized. Default host type can be set using M(na_santricity_global).
-            - For storage array specific options see M(na_santricity_facts).
+            - If not specified, the default host type will be utilized. Default host type can be set using M(netapp_eseries.santricity.na_santricity_global).
+            - For storage array specific options see M(netapp_eseries.santricity.na_santricity_facts).
             - All values are case-insensitive.
             - AIX MPIO - The Advanced Interactive Executive (AIX) OS and the native MPIO driver
             - AVT 4M - Silicon Graphics, Inc. (SGI) proprietary multipath driver

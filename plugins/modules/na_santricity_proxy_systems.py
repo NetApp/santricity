@@ -85,7 +85,7 @@ options:
     accept_certificate:
         description:
             - Accept the storage system's certificate automatically even when it is self-signed.
-            - Use M(na_santricity_certificates) to add certificates to SANtricity Web Services Proxy.
+            - Use M(netapp_eseries.santricity.na_santricity_certificates) to add certificates to SANtricity Web Services Proxy.
             - SANtricity Web Services Proxy will fail to add any untrusted storage system.
         type: bool
         required: false

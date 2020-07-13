@@ -55,7 +55,7 @@ options:
         type: str
         description:
           - The identifier of the snapshot image used to create the new snapshot volume.
-          - "Note: You'll likely want to use the M(netapp_e_facts) module to find the ID of the image you want."
+          - "Note: You'll likely want to use the M(netapp_eseries.santricity.netapp_e_facts) module to find the ID of the image you want."
     full_threshold:
         description:
           - The repository utilization warning threshold percentage
