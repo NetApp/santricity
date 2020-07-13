@@ -156,7 +156,7 @@ options:
     cache_without_batteries:
         description:
             - Indicates whether caching should be used without battery backup.
-            - Warning, M(cache_without_batteries==true) and the storage system looses power and there is no battery backup, data will be lost!
+            - Warning, C(cache_without_batteries) == true and the storage system looses power and there is no battery backup, data will be lost!
         type: bool
         default: false
         required: false

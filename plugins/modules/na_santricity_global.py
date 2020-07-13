@@ -57,7 +57,7 @@ options:
     host_connectivity_reporting:
         description:
             - Enable host connectivity reporting to allow host connections to be monitored for connection and multipath driver problems.
-            - When M(automatic_load_balancing==enabled) then M(host_connectivity_reporting) must be enabled
+            - When C(automatic_load_balancing)==enabled then C(host_connectivity_reporting) must be enabled
         type: str
         choices:
             - enabled

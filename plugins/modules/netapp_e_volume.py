@@ -159,7 +159,7 @@ options:
     cache_without_batteries:
         description:
             - Indicates whether caching should be used without battery backup.
-            - Warning, M(cache_without_batteries==true) and the storage system looses power and there is no battery backup, data will be lost!
+            - Warning, C(cache_without_batteries) == true and the storage system looses power and there is no battery backup, data will be lost!
         type: bool
         default: false
         version_added: 2.9
@@ -193,7 +193,7 @@ options:
     initialization_timeout:
         description:
             - Duration in seconds before the wait_for_initialization operation will terminate.
-            - M(wait_for_initialization==True) to have any effect on module's operations.
+            - C(wait_for_initialization) == True to have any effect on module's operations.
         type: int
         required: false
         version_added: 2.9
