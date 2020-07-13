@@ -56,7 +56,7 @@ options:
             - All values are in kibibytes.
             - Some common choices include 8, 16, 32, 64, 128, 256, and 512 but options are system
               dependent.
-            - Retrieve the definitive s ystem list from M(na_santricity_facts) under segment_sizes.
+            - Retrieve the definitive s ystem list from M(netapp_eseries.santricity.na_santricity_facts) under segment_sizes.
             - When the storage pool is a raidDiskPool then the segment size must be 128kb.
             - Segment size migrations are not allowed in this module
         type: int
@@ -167,7 +167,7 @@ options:
               array.
             - When I(workload_name) exists on the storage array but the metadata is different then the workload
               definition will be updated. (Changes will update all associated volumes!)
-            - Existing workloads can be retrieved using M(na_santricity_facts).
+            - Existing workloads can be retrieved using M(netapp_eseries.santricity.na_santricity_facts).
         type: str
         required: false
     metadata:

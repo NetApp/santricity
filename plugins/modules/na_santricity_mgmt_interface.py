@@ -128,7 +128,7 @@ options:
 notes:
     - Check mode is supported.
     - It is highly recommended to have a minimum of one up management port on each controller.
-    - When using SANtricity Web Services Proxy, use M(na_santricity_storage_system) to update management paths. This is required because of a known issue
+    - When using SANtricity Web Services Proxy, use M(netapp_eseries.santricity.na_santricity_storage_system) to update management paths. This is required because of a known issue
       and will be addressed in the proxy version 4.1. After the resolution the management ports should automatically be updated.
     - The interface settings are applied synchronously, but changes to the interface itself (receiving a new IP address
       via dhcp, etc), can take seconds or minutes longer to take effect.

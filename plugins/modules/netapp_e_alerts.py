@@ -36,7 +36,7 @@ options:
         description:
             - A fully qualified domain name, IPv4 address, or IPv6 address of a mail server.
             - To use a fully qualified domain name, you must configure a DNS server on both controllers using
-             M(netapp_e_mgmt_interface).
+             M(netapp_eseries.santricity.netapp_e_mgmt_interface).
              - Required when I(state=enabled).
         type: str
         required: no

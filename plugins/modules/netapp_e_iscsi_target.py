@@ -61,7 +61,7 @@ options:
 notes:
     - Check mode is supported.
     - Some of the settings are dependent on the settings applied to the iSCSI interfaces. These can be configured using
-      M(netapp_e_iscsi_interface).
+      M(netapp_eseries.santricity.netapp_e_iscsi_interface).
     - This module requires a Web Services API version of >= 1.3.
 """
 

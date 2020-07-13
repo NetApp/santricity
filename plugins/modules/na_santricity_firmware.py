@@ -21,14 +21,14 @@ options:
         description:
             - Path to the NVSRAM file.
             - NetApp recommends upgrading the NVSRAM when upgrading firmware.
-            - Due to concurrency issues, use M(na_santricity_proxy_firmware_upload) to upload firmware and nvsram to SANtricity Web Services Proxy when
+            - Due to concurrency issues, use M(netapp_eseries.santricity.na_santricity_proxy_firmware_upload) to upload firmware and nvsram to SANtricity Web Services Proxy when
               upgrading multiple systems at the same time on the same instance of the proxy.
         type: str
         required: false
     firmware:
         description:
             - Path to the firmware file.
-            - Due to concurrency issues, use M(na_santricity_proxy_firmware_upload) to upload firmware and nvsram to SANtricity Web Services Proxy when
+            - Due to concurrency issues, use M(netapp_eseries.santricity.na_santricity_proxy_firmware_upload) to upload firmware and nvsram to SANtricity Web Services Proxy when
               upgrading multiple systems at the same time on the same instance of the proxy.
         type: str
         required: True

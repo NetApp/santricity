@@ -46,7 +46,7 @@ options:
             - This is the type of host to be mapped
             - Required when C(state=present)
             - Either one of the following names can be specified, Linux DM-MP, VMWare, Windows, Windows Clustered, or a
-              host type index which can be found in M(netapp_e_facts)
+              host type index which can be found in M(netapp_eseries.santricity.netapp_e_facts)
         type: str
         aliases:
             - host_type_index
