@@ -1,0 +1,27 @@
+- name: Configure controllers iSCSI interface ports
+  import_tasks: interface/iscsi.yml
+  delegate_to: localhost
+  when: eseries_initiator_protocol == "iscsi"
+  tags:
+    - iscsi
+
+- name: Configure controllers InfiniBand iSER interface ports
+  import_tasks: interface/ib_iser.yml
+  delegate_to: localhost
+  when: eseries_initiator_protocol == "ib_iser"
+  tags:
+    - ib_iser
+
+- name: Configure controllers NVMe interface ports over InfiniBand
+  import_tasks: interface/nvme_ib.yml
+  delegate_to: localhost
+  when: eseries_initiator_protocol == "nvme_ib"
+  tags:
+    - nvme_ib
+
+- name: Configure controllers NVMe interface ports on RoCE
+  import_tasks: interface/nvme_roce.yml
+  delegate_to: localhost
+  when: eseries_initiator_protocol == "nvme_roce"
+  tags:
+    - nvme_roce

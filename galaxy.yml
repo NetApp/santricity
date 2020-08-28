@@ -1,0 +1,18 @@
+namespace: "netapp_eseries"
+name: "santricity"
+version: "1.0.8"
+readme: "README.md"
+authors:
+  - Nathan Swartz (@ndswartz)
+dependencies: {}
+license:
+  - "GPL-3.0-only"
+  - "BSD-3-Clause"
+repository: "https://www.github.com/netapp-eseries/santricity"
+documentation: "https://www.netapp.com/us/media/tr-4574.pdf"
+tags:
+  - netapp
+  - eseries
+  - santricity
+homepage: "https://www.github.com/netapp-eseries/santricity"
+issues: "https://github.com/netappeseries/santricity/issues"

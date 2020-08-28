@@ -1,0 +1,66 @@
+- name: Ensure admin password has been set
+  na_santricity_auth:
+    ssid: "{{ current_eseries_ssid }}"
+    api_url: "{{ current_eseries_api_url }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+    current_admin_password: "{{ eseries_system_password }}"
+    user: admin
+    password: "{{ eseries_system_password }}"
+  when: eseries_system_password is defined
+  tags:
+    - always
+
+- name: Ensure non-admin passwords have been set
+  na_santricity_auth:
+    ssid: "{{ current_eseries_ssid }}"
+    api_url: "{{ current_eseries_api_url }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+    current_admin_password: "{{ eseries_system_password }}"
+    user: "{{ item['key'] }}"
+    password: "{{ item['value'] }}"
+  loop: "{{ lookup('dict', non_admin_user_authentication, wantlist=True) }}"
+  vars:
+    non_admin_user_authentication: |-
+      {%- set non_admin_list = {} %}
+        {%- if eseries_system_monitor_password is defined and eseries_system_monitor_password and non_admin_list.update({"monitor": eseries_system_monitor_password})%}{%- endif %}
+        {%- if eseries_system_security_password is defined and eseries_system_security_password and non_admin_list.update({"security": eseries_system_security_password})%}{%- endif %}
+        {%- if eseries_system_storage_password is defined and eseries_system_storage_password and non_admin_list.update({"storage": eseries_system_storage_password})%}{%- endif %}
+        {%- if eseries_system_support_password is defined and eseries_system_support_password and non_admin_list.update({"support": eseries_system_support_password})%}{%- endif %}
+      {{ non_admin_list }}
+
+- name: Ensure client-side certificates are installed
+  na_santricity_client_certificate:
+    ssid: "{{ current_eseries_ssid }}"
+    api_url: "{{ current_eseries_api_url }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+    certificates: "{{ eseries_client_certificate_certificates }}"
+  when: eseries_client_certificate_certificates is defined
+  tags:
+    - security
+    - certificates
+
+- name: Ensure LDAP has been configured
+  na_santricity_ldap:
+    ssid: "{{ current_eseries_ssid }}"
+    api_url: "{{ current_eseries_api_url }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+    state: "{{ eseries_ldap_state }}"
+    identifier: "{{ eseries_ldap_identifier | default(omit) }}"
+    server_url: "{{ eseries_ldap_server | default(omit) }}"
+    bind_user: "{{ eseries_ldap_bind_username | default(omit) }}"
+    bind_password: "{{ eseries_ldap_bind_password | default(omit) }}"
+    search_base: "{{ eseries_ldap_search_base | default(omit) }}"
+    user_attribute: "{{ eseries_ldap_user_attribute | default(omit) }}"
+    role_mappings: "{{ eseries_ldap_role_mappings | default(omit) }}"
+  when: eseries_ldap_state is defined
+  tags:
+    - security
+    - ldap

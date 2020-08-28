@@ -1,0 +1,81 @@
+# Test code for the na_santricity_iscsi_target module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+- name: Set facts for na_santricity_iscsi_target module's intergration test.
+  set_fact:
+    vars:
+      credentials: &creds
+        ssid: "{{ ssid }}"
+        api_url: "{{ base_url }}"
+        api_username: "{{ username }}"
+        api_password: "{{ password }}"
+        validate_certs: "{{ validate_cert }}"
+
+- name: Set initial iSCSI target state
+  na_santricity_iscsi_target:
+    <<: *creds
+    name: eseries_storage_iscsi_target
+    ping: false
+    unnamed_discovery: false
+    chap_secret: "chappySecret"
+
+- name: Clear chap secret
+  na_santricity_iscsi_target:
+    <<: *creds
+    name: eseries_storage_iscsi_target
+    ping: false
+    unnamed_discovery: false
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Make iSCSI target pingable (change, check_mode)
+  na_santricity_iscsi_target:
+    <<: *creds
+    name: eseries_storage_iscsi_target
+    ping: true
+    unnamed_discovery: false
+  check_mode: true
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Make iSCSI target pingable (change)
+  na_santricity_iscsi_target:
+    <<: *creds
+    name: eseries_storage_iscsi_target
+    ping: true
+    unnamed_discovery: false
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Make iSCSI target pingable (no change)
+  na_santricity_iscsi_target:
+    <<: *creds
+    name: eseries_storage_iscsi_target
+    ping: true
+    unnamed_discovery: false
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Make iSCSI target discoverable (change)
+  na_santricity_iscsi_target:
+    <<: *creds
+    name: eseries_storage_iscsi_target
+    ping: true
+    unnamed_discovery: true
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
