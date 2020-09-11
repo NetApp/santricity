@@ -4,6 +4,7 @@ setupBlackduckBuildParameters()
 def hubProjectName = "ansible-santricity-collection" // "esg"
 def hubProjectVersion = "1.1" // "smmonitor-${env.BRANCH_NAME}"
 
+
 pipeline {
     agent {
         label "linux-docker"
@@ -23,7 +24,7 @@ pipeline {
                         hubScanProject(
                             "${hubProjectName}",
                             "${hubProjectVersion}",
-                            productionScan: false,
+                            productionScan: true,
                         )
                     }
                 }
