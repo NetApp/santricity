@@ -1,8 +1,11 @@
-@Library('hub') _
+//@Library('hub') _
+@Library("hub")_
 setupBlackduckBuildParameters()
 
-def hubProjectName = "esg" // "esg"
-def hubProjectVersion = "ansible-santricity-collection-1.1" // "smmonitor-${env.BRANCH_NAME}"
+//def hubProjectName = "esg" // "esg"
+//def hubProjectVersion = "ansible-santricity-collection-1.1" // "smmonitor-${env.BRANCH_NAME}"
+def hubProjectName = "ansible-santricity-collection"
+def hubProjectVersion = "1.1"
 
 
 pipeline {
@@ -24,7 +27,7 @@ pipeline {
                         hubScanProject(
                             "${hubProjectName}",
                             "${hubProjectVersion}",
-                            productionScan: true,
+                            productionScan: false,
                         )
                     }
                 }
