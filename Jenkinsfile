@@ -1,4 +1,4 @@
-@Library("hub") _
+@Library('hub')
 setupBlackduckBuildParameters()
 
 def hubProjectName = "ansible-santricity-collection" // "esg"
