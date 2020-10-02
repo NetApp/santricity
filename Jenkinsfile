@@ -24,7 +24,7 @@ pipeline {
                         hubScanProject(
                             "${hubProjectName}",
                             "${hubProjectVersion}",
-                            productionScan: false
+                            productionScan: true
                         )
                     }
                 }
