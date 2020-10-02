@@ -1,8 +1,8 @@
 @Library("hub")_
 setupBlackduckBuildParameters()
 
-def hubProjectName = "esg"
-def hubProjectVersion = "ansible-santricity-collection-1.1"
+def hubProjectName = "ansible-santricity-collection"  //"esg"
+def hubProjectVersion = "1.1"
 
 
 pipeline {
