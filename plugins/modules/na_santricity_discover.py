@@ -79,11 +79,13 @@ systems_found:
                 "addresses": ["192.168.1.184", "192.168.1.185"],
                 "api_urls": ["https://192.168.1.184:8443/devmgr/v2/", "https://192.168.1.185:8443/devmgr/v2/"],
                 "label": "ExampleArray01",
+                "proxy_ssid: "",
                 "proxy_required": false},
              "012341234567": {
                 "addresses": ["192.168.1.23", "192.168.1.24"],
                 "api_urls": ["https://192.168.1.100:8443/devmgr/v2/"],
                 "label": "ExampleArray02",
+                "proxy_ssid": "array_ssid",
                 "proxy_required": true}}
 """
 
@@ -113,8 +115,8 @@ class NetAppESeriesDiscover:
     """Discover E-Series storage systems."""
     MAX_THREAD_POOL_SIZE = 256
     CPU_THREAD_MULTIPLE = 32
-    SEARCH_TIMEOUT = 1
-    DEFAULT_CONNECTION_TIMEOUT_SEC = 1
+    SEARCH_TIMEOUT = 30
+    DEFAULT_CONNECTION_TIMEOUT_SEC = 30
     DEFAULT_DISCOVERY_TIMEOUT_SEC = 300
 
     def __init__(self):
@@ -172,7 +174,7 @@ class NetAppESeriesDiscover:
                     systems_found[sa_data["chassisSerialNumber"]]["api_urls"].append(url)
                 else:
                     systems_found.update({sa_data["chassisSerialNumber"]: {"api_urls": [url], "label": sa_data["storageArrayLabel"],
-                                                                           "addresses": [], "proxy_required": False}})
+                                                                           "addresses": [], "proxy_ssid": "", "proxy_required": False}})
                 break
             except Exception as error:
                 pass
@@ -219,7 +221,11 @@ class NetAppESeriesDiscover:
                     break
                 except Exception as error:
                     pass
-        systems_found.update({serial: {"api_urls": api_urls, "label": label, "addresses": addresses, "proxy_required": False}})
+        systems_found.update({serial: {"api_urls": api_urls,
+                                       "label": label,
+                                       "addresses": addresses,
+                                       "proxy_ssid": "",
+                                       "proxy_required": False}})
 
     def proxy_discover(self):
         """Search for array using it's chassis serial from web services proxy."""
@@ -257,7 +263,9 @@ class NetAppESeriesDiscover:
                             else:
                                 self.systems_found.update({discovered_system["serialNumber"]: {"api_urls": [self.proxy_url],
                                                                                                "label": discovered_system["label"],
-                                                                                               "addresses": addresses, "proxy_required": True}})
+                                                                                               "addresses": addresses,
+                                                                                               "proxy_ssid": "",
+                                                                                               "proxy_required": True}})
                         for thread in thread_pool:
                             thread.join()
                         break
@@ -269,10 +277,27 @@ class NetAppESeriesDiscover:
         except Exception as error:
             self.module.fail_json(msg="Failed to initiate array discovery. Error [%s]." % to_native(error))
 
+    def update_proxy_with_proxy_ssid(self):
+        """Determine the current proxy ssid for all discovered-proxy_required storage systems."""
+        # Discover all added storage systems to the proxy.
+        systems = []
+        try:
+            rc, systems = request(self.proxy_url + "storage-systems", validate_certs=self.proxy_validate_certs,
+                                  force_basic_auth=True, url_username=self.proxy_username, url_password=self.proxy_password)
+        except Exception as error:
+            self.module.fail_json(msg="Failed to ascertain storage systems added to Web Services Proxy.")
+
+        for system_key, system_info in self.systems_found.items():
+            if self.systems_found[system_key]["proxy_required"]:
+                for system in systems:
+                    if system_key == system["chassisSerialNumber"]:
+                        self.systems_found[system_key]["proxy_ssid"] = system["id"]
+
     def discover(self):
         """Discover E-Series storage systems."""
         if self.proxy_url:
             self.proxy_discover()
+            self.update_proxy_with_proxy_ssid()
         else:
             self.no_proxy_discover()
 

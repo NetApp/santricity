@@ -8,6 +8,7 @@
     current_admin_password: "{{ eseries_system_password }}"
     user: admin
     password: "{{ eseries_system_password }}"
+  when: eseries_system_password is defined
   tags:
     - always
 

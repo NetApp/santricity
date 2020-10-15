@@ -12,9 +12,8 @@ NetApp E-Series SANtricity Collection
 
     Roles:
         - nar_santricity_common: Discover NetApp E-Series storage systems and configures SANtricity Web Services Proxy.
-        - nar_santricity_host: Configure storage pools, volumes, hosts, host groups, and port interfaces. (nar_santricity_common is called at the beginning)
-        - nar_santricity_management: Manage storage system's name, management interfaces, alerts, syslog, auditlog, asup, ldap, certificates, drive firmware and
-            controller firmware. (nar_santricity_common is called at the beginning)
+        - nar_santricity_host: Configure storage pools, volumes, hosts, host groups, and port interfaces.
+        - nar_santricity_management: Manage storage system's name, management interfaces, alerts, syslog, auditlog, asup, ldap, certificates, drive firmware and controller firmware.
             
     Modules:
         - na_santricity_alerts: Manage email alert notification settings
@@ -81,10 +80,13 @@ Example Playbook
       collections:
         - netapp_eseries.santricity
       tasks:
-        - name: Ensure all management related policies are enforced
+        - name: Ensure proxy has been configured and storage systems have been discovered.
+          import_role:
+            name: nar_santricity_common
+        - name: Ensure all management related policies are enforced.
           import_role:
             name: nar_santricity_management
-        - name: Ensure all host related policies are enforced
+        - name: Ensure all host related policies are enforced.
           import_role:
             name: nar_santricity_host
 
@@ -130,14 +132,26 @@ Example Storage System Inventory File (Simple example without storage system dis
             host: servers
             size: 2
             size_unit: tb
+            volume_metadata:  # Used by netapp_eseries.host.mount role to format and mount volumes
+              format_type: xfs
+              mount_options1: "noatime,nodiratime,logbufs=8,logbsize=256k,largeio"
+              mount_options2: "inode64,swalloc,allocsize=131072k,nobarrier,_netdev"
+              mount_directory: "/data/beegfs/"
 
 Example Storage System Inventory File (Discover storage system)
 -------------------------------------
-**Note that this discovery method works for SANtricity versions 11.60.2 or later, otherwise it will only discover the systems with unset passwords.**
+**Note that this discovery method works for SANtricity versions 11.62 or later, otherwise it will only discover the systems with unset passwords.**
 
     eseries_system_serial: "012345678901"   # Be sure to quote if the serial is all numbers and begins with zero.
     eseries_system_password: admin_password
     eseries_subnet: 192.168.1.0/24
+
+    eseries_management_interfaces:          # (Optional) Specifying static management interfaces can be used not only to discover the storage system but also to contact when valid.
+      config_method: static
+      controller_a:
+        - address: 192.168.1.100
+      controller_b:
+        - address: 192.168.1.101
 
     (...)   # Same as the previous examples starting with the eseries_validate_certs line
 
@@ -230,13 +244,11 @@ Example Storage System Inventory File
     eseries_controller_iscsi_port_subnet_mask: 255.255.255.0
     eseries_controller_iscsi_port:
       controller_a:
-        ports:
-          - address: 192.168.2.100
-          - address: 192.168.2.110
+        - address: 192.168.2.100
+        - address: 192.168.2.110
       controller_b:
-        ports:
-          - address: 192.168.3.100
-          - address: 192.168.3.110
+        - address: 192.168.3.100
+        - address: 192.168.3.110
 
     # Storage pool and volume configuration
     eseries_storage_pool_configuration:
@@ -461,36 +473,29 @@ Collection Variables
     eseries_controller_iscsi_port_subnet_mask:           # General port IPv4 subnet mask for both controllers.
     eseries_controller_iscsi_port_mtu: 9000              # General port maximum transfer units (MTU) for both controllers. Any value greater than 1500 (bytes).
     eseries_controller_iscsi_port:
-      controller_a:           # Controller A port definition.
-        state:                # General definitions for all ports on controller A. Any option specified in the ports definition can be
-                              #     specified here to generalize for all controller A ports. Choices: enabled, disabled
-        config_method:        # Port configuration method Choices: static, dhcp
-        address:              # Port IPv4 address
-        gateway:              # Port IPv4 gateway
-        subnet_mask:          # Port IPv4 subnet_mask
-        mtu:                  # Port IPv4 mtu
-        ports:                # Ordered list of port definitions reading iSCSI ports left to right
-          - state:            # Whether the port should be enabled. Choices: enabled, disabled
-            config_method:    # Port configuration method Choices: static, dhcp
-            address:          # Port IPv4 address
-            gateway:          # Port IPv4 gateway
-            subnet_mask:      # Port IPv4 subnet_mask
+      controller_a:           # Controller A port definition. Ordered list of port definitions reading iSCSI ports left to right
+        - state:            # Whether the port should be enabled. Choices: enabled, disabled
+          config_method:    # Port configuration method Choices: static, dhcp
+          address:          # Port IPv4 address
+          gateway:          # Port IPv4 gateway
+          subnet_mask:      # Port IPv4 subnet_mask
+          mtu:              # Port IPv4 mtu
       controller_b:           # Controller B port definition.
-          (...)               # Same as controller A but for controller B
+        - (...)               # Same as controller A but for controller B
 
     # Controller InfiniBand iSER Interface Channel
     eseries_controller_ib_iser_port:
       controller_a:    # Ordered list of controller A channel address definition.
           -            # Port IPv4 address for channel 1
-          - (...)      # So on and so forth
       controller_b:    # Ordered list of controller B channel address definition.
+          - (...)      # Same as controller A but for controller B
 
     # Controller NVMe over InfiniBand Interface Channel
     eseries_controller_nvme_ib_port:
       controller_a:    # Ordered list of controller A channel address definition.
           -            # Port IPv4 address for channel 1
-          - (...)      # So on and so forth
       controller_b:    # Ordered list of controller B channel address definition.
+          - (...)      # Same as controller A but for controller B
 
     # Controller NVMe RoCE Interface Port Default Policy Specifications
     eseries_controller_nvme_roce_port_state: enabled         # Specifies whether a controller port definition should be applied. Choices: enabled, disabled
@@ -500,25 +505,18 @@ Collection Variables
     eseries_controller_nvme_roce_port_mtu: 9000              # Port maximum transfer units (MTU). Any value greater than 1500 (bytes).
     eseries_controller_nvme_roce_port_speed: auto            # Interface speed. Value must be a supported speed or auto to negotiate the speed with the port.
     eseries_controller_nvme_roce_port:
-      controller_a:           # Controller A port definition.
-        state:                # General definitions for all ports on controller A. Any option specified in the ports definition can be
-                              #     specified here to generalize for all controller A ports.
-        config_method:        # Port configuration method Choices: static, dhcp
-        address:              # Port IPv4 address
-        gateway:              # Port IPv4 gateway
-        subnet_mask:          # Port IPv4 subnet_mask
-        mtu:                  # Port IPv4 mtu
-        speed:                # Port IPv4 speed
-        ports:                # List containing ports definitions
-          - channel:          # Channel of the port to modify. This will be a numerical value that represents the port; typically read
-                              #     left to right on the HIC.
-            state:            # Whether the port should be enabled.
-            config_method:    # Port configuration method Choices: static, dhcp
-            address:          # Port IPv4 address
-            gateway:          # Port IPv4 gateway
-            subnet_mask:      # Port IPv4 subnet_mask
-      controller_b:           # Controller B port definition.
-        (...)                 # Same as controller A but for controller B
+      controller_a:         # Controller A port definition. List containing ports definitions.
+        - channel:          # Channel of the port to modify. This will be a numerical value that represents the port; typically read
+                            #     left to right on the HIC.
+          state:            # Whether the port should be enabled.
+          config_method:    # Port configuration method Choices: static, dhcp
+          address:          # Port IPv4 address
+          gateway:          # Port IPv4 gateway
+          subnet_mask:      # Port IPv4 subnet_mask
+          mtu:              # Port IPv4 mtu
+          speed:            # Port IPv4 speed
+      controller_b:         # Controller B port definition.
+        - (...)             # Same as controller A but for controller B
 
     # Storage Pool Default Policy Specifications
     eseries_storage_pool_state: present                   # Default storage pool state. Choices: present, absent
@@ -560,7 +558,8 @@ Collection Variables
     eseries_volume_ssd_cache_enabled:                     # Default for ssd cache which will enable the volume to use an existing SSD cache on the storage array
     eseries_volume_host:                                  # Default host for all volumes; the value can be any host from the Ansible inventory.
     eseries_volume_workload_name:                         # Default workload tag name
-    eseries_volume_metadata:                              # Default metadata
+    eseries_volume_workload_metadata:                     # Default workload metadata
+    eseries_volume_volume_metadata:                       # Default volume_metadata
     eseries_volume_owning_controller                      # Default preferred owning controller
     eseries_volume_wait_for_initialization: false         # Default for whether volume creation with wait for initialization to complete
 
@@ -615,7 +614,6 @@ Collection Variables
                                                    #    - Windows: Windows Server OS and Windows MPIO with a DSM driver
                                                    #    - Windows Clustered: Clustered Windows Server OS and Windows MPIO with a DSM driver
                                                    #    - Windows ATTO: Windows OS and the ATTO Technology, Inc. driver
-            metadata:                              # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.
             owning_controller:                     # Specifies which controller will be the primary owner of the volume. Not specifying will allow the
                                                    #    controller to choose ownership. (Choices: A, B)
             read_ahead_enable:                     # Enables read ahead caching; this is good for sequential workloads to cache subsequent blocks.
@@ -634,6 +632,9 @@ Collection Variables
             data_assurance_enabled:                # Enables whether data assurance(DA) is required to be enabled.
             wait_for_initialization:               # Whether volume creation with wait for initialization to complete
             workload_name:                         # Name of the volume's workload
+            workload_metadata:                     # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.
+            volume_metadata                        # Dictionary containing arbitrary entries used to define information about the volume itself.
+                                                   #    Note: mount_to_host, format_type, format_options, mount_directory, mount_options are used by netapp_eseries.host.mount role to format and mount volumes.
             write_cache_enable:                    # Enables write caching which will cache all writes.
                                                    #    created on the storage array.
 
@@ -707,3 +708,41 @@ License
 Author Information
 ------------------
     Nathan Swartz (@ndswartz)
+
+=======================================
+Netapp_Eseries.Santricity Release Notes
+=======================================
+
+.. contents:: Topics
+
+
+v1.1.0
+======
+
+Release Summary
+---------------
+
+This release focused on providing volume details to through the netapp_volumes_by_initiators in the na_santricity_facts module, improving on the nar_santricity_common role storage system API information and resolving issues.
+
+Minor Changes
+-------------
+
+- Add functionality to remove all inventory configuration in the nar_santricity_host role. Set configuration.eseries_remove_all_configuration=True to remove all storage pool/volume configuration, host, hostgroup, and lun mapping configuration.
+- Add host_types, host_port_protocols, host_port_information, hostside_io_interface_protocols to netapp_volumes_by_initiators in the na_santricity_facts module.
+- Add storage pool information to the volume_by_initiator facts.
+- Add storage system not found exception to the common role's build_info task.
+- Add volume_metadata option to na_santricity_volume module, add volume_metadata information to the netapp_volumes_by_initiators dictionary in na_santricity_facts module, and update the nar_santricity_host role with the option.
+- Improve nar_santricity_common storage system api determinations; attempts to discover the storage system using the information provided in the inventory before attempting to search the subnet.
+- Increased the storage system discovery connection timeouts to 30 seconds to prevent systems from not being discovered over slow connections.
+- Minimize the facts gathered for the host initiators.
+- Update ib iser determination to account for changes in firmware 11.60.2.
+- Use existing Web Services Proxy storage system identifier when one is already created and one is not provided in the inventory.
+- Utilize eseries_iscsi_iqn before searching host for iqn in nar_santricity_host role.
+
+Bugfixes
+--------
+
+- Fix check_port_type method for ib iser when ib is the port type.
+- Fix examples in the netapp_e_mgmt_interface module.
+- Fix issue with changing host port name.
+- Fix na_santricity_lun_mapping unmapping issue; previously mapped volumes failed to be unmapped.

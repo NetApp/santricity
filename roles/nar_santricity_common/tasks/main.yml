@@ -1,30 +1,17 @@
-- name: Ensure proxy services and storage system credentials are prepared.
-  block:
-    - name: Configure SANtricity Web Services Proxy's passwords
-      import_tasks: proxy_security.yml
-      delegate_to: localhost
-      run_once: true
+- name: Configure SANtricity Web Services Proxy's passwords
+  import_tasks: proxy_security.yml
+  delegate_to: localhost
+  run_once: true
 
-    - name: Discover Web Services
-      import_tasks: discovery.yml
-      delegate_to: localhost
-      tags:
-        - always
+- name: Build information for Web Services
+  import_tasks: build_info.yml
+  delegate_to: localhost
+  tags:
+    - always
 
-    - name: Build information for Web Services
-      import_tasks: build_info.yml
-      delegate_to: localhost
-      tags:
-        - always
-
-    - name: Configure SANtricity WebServices Proxy
-      import_tasks: proxy.yml
-      delegate_to: localhost
-      run_once: true
-      tags:
-        - always
-  always:
-   - name: Set nar_santricity_common_completed
-     set_fact:
-       nar_santricity_common_completed: True
-  when: nar_santricity_common_completed is not defined
+- name: Configure SANtricity WebServices Proxy
+  import_tasks: proxy.yml
+  delegate_to: localhost
+  run_once: true
+  tags:
+    - always

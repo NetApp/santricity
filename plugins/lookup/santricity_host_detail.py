@@ -73,14 +73,7 @@ class LookupModule(LookupBase):
                             hosts["expected_hosts"][host]["host_type"] = "linux dm-mp"
 
                     # Update hosts object
-                    hosts["expected_hosts"][host].update({"sanitized_hostname": sanitized_hostname,
-                                                          "hostname": info["ansible_facts"]["ansible_hostname"],
-                                                          "fqdn": info["ansible_facts"]["ansible_fqdn"],
-                                                          "os_family": info["ansible_facts"]["ansible_os_family"],
-                                                          "os_distribution": info["ansible_facts"]["ansible_distribution"],
-                                                          "os_version": info["ansible_facts"]["ansible_distribution_version"],
-                                                          "os_type": info["ansible_facts"]["ansible_system"],
-                                                          "ports": []})
+                    hosts["expected_hosts"][host].update({"sanitized_hostname": sanitized_hostname, "ports": []})
 
             # Add SAS ports
             for interface in host_interface_ports:

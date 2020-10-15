@@ -206,10 +206,10 @@ class NetAppESeriesAuth(NetAppESeriesModule):
                     utils_login_used = True
                     rc, response = self.request("utils/login?uid=%s&pwd=%s&xsrf=false&onlycheck=false" % (self.user, self.password),
                                                 rest_api_path=self.DEFAULT_BASE_PATH, log_request=False, ignore_errors=True, force_basic_auth=False)
-                elif self.is_embedded_available():
-                    utils_login_used = True
-                    rc, response = self.request("storage-systems/%s/forward/devmgr/utils/login?uid=%s&pwd=%s&xsrf=false&onlycheck=false"
-                                                % (self.ssid, self.user, self.password), log_request=False, ignore_errors=True, force_basic_auth=False)
+                # elif self.is_embedded_available():
+                #     utils_login_used = True
+                #     rc, response = self.request("storage-systems/%s/forward/devmgr/utils/login?uid=%s&pwd=%s&xsrf=false&onlycheck=false"
+                #                                 % (self.ssid, self.user, self.password), log_request=False, ignore_errors=True, force_basic_auth=False)
                 else:
                     if self.user == "admin":
                         rc, response = self.request("storage-systems/%s/stored-password/validate" % self.ssid, method="POST", log_request=False,

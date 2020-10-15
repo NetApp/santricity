@@ -1,6 +1,10 @@
-- name: Discover Web Services REST API url
-  import_role:
-    name: nar_santricity_common
+- name: Set current storage system credentials
+  include_role:
+    name: netapp_eseries.santricity.nar_santricity_common
+    tasks_from: build_info.yml
+  when: current_eseries_api_url is not defined
+  tags:
+    - always
 
 - name: Ensure security settings are configured
   import_tasks: security.yml

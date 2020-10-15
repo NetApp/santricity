@@ -20,6 +20,9 @@ class LookupModule(LookupBase):
             # raise AnsibleError("Storage array information not available. Collect facts using na_santricity_facts module.")
             return list()
 
+        # Remove any absent volumes
+        volumes = [vol for vol in volumes if "state" not in vol or vol["state"] == "present"]
+
         self.array_facts = array_facts["storage_array_facts"]
         self.luns_by_target = self.array_facts["netapp_luns_by_target"]
         self.access_volume_lun = self.array_facts["netapp_default_hostgroup_access_volume_lun"]
