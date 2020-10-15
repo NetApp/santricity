@@ -21,10 +21,8 @@ options:
     controller:
         description:
             - The controller that owns the port you want to configure.
-            - Controller names are presented alphabetically, with the first controller as A,
-             the second as B, and so on.
-            - Current hardware models have either 1 or 2 available controllers, but that is not a guaranteed hard
-             limitation and could change in the future.
+            - Controller names are presented alphabetically, with the first controller as A, the second as B, and so on.
+            - Current hardware models have either 1 or 2 available controllers, but that is not a guaranteed hard limitation and could change in the future.
         type: str
         required: true
         choices:
@@ -107,19 +105,22 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
         """Retrieve and filter all hostside interfaces for IB iSER."""
         ifaces = []
         try:
-            rc, ifaces = self.request("storage-systems/%s/graph/xpath-filter?query=/controller/hostInterfaces" % self.ssid)
+            rc, ifaces = self.request("storage-systems/%s/interfaces?channelType=hostside" % self.ssid)
         except Exception as err:
             self.module.fail_json(msg="Failed to retrieve defined host interfaces. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
         # Filter out non-ib-iser interfaces
         ib_iser_ifaces = []
-        for iface in [iface for iface in ifaces if iface["interfaceType"] == "iscsi"]:
-            if (iface["iscsi"]["interfaceData"]["type"] == "infiniband" and
-                    iface["iscsi"]["interfaceData"]["infinibandData"]["isIser"]):
+        for iface in ifaces:
+            if ((iface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and
+                 iface["ioInterfaceTypeData"]["iscsi"]["interfaceData"]["type"] == "infiniband" and
+                 iface["ioInterfaceTypeData"]["iscsi"]["interfaceData"]["infinibandData"]["isIser"]) or
+                    (iface["ioInterfaceTypeData"]["interfaceType"] == "ib" and
+                     iface["ioInterfaceTypeData"]["ib"]["isISERSupported"])):
                 ib_iser_ifaces.append(iface)
 
         if not ib_iser_ifaces:
-            self.module.fail_json(msg="Failed to detect any InfiniBand iSER interfaces! Array [%s]." % self.ssid)
+            self.module.fail_json(msg="Failed to detect any InfiniBand iSER interfaces! Array [%s] - %s." % self.ssid)
 
         return ib_iser_ifaces
 
@@ -171,9 +172,12 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
 
             controller_ifaces = []
             for iface in ifaces:
-                if iface["iscsi"]["controllerId"] == controller_id:
-                    controller_ifaces.append([iface["iscsi"]["channel"], iface,
-                                              ifaces_status[iface["iscsi"]["channelPortRef"]]])
+                if iface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and iface["ioInterfaceTypeData"]["iscsi"]["controllerId"] == controller_id:
+                    controller_ifaces.append([iface["ioInterfaceTypeData"]["iscsi"]["channel"], iface,
+                                              ifaces_status[iface["ioInterfaceTypeData"]["iscsi"]["channelPortRef"]]])
+                elif iface["ioInterfaceTypeData"]["interfaceType"] == "ib" and iface["ioInterfaceTypeData"]["ib"]["controllerId"] == controller_id:
+                    controller_ifaces.append([iface["ioInterfaceTypeData"]["ib"]["channel"], iface,
+                                              iface["ioInterfaceTypeData"]["ib"]["linkState"]])
 
             sorted_controller_ifaces = sorted(controller_ifaces)
             if self.channel < 1 or self.channel > len(controller_ifaces):
@@ -188,14 +192,16 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
     def is_change_required(self):
         """Determine whether change is required."""
         iface = self.get_target_interface()
-        if iface["iscsi"]["ipv4Data"]["ipv4AddressData"]["ipv4Address"] != self.address:
+        if ((iface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and iface["iscsi"]["ipv4Data"]["ipv4AddressData"]["ipv4Address"] != self.address) or
+                (iface["ioInterfaceTypeData"]["interfaceType"] == "ib" and
+                 iface["commandProtocolPropertiesList"]["commandProtocolProperties"][0]["scsiProperties"]["scsiProtocolType"] == "iser")):
             return True
 
         return False
 
     def make_request_body(self):
         iface = self.get_target_interface()
-        body = {"iscsiInterface": iface["iscsi"]["id"],
+        body = {"iscsiInterface": iface["ioInterfaceTypeData"][iface["ioInterfaceTypeData"]["interfaceType"]]["id"],
                 "settings": {"tcpListenPort": [],
                              "ipv4Address": [self.address],
                              "ipv4SubnetMask": [],

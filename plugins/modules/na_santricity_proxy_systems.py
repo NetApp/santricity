@@ -76,7 +76,7 @@ options:
             - Default storage system password which will be used anytime when password has not been provided in the I(systems) sub-options.
             - The storage system admin password will be set on the device itself with the provided admin password if it is not set.
         type: str
-        required: true
+        required: false
     tags:
         description:
             - Default meta tags to associate with all storage systems if not otherwise specified in I(systems) sub-options.
@@ -167,7 +167,7 @@ else:
 
 
 class NetAppESeriesProxySystems(NetAppESeriesModule):
-    DEFAULT_CONNECTION_TIMEOUT_SEC = 1
+    DEFAULT_CONNECTION_TIMEOUT_SEC = 30
     DEFAULT_GRAPH_DISCOVERY_TIMEOUT = 30
     DEFAULT_PASSWORD_STATE_TIMEOUT = 30
     DEFAULT_DISCOVERY_TIMEOUT_SEC = 300
@@ -329,8 +329,9 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
                             system["discovered"] = True
                             break
                     else:  # Remove any undiscovered system from the systems list
+
                         self.undiscovered_systems.append(system["ssid"])
-                        self.systems.remove(system)
+                        # self.systems.remove(system)
 
         except Exception as error:
             self.module.fail_json(msg="Failed to initiate array discovery. Error [%s]." % to_native(error))
@@ -360,6 +361,11 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
             for existing_system in existing_systems:
                 for system in self.systems:
                     if existing_system["id"] == system["ssid"]:
+
+                        # Leave existing but undiscovered storage systems alone and throw a warning.
+                        if existing_system["id"] in self.undiscovered_systems:
+                            self.undiscovered_systems.remove(existing_system["id"])
+                            self.module.warn("Expected storage system exists on the proxy but was failed to be discovered. Array [%s]." % existing_system["id"])
                         break
                 else:
                     self.systems_to_remove.append(existing_system["id"])
@@ -379,19 +385,13 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
                     if rc == 200:  # successful login without password
                         system["password_set"] = False
                         if system["password"]:
-                            for url in ["https://%s:8443/devmgr/v2" % system["controller_addresses"][0],
-                                        "https://%s:443/devmgr/v2" % system["controller_addresses"][0],
-                                        "http://%s:8080/devmgr/v2" % system["controller_addresses"][0]]:
-                                try:
-                                    rc, storage_system = self._request("%s/storage-systems/1/passwords" % url, method="POST", url_username="admin",
-                                                                       headers=self.DEFAULT_HEADERS, url_password="", validate_certs=False,
-                                                                       data=json.dumps({"currentAdminPassword": "", "adminPassword": True,
-                                                                                        "newPassword": system["password"]}))
-                                    sleep(4)
-                                    break
-                                except Exception as error:
-                                    pass
-                            else:
+                            try:
+                                rc, storage_system = self._request("%s/v2/storage-systems/1/passwords" % url, method="POST", url_username="admin",
+                                                                   headers=self.DEFAULT_HEADERS, url_password="", validate_certs=False,
+                                                                   data=json.dumps({"currentAdminPassword": "", "adminPassword": True,
+                                                                                    "newPassword": system["password"]}))
+
+                            except Exception as error:
                                 system["failed"] = True
                                 self.module.warn("Failed to set storage system password. Array [%s]." % system["ssid"])
                         break
@@ -435,7 +435,7 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
             if system["accept_certificate"] and not all([controller["certificateStatus"] == "trusted" for controller in system["current_info"]["controllers"]]):
                 system["changes"].update({"acceptCertificate": True})
 
-        if system["changes"]:
+        if system["id"] not in self.undiscovered_systems and system["changes"]:
             self.systems_to_update.append(system)
 
     def add_system(self, system):
@@ -457,10 +457,14 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
             return  # Skip the password validation.
 
         # Ensure the password is validated
-        sleep(1)
-        try:
-            rc, storage_system = self.request("storage-systems/%s/validatePassword" % system["ssid"], method="POST")
-        except Exception as error:
+        for retries in range(5):
+            sleep(1)
+            try:
+                rc, storage_system = self.request("storage-systems/%s/validatePassword" % system["ssid"], method="POST")
+                break
+            except Exception as error:
+                continue
+        else:
             self.module.warn("Failed to validate password status. Array [%s]. Error [%s]" % (system["ssid"], to_native(error)))
 
     def update_system(self, system):

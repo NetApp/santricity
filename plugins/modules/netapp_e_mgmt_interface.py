@@ -162,7 +162,7 @@ notes:
 EXAMPLES = """
     - name: Configure the first port on the A controller with a static IPv4 address
       netapp_e_mgmt_interface:
-        name: "1"
+        channel: 1
         controller: "A"
         config_method: static
         address: "192.168.1.100"
@@ -175,7 +175,7 @@ EXAMPLES = """
 
     - name: Disable ipv4 connectivity for the second port on the B controller
       netapp_e_mgmt_interface:
-        name: "2"
+        channel: 2
         controller: "B"
         enable_interface: no
         ssid: "{{ ssid }}"
@@ -185,7 +185,7 @@ EXAMPLES = """
 
     - name: Enable ssh access for ports one and two on controller A
       netapp_e_mgmt_interface:
-        name: "{{ item }}"
+        channel: {{ item }}
         controller: "A"
         ssh: yes
         ssid: "{{ ssid }}"
@@ -198,7 +198,7 @@ EXAMPLES = """
 
     - name: Configure static DNS settings for the first port on controller A
       netapp_e_mgmt_interface:
-        name: "1"
+        channel: 1
         controller: "A"
         dns_config_method: static
         dns_address: "192.168.1.100"
@@ -210,7 +210,7 @@ EXAMPLES = """
 
     - name: Configure static NTP settings for ports one and two on controller B
       netapp_e_mgmt_interface:
-        name: "{{ item }}"
+        channel: {{ item }}
         controller: "B"
         ntp_config_method: static
         ntp_address: "129.100.1.100"

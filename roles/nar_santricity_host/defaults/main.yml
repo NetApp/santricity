@@ -38,7 +38,7 @@ eseries_storage_pool_criteria_size_unit: gb              # Default unit size for
                                                          #    Type: boolean
 #eseries_storage_pool_criteria_drive_require_fde:        # Default for whether storage pools are required to have drive security compatible drives.
                                                          #    Type: boolean
-#eseries_storage_pool_remove_volumes:                    # Default policy for deleting volumes prior to removing storage pools.
+eseries_storage_pool_remove_volumes: True                # Default policy for deleting volumes prior to removing storage pools.
 #eseries_storage_pool_erase_secured_drives:              # Default policy for erasing the content drives during create and delete storage pool operations.
                                                          #    Type: boolean
 
@@ -261,7 +261,7 @@ eseries_host_remove_unused_hostgroup: True    # Forces any unused groups to be r
 # Initiator-Target Protocol Variable Defaults
 # -------------------------------------------
 #   Note that the following commands produce a unique list of IQNs or WWNs of the interfaces used, line separated.
-eseries_initiator_protocol: fc     # This variable defines which protocol the storage array will use. Choices: iscsi, fc, sas, ib_iser, ib_srp, nvme_ib, nvme_roce
+eseries_initiator_protocol:     # This variable defines which protocol the storage array will use. Choices: iscsi, fc, sas, ib_iser, ib_srp, nvme_ib, nvme_roce
 eseries_initiator_command:
   fc:
     linux: "systool -c fc_host -v | grep port_name | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"
@@ -290,3 +290,5 @@ eseries_initiator_command:
   nvme_roce:
     linux: "cat /etc/nvme/hostnqn"
     windows: ""   # add windows command for determining host nqn address(es)
+
+eseries_remove_all_configuration: False   # WARNING!!! This flag will force any storage pool, volume, host, hostgroup and mapping to be absent. Choices: True, False

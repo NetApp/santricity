@@ -10,10 +10,12 @@ nar_santricity_common
         current_eseries_validate_certs:     # Indicates whether SSL certificates should be verified.
         current_eseries_api_is_proxy:       # Indicates whether Web Services REST API is running on a proxy.
 
+
 Requirements
 ------------
     - Ansible 2.9 or later
     - NetApp E-Series E2800 platform or newer or NetApp E-Series SANtricity Web Services Proxy configured for older E-Series storage systems.
+
 
 Example Playbook
 ----------------
@@ -26,25 +28,53 @@ Example Playbook
           import_role:
             name: nar_santricity_common
 
-Example Inventory Host file using discovery
--------------------------------------------
-    eseries_subnet: 192.168.1.0/24
-    eseries_validate_certs: false
-    eseries_prefer_embedded: true
-    eseries_system_serial: "012345678901"   # Be sure to quote if the serial is all numbers and begins with zero.
-    eseries_system_password: admin_password
+
+Example Inventory Host file using discovery with proxy
+------------------------------------------------------
     eseries_proxy_api_url: https://192.168.1.100:8443/devmgr/v2/
     eseries_proxy_api_password: admin_password
+    eseries_subnet: 192.168.1.0/24   # This should only be defined at the group level once when utilizing Web Services Proxy and should be broad enough to include all systems being added to proxy instance.
+    eseries_system_serial: "012345678901"   # Be sure to quote if the serial is all numbers and begins with zero.
+    eseries_system_password: admin_password
+    eseries_validate_certs: false
+    (...)
 
-Example Inventory Host file without using discovery
----------------------------------------------------
+
+Example Inventory Host file using discovery without proxy
+---------------------------------------------------------
+**Note that while eseries_management_interfaces or eseries_system_api_url are optional, including at least one of them will prevent the discovery mechanism from being used when the system can be reached from their information.
+    eseries_subnet: 192.168.1.0/24
+    eseries_system_serial: "012345678901"   # Be sure to quote if the serial is all numbers and begins with zero.
+    eseries_system_password: admin_password
+    eseries_validate_certs: false
+    (...)
+
+
+Example Inventory Host file without using discovery (Embedded Web Services)
+---------------------------------------------------------------------------
     eseries_system_api_url: https://192.168.1.200:8443/devmgr/v2/
     eseries_system_password: admin_password
     eseries_validate_certs: false
+    (...)
+
+
+Example Inventory Host file without using discovery (Proxy Web Services - system must have already been added to the proxy)
+------------------------------------------------------------------------
+    eseries_proxy_ssid: storage_ssid
+    eseries_proxy_api_url: https://192.168.2.200:8443/devmgr/v2/
+    eseries_proxy_api_password: admin_password
+    (...)
+
+
+Notes
+-----
+Use SANtricity Web Services Proxy to avoid the need to discover the storage systems each time nar_santricity_common is executed. The first time nar_santricity_common is executed will add the storage systems the proxy so that they can be recalled without the need to search the subnet each subsequent execution.
+The na_santricity_proxy_systems module is used to add storage systems to the proxy but required a complete list of desired systems since it will ensure that only the systems provided will remain on the proxy. As a result any system that is not included will be removed from the proxy.
 
 Role Variables
 --------------
     eseries_subnet:                   # Network subnet to search for the storage system specified in CIDR form. Example: 192.168.1.0/24
+                                      #   Note: eseries_subnet should only be defined once at the group level when utilizing the Web Services Proxy.
     eseries_template_api_url:         # Template for the web services api url. Default: https://0.0.0.0:8443/devmgr/v2/
     eseries_prefer_embedded: false    # Overrides the default behavior of using Web Services Proxy when eseries_proxy_api_url is defined. This will only effect storage systems that have Embedded Web Services.
     eseries_validate_certs: true      # Indicates Whether SSL certificates should be verified. Used for both embedded and proxy. Choices: true, false
@@ -97,9 +127,11 @@ Role Variables
                                           #                   security.admin - allows users access to authentication/authorization configuration, as
                                           #                       well as the audit log configuration, adn certification management.
 
+
 License
 -------
     BSD-3-Clause
+
 
 Author Information
 ------------------

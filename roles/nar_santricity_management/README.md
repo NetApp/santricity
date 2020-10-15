@@ -1,6 +1,6 @@
 nar_santricity_management
 =========
-    Manages NetApp E-Series storage system's name, management interfaces, alerts, syslog, auditlog, asup, ldap, certificates, drive firmware and controller firmware.
+    Manages NetApp E-Series storage system's name, passwords, management interfaces, alerts, syslog, auditlog, asup, ldap, certificates, drive firmware and controller firmware.
 
 Requirements
 ------------

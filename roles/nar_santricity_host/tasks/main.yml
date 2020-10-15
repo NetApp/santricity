@@ -1,6 +1,17 @@
-- name: Discover Web Services REST API url
-  import_role:
-    name: nar_santricity_common
+- name: Set current storage system credentials
+  include_role:
+    name: netapp_eseries.santricity.nar_santricity_common
+    tasks_from: build_info.yml
+  when: current_eseries_api_url is not defined
+  tags:
+    - always
+
+- name: Override all inventory configuration states.
+  set_fact:
+    eseries_remove_all_configuration_state: absent
+  when: eseries_remove_all_configuration is defined and eseries_remove_all_configuration == True
+  tags:
+    - always
 
 - name: Configure NetApp E-Series storage system disk pool configuration
   import_tasks: storage_pool_present.yml

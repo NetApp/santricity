@@ -156,7 +156,7 @@ options:
     cache_without_batteries:
         description:
             - Indicates whether caching should be used without battery backup.
-            - Warning, C(cache_without_batteries) == true and the storage system looses power and there is no battery backup, data will be lost!
+            - Warning, M(cache_without_batteries==true) and the storage system looses power and there is no battery backup, data will be lost!
         type: bool
         default: false
         required: false
@@ -170,13 +170,24 @@ options:
             - Existing workloads can be retrieved using M(netapp_eseries.santricity.na_santricity_facts).
         type: str
         required: false
-    metadata:
+    workload_metadata:
         description:
             - Dictionary containing meta data for the use, user, location, etc of the volume (dictionary is arbitrarily
               defined for whatever the user deems useful)
             - When I(workload_name) exists on the storage array but the metadata is different then the workload
               definition will be updated. (Changes will update all associated volumes!)
             - I(workload_name) must be specified when I(metadata) are defined.
+            - Dictionary key cannot be longer than 16 characters
+            - Dictionary values cannot be longer than 60 characters
+        type: dict
+        required: false
+        aliases:
+            - metadata
+    volume_metadata:
+        description:
+            - Dictionary containing metadata for the volume itself.
+            - Dictionary key cannot be longer than 14 characters
+            - Dictionary values cannot be longer than 240 characters
         type: dict
         required: false
     wait_for_initialization:
@@ -278,6 +289,9 @@ from ansible.module_utils._text import to_native
 
 class NetAppESeriesVolume(NetAppESeriesModule):
     VOLUME_CREATION_BLOCKING_TIMEOUT_SEC = 300
+    MAXIMUM_VOLUME_METADATA_KEY_LENGTH = 14
+    MAXIMUM_VOLUME_METADATA_VALUE_LENGTH = 240
+    MAXIMUM_VOLUME_METADATA_VALUE_SEGMENT_LENGTH = 60
 
     def __init__(self):
         ansible_options = dict(
@@ -300,7 +314,8 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             write_cache_enable=dict(type="bool", default=True),
             cache_without_batteries=dict(type="bool", default=False),
             workload_name=dict(type="str", required=False),
-            metadata=dict(type="dict", require=False),
+            workload_metadata=dict(type="dict", require=False, aliases=["metadata"]),
+            volume_metadata=dict(type="dict", require=False),
             wait_for_initialization=dict(type="bool", default=False))
 
         required_if = [
@@ -345,21 +360,41 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             self.thin_volume_max_repo_size_b = self.convert_to_aligned_bytes(args["thin_volume_max_repo_size"])
 
         self.workload_name = args["workload_name"]
-        self.metadata = args["metadata"]
         self.wait_for_initialization = args["wait_for_initialization"]
 
         # convert metadata to a list of dictionaries containing the keys "key" and "value" corresponding to
         #   each of the workload attributes dictionary entries
-        metadata = []
-        if self.metadata:
+        self.metadata = []
+        if self.state == "present" and args["workload_metadata"]:
             if not self.workload_name:
-                self.module.fail_json(msg="When metadata is specified then the name for the workload must be specified."
-                                          " Array [%s]." % self.ssid)
-            for key in self.metadata.keys():
-                metadata.append(dict(key=key, value=self.metadata[key]))
-            self.metadata = metadata
+                self.module.fail_json(msg="When metadata is specified then the name for the workload must be specified. Array [%s]." % self.ssid)
 
-        if self.thin_provision:
+            for key, value in args["workload_metadata"].items():
+                self.metadata.append({"key": key, "value": value})
+
+        self.volume_metadata = []
+        if self.state == "present" and args["volume_metadata"]:
+            for key, value in args["volume_metadata"].items():
+                key, value = str(key), str(value)
+
+                if len(key) > self.MAXIMUM_VOLUME_METADATA_KEY_LENGTH:
+                    self.module.fail_json(msg="Volume metadata keys must be less than %s characters long. Array [%s]."
+                                              % (str(self.MAXIMUM_VOLUME_METADATA_KEY_LENGTH), self.ssid))
+
+                if len(value) > self.MAXIMUM_VOLUME_METADATA_VALUE_LENGTH:
+                    self.module.fail_json(msg="Volume metadata values must be less than %s characters long. Array [%s]."
+                                              % (str(self.MAXIMUM_VOLUME_METADATA_VALUE_LENGTH), self.ssid))
+
+                if value:
+                    for index, start in enumerate(range(0, len(value), self.MAXIMUM_VOLUME_METADATA_VALUE_SEGMENT_LENGTH)):
+                        if len(value) > start + self.MAXIMUM_VOLUME_METADATA_VALUE_SEGMENT_LENGTH:
+                            self.volume_metadata.append({"key": "%s~%s" % (key, str(index)), "value": value[start:start + self.MAXIMUM_VOLUME_METADATA_VALUE_SEGMENT_LENGTH]})
+                        else:
+                            self.volume_metadata.append({"key": "%s~%s" % (key, str(index)), "value": value[start:len(value)]})
+                else:
+                    self.volume_metadata.append({"key": "%s~0" % key, "value": ""})
+
+        if self.state == "present" and self.thin_provision:
             if not self.thin_volume_max_repo_size_b:
                 self.thin_volume_max_repo_size_b = self.size_b
 
@@ -604,12 +639,21 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             change = True
             request_body.update(dict(owningControllerId=self.owning_controller_id))
 
-        if self.workload_name:
-            request_body.update(dict(metaTags=[dict(key="workloadId", value=self.workload_id),
-                                               dict(key="volumeTypeId", value="volume")]))
-            if {"key": "workloadId", "value": self.workload_id} not in self.volume_detail["metadata"]:
+        # volume meta tags
+        request_body["metaTags"].extend(self.volume_metadata)
+        for entry in self.volume_metadata:
+            if entry not in self.volume_detail["metadata"]:
                 change = True
-        elif self.volume_detail["metadata"]:
+
+        if self.workload_name:
+            request_body["metaTags"].extend([{"key": "workloadId", "value": self.workload_id},
+                                             {"key": "volumeTypeId", "value": "volume"}])
+
+            if ({"key": "workloadId", "value": self.workload_id} not in self.volume_detail["metadata"] or
+                    {"key": "volumeTypeId", "value": "volume"} not in self.volume_detail["metadata"]):
+                change = True
+
+        if len(self.volume_detail["metadata"]) != len(request_body["metaTags"]):
             change = True
 
         # thick/thin volume specific properties
@@ -673,6 +717,9 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         """Create thick/thin volume according to the specified criteria."""
         body = dict(name=self.name, poolId=self.pool_detail["id"], sizeUnit="bytes",
                     dataAssuranceEnabled=self.data_assurance_enabled)
+
+        if self.volume_metadata:
+            body.update({"metaTags": self.volume_metadata})
 
         if self.thin_provision:
             body.update(dict(virtualSize=self.size_b,

@@ -422,7 +422,10 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
                       (self.interface_info["ntp_servers"][0]["ipvxAddress"]["ipv4Address"] != self.ntp_address or
                        self.interface_info["ntp_servers"][1]["ipvxAddress"]["ipv4Address"] != self.ntp_address_backup)) or
                      (len(self.interface_info["ntp_servers"]) == 1 and
-                      self.interface_info["ntp_servers"][0]["ipvxAddress"]["ipv4Address"] != self.ntp_address))):
+                      ((self.interface_info["ntp_servers"][0]["addrType"] == "ipvx" and
+                        self.interface_info["ntp_servers"][0]["ipvxAddress"]["ipv4Address"] != self.ntp_address) or
+                       (self.interface_info["ntp_servers"][0]["addrType"] == "domainName" and
+                        self.interface_info["ntp_servers"][0]["domainName"] != self.ntp_address))))):
                 change_required = True
             self.body.update({"ntpAcquisitionDescriptor": {"ntpAcquisitionType": "stat", "ntpServers": ntp_servers}})
         return change_required

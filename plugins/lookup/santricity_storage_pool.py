@@ -26,7 +26,9 @@ class LookupModule(LookupBase):
             return list()
 
         defaults_state = "present"
-        if "eseries_storage_pool_state" in inventory:
+        if"eseries_remove_all_configuration_state" in inventory:
+            defaults_state = inventory["eseries_remove_all_configuration_state"]
+        elif "eseries_storage_pool_state" in inventory:
             defaults_state = inventory["eseries_storage_pool_state"]
 
         sp_list = list()

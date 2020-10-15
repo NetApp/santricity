@@ -38,13 +38,23 @@ class LookupModule(LookupBase):
                         vol_options = dict()
 
                         # Add common_volume_configuration information
+                        combined_volume_metadata = {}
                         if "common_volume_configuration" in sp_info:
-                            for option in sp_info["common_volume_configuration"].keys():
-                                vol_options.update({option: sp_info["common_volume_configuration"][option]})
+                            for option, value in sp_info["common_volume_configuration"].items():
+                                vol_options.update({option: value})
+                            if "volume_metadata" in sp_info["common_volume_configuration"].keys():
+                                combined_volume_metadata.update(sp_info["common_volume_configuration"]["volume_metadata"])
 
                         # Add/update volume specific information
-                        for option in vol_info.keys():
-                            vol_options.update({option: vol_info[option]})
+                        for option, value in vol_info.items():
+                            vol_options.update({option: value})
+                        if "volume_metadata" in vol_info.keys():
+                            combined_volume_metadata.update(vol_info["volume_metadata"])
+                            vol_options.update({"volume_metadata": combined_volume_metadata})
+
+
+                        if "state" in sp_info and sp_info["state"] == "absent":
+                            vol_options.update({"state": "absent"})
 
                         vol_options.update({"name": vol, "storage_pool_name": sp})
                         vol_list.append(vol_options)

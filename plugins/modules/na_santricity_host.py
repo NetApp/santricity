@@ -252,9 +252,11 @@ class NetAppESeriesHost(NetAppESeriesModule):
 
                     # Check for IB iSER
                     if port["type"] == "ib" and "iqn" in port["port"]:
-                        if (interface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and
+                        if ((interface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and
                                 interface["ioInterfaceTypeData"]["iscsi"]["interfaceData"]["type"] == "infiniband" and
-                                interface["ioInterfaceTypeData"]["iscsi"]["interfaceData"]["infinibandData"]["isIser"]):
+                                interface["ioInterfaceTypeData"]["iscsi"]["interfaceData"]["infinibandData"]["isIser"]) or
+                                (interface["ioInterfaceTypeData"]["interfaceType"] == "ib" and
+                                 interface["ioInterfaceTypeData"]["ib"]["isISERSupported"])):
                             port["type"] = "iscsi"
                             break
                     # Check for NVMe
@@ -280,13 +282,12 @@ class NetAppESeriesHost(NetAppESeriesModule):
         """Determine if the hostPorts requested have already been assigned and return list of required used ports."""
         used_host_ports = {}
         for host in self.all_hosts:
-            if host["label"] != self.name:
+            if host["label"] != self.name.lower():
                 for host_port in host["hostSidePorts"]:
                     for port in self.ports:
                         if port["port"] == host_port["address"] or port["label"] == host_port["label"]:
                             if not self.force_port:
-                                self.module.fail_json(msg="There are no host ports available OR there are not enough"
-                                                          " unassigned host ports")
+                                self.module.fail_json(msg="Port label or address is already used and force_port option is set to false!")
                             else:
                                 # Determine port reference
                                 port_ref = [port["hostPortRef"] for port in host["ports"]
@@ -299,26 +300,26 @@ class NetAppESeriesHost(NetAppESeriesModule):
                                     used_host_ports.update({host["hostRef"]: port_ref})
                                 else:
                                     used_host_ports[host["hostRef"]].extend(port_ref)
-            else:
-                for host_port in host["hostSidePorts"]:
-                    for port in self.ports:
-                        if ((host_port["label"] == port["label"] and host_port["address"] != port["port"]) or
-                                (host_port["label"] != port["label"] and host_port["address"] == port["port"])):
-                            if not self.force_port:
-                                self.module.fail_json(msg="There are no host ports available OR there are not enough"
-                                                          " unassigned host ports")
-                            else:
-                                # Determine port reference
-                                port_ref = [port["hostPortRef"] for port in host["ports"]
-                                            if port["hostPortName"] == host_port["address"]]
-                                port_ref.extend([port["initiatorRef"] for port in host["initiators"]
-                                                 if port["nodeName"]["iscsiNodeName"] == host_port["address"]])
-
-                                # Create dictionary of hosts containing list of port references
-                                if host["hostRef"] not in used_host_ports.keys():
-                                    used_host_ports.update({host["hostRef"]: port_ref})
-                                else:
-                                    used_host_ports[host["hostRef"]].extend(port_ref)
+            # else:
+            #     for host_port in host["hostSidePorts"]:
+            #         for port in self.ports:
+            #             if ((host_port["label"] == port["label"] and host_port["address"] != port["port"]) or
+            #                     (host_port["label"] != port["label"] and host_port["address"] == port["port"])):
+            #                 if not self.force_port:
+            #                     self.module.fail_json(msg="Port label or address is already used and force_port is false!")
+            #                     # self.module.fail_json(msg="There are no host ports available OR there are not enough unassigned host ports")
+            #                 else:
+            #                     # Determine port reference
+            #                     port_ref = [port["hostPortRef"] for port in host["ports"]
+            #                                 if port["hostPortName"] == host_port["address"]]
+            #                     port_ref.extend([port["initiatorRef"] for port in host["initiators"]
+            #                                      if port["nodeName"]["iscsiNodeName"] == host_port["address"]])
+            #
+            #                     # Create dictionary of hosts containing list of port references
+            #                     if host["hostRef"] not in used_host_ports.keys():
+            #                         used_host_ports.update({host["hostRef"]: port_ref})
+            #                     else:
+            #                         used_host_ports[host["hostRef"]].extend(port_ref)
 
         # Unassign assigned ports
         if apply_unassigning:
@@ -361,7 +362,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
                 if host_side_port["label"] in ports:
                     host_side_port["id"] = ports[host_side_port["label"]]
 
-            if host["label"] == self.name:
+            if host["label"] == self.name.lower():
                 self.host_obj = host
                 match = True
 
@@ -397,7 +398,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
                                 port["type"] != current_host_ports[current_host_port_id]["type"]):
                             current_host_ports.pop(current_host_port_id)
                             self.ports_for_update.append({"portRef": current_host_port_id, "port": port["port"],
-                                                        "label": port["label"], "hostRef": self.host_obj["hostRef"]})
+                                                          "label": port["label"], "hostRef": self.host_obj["hostRef"]})
                             break
                 else:
                     self.new_ports.append(port)
@@ -429,16 +430,14 @@ class NetAppESeriesHost(NetAppESeriesModule):
             self.post_body["portsToRemove"] = self.ports_for_removal
             self.post_body["ports"] = self.new_ports
 
-
         self.post_body["hostType"] = dict(index=self.host_type_index)
         if not self.check_mode:
             try:
-                rc, self.host_obj = self.request("storage-systems/%s/hosts/%s" % (self.ssid, self.host_obj["id"]), method="POST", data=self.post_body)
+                rc, self.host_obj = self.request("storage-systems/%s/hosts/%s" % (self.ssid, self.host_obj["id"]), method="POST", data=self.post_body, ignore_errors=True)
             except Exception as err:
                 self.module.fail_json(msg="Failed to update host. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
-        payload = self.build_success_payload(self.host_obj)
-        self.module.exit_json(changed=True, **payload)
+        self.module.exit_json(changed=True)
 
     def create_host(self):
         # Remove ports that need reassigning from their current host.
@@ -454,7 +453,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
         if not self.host_exists:
             if not self.check_mode:
                 try:
-                    rc, self.host_obj = self.request("storage-systems/%s/hosts" % self.ssid, method="POST", data=post_body)
+                    rc, self.host_obj = self.request("storage-systems/%s/hosts" % self.ssid, method="POST", data=post_body, ignore_errors=True)
                 except Exception as err:
                     self.module.fail_json(msg="Failed to create host. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
         else:
@@ -462,7 +461,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
             self.module.exit_json(changed=False, msg="Host already exists. Id [%s]. Host [%s]." % (self.ssid, self.name), **payload)
 
         payload = self.build_success_payload(self.host_obj)
-        self.module.exit_json(changed=True, msg="Host created.", **payload)
+        self.module.exit_json(changed=True, msg="Host created.")
 
     def remove_host(self):
         try:
@@ -472,6 +471,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
 
     def build_success_payload(self, host=None):
         keys = ["id"]
+
         if host:
             result = dict((key, host[key]) for key in keys)
         else:

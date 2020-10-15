@@ -134,7 +134,7 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
 
                 for host in self.hosts_list:
                     for existing_host in existing_hosts:
-                        if host in existing_host["id"] or host in existing_host["name"]:
+                        if host in existing_host["id"] or host.lower() in existing_host["name"].lower():
                             self.hosts_cache.append(existing_host["id"])
                             break
                     else:

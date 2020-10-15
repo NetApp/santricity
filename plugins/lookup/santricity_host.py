@@ -67,6 +67,14 @@ class LookupModule(LookupBase):
                                             info["expected_hosts"].update({expected_host: {"state": "present",
                                                                                            "host_type": volume["host_type"],
                                                                                            "group": volume["host"]}})
+                                        elif "common_volume_configuration" in storage_pool and "host_type" in storage_pool["common_volume_configuration"]:
+                                            info["expected_hosts"].update({expected_host: {"state": "present",
+                                                                                           "host_type": storage_pool["common_volume_configuration"]["host_type"],
+                                                                                           "group": volume["host"]}})
+                                        elif "eseries_system_default_host_type" in inventory:
+                                            info["expected_hosts"].update({expected_host: {"state": "present",
+                                                                                           "host_type": inventory["eseries_system_default_host_type"],
+                                                                                           "group": volume["host"]}})
                                         else:
                                             info["expected_hosts"].update({expected_host: {"state": "present",
                                                                                            "group": volume["host"]}})
@@ -78,6 +86,14 @@ class LookupModule(LookupBase):
                                     info["expected_hosts"].update({volume["host"]: {"state": "present",
                                                                                     "host_type": volume["host_type"],
                                                                                     "group": None}})
+                                elif "common_volume_configuration" in storage_pool and "host_type" in storage_pool["common_volume_configuration"]:
+                                    info["expected_hosts"].update({volume["host"]: {"state": "present",
+                                                                                    "host_type": storage_pool["common_volume_configuration"]["host_type"],
+                                                                                    "group": volume["host"]}})
+                                elif "eseries_system_default_host_type" in inventory:
+                                    info["expected_hosts"].update({volume["host"]: {"state": "present",
+                                                                                    "host_type": inventory["eseries_system_default_host_type"],
+                                                                                    "group": volume["host"]}})
                                 else:
                                     info["expected_hosts"].update({volume["host"]: {"state": "present",
                                                                                     "group": None}})

@@ -87,7 +87,7 @@ options:
     routing_type:
         description:
             - AutoSupport routing
-            - Required when C(method==https or method==http).
+            - Required when M(method==https or method==http).
         choices:
             - direct
             - proxy
@@ -98,52 +98,52 @@ options:
     proxy:
         description:
             - Information particular to the proxy delivery method.
-            - Required when C(method==https or method==http) and C(routing_type==proxy).
+            - Required when M((method==https or method==http) and routing_type==proxy).
         type: dict
         required: false
         suboptions:
             host:
                 description:
                     - Proxy host IP address or fully qualified domain name.
-                    - Required when C(method==http or method==https) and C(routing_type==proxy).
+                    - Required when M(method==http or method==https) and M(routing_type==proxy).
                 type: str
                 required: false
             port:
                 description:
                     - Proxy host port.
-                    - Required when C(method==http or method==https) and C(routing_type==proxy).
+                    - Required when M(method==http or method==https) and M(routing_type==proxy).
                 type: str
                 required: false
             script:
                 description:
                     - Path to the AutoSupport routing script file.
-                    - Required when C(method==http or method==https) and C(routing_type==script).
+                    - Required when M(method==http or method==https) and M(routing_type==script).
                 type: str
                 required: false
     email:
         description:
             - Information particular to the e-mail delivery method.
             - Uses the SMTP protocol.
-            - Required when C(method==email).
+            - Required when M(method==email).
         type: dict
         required: false
         suboptions:
             server:
                 description:
                     - Mail server's IP address or fully qualified domain name.
-                    - Required when C(routing_type==email).
+                    - Required when M(routing_type==email).
                 type: str
                 required: false
             sender:
                 description:
                     - Sender's email account
-                    - Required when C(routing_type==email).
+                    - Required when M(routing_type==email).
                 type: str
                 required: false
             test_recipient:
                 description:
                     - Test verification email
-                    - Required when C(routing_type==email).
+                    - Required when M(routing_type==email).
                 type: str
                 required: false
     maintenance_duration:

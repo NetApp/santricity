@@ -95,7 +95,7 @@ class NetAppESeriesLunMapping(NetAppESeriesModule):
                                                       supports_check_mode=True)
 
         args = self.module.params
-        self.state = args["state"] in ["present"]
+        self.state = args["state"] == "present"
         self.target = args["target"] if args["target"] else "DEFAULT_HOSTGROUP"
         self.volume = args["volume_name"] if args["volume_name"] != "ACCESS_VOLUME" else "Access"
         self.lun = args["lun"]
@@ -211,7 +211,7 @@ class NetAppESeriesLunMapping(NetAppESeriesModule):
     def update(self):
         """Execute the changes the require changes on the storage array."""
         target_match, lun_reference, lun = self.get_lun_mapping()
-        update = (self.state and not target_match) or (not self.state and target_match)
+        update = (self.state and not target_match) or (not self.state and lun_reference)
 
         if update and not self.check_mode:
             try:

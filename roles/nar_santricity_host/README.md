@@ -190,7 +190,8 @@ Role Variables
                                                           #    used whether connected or not since the storage array does not require connectivity in order to create
                                                           #    host objects.
     eseries_volume_workload_name:                         # Default workload tag name
-    eseries_volume_metadata:                              # Default metadata
+    eseries_volume_workload_metadata:                     # Default workload metadata
+    eseries_volume_volume_metadata:                       # Default volume_metadata
     eseries_volume_owning_controller                      # Default preferred owning controller
     eseries_volume_wait_for_initialization: false         # Default for whether volume creation with wait for initialization to complete
 
@@ -263,7 +264,9 @@ Role Variables
             write_cache_enable:                    # Enables write caching which will cache all writes.
             workload_name:                         # Name of the volume's workload. This can be defined using the metadata option or, if already defined, specify one already
                                                    #    created on the storage array.
-            metadata:                              # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.
+            workload_metadata:                     # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.
+            volume_metadata                        # Dictionary containing arbitrary entries used to define information about the volume itself.
+                                                   #    Note: format_type, format_options[0-9]?, mount_directory, mount_options[0-9]? are used by netapp_eseries.host.mount role to format and mount volumes.
             wait_for_initialization:               # Whether volume creation with wait for initialization to complete
 
     # Initiator-Target Protocol Variable Defaults

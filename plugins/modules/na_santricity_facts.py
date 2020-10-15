@@ -204,10 +204,15 @@ RETURN = """
                 description: list of available volumes keyed by the mapped initiators.
                 type: complex
                 sample:
-                   - {"192_168_1_1": [{"id": "02000000600A098000A4B9D1000015FD5C8F7F9E",
-                                       "meta_data": {"filetype": "xfs", "public": true},
+                   - {"beegfs_host": [{"id": "02000000600A098000A4B9D1000015FD5C8F7F9E",
+                                       "meta_data": {"filetype": "ext4", "public": true},
                                        "name": "some_volume",
-                                       "workload_name": "test2_volumes",
+                                       "workload_name": "beegfs_metadata",
+                                       "workload_metadata: {"filetype": "ext4", "public": true},
+                                       "volume_metadata:  {"format_type": "ext4",
+                                                           "format_options": "-i 2048 -I 512 -J size=400 -Odir_index,filetype",
+                                                           "mount_options": "noatime,nodiratime,nobarrier,_netdev",
+                                                           "mount_directory": "/data/beegfs/"},
                                        "host_types": ["nvmeof"],
                                        "eui": "0000139A3885FA4500A0980000EAA272V",
                                        "wwn": "600A098000A4B9D1000015FD5C8F7F9E"}]}
@@ -285,7 +290,7 @@ RETURN = """
                 sample: True
 """
 
-from re import match
+import re
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 try:
     from ansible.module_utils.ansible_release import __version__ as ansible_version
@@ -331,12 +336,19 @@ class Facts(NetAppESeriesModule):
         facts = dict(facts_from_proxy=(not self.is_embedded()), ssid=self.ssid)
         controller_reference_label = self.get_controllers()
         array_facts = None
+        hardware_inventory_facts = None
 
         # Get the storage array graph
         try:
             rc, array_facts = self.request("storage-systems/%s/graph" % self.ssid)
         except Exception as error:
             self.module.fail_json(msg="Failed to obtain facts from storage array with id [%s]. Error [%s]" % (self.ssid, str(error)))
+
+        # Get the storage array hardware inventory
+        try:
+            rc, hardware_inventory_facts = self.request("storage-systems/%s/hardware-inventory" % self.ssid)
+        except Exception as error:
+            self.module.fail_json(msg="Failed to obtain hardware inventory from storage array with id [%s]. Error [%s]" % (self.ssid, str(error)))
 
         facts['netapp_storage_array'] = dict(
             name=array_facts['sa']['saData']['storageArrayLabel'],
@@ -513,6 +525,7 @@ class Facts(NetAppESeriesModule):
                 capacity=v['capacity'],
                 is_thin_provisioned=v['thinProvisioned'],
                 workload=v['metadata'],
+
             ) for v in all_volumes]
 
         lun_mappings = dict()
@@ -582,6 +595,174 @@ class Facts(NetAppESeriesModule):
                 attributes=workload_tag['workloadAttributes']
             ) for workload_tag in workload_tags]
 
+        targets = array_facts["storagePoolBundle"]["target"]
+
+        facts['netapp_hostside_io_interfaces'] = []
+        if "ioInterface" in array_facts:
+            for interface in array_facts["ioInterface"]:
+
+                # Select only the host side channels
+                if interface["channelType"] == "hostside":
+                    interface_type = interface["ioInterfaceTypeData"]["interfaceType"]
+                    interface_data = interface["ioInterfaceTypeData"]["fibre" if interface_type == "fc" else interface_type]
+                    command_protocol_properties = interface["commandProtocolPropertiesList"]["commandProtocolProperties"]
+
+                    # Build generic information for each interface entry
+                    interface_info = {"protocol": "unknown",
+                                      "interface_reference": interface_data["interfaceRef"],
+                                      "controller_reference": interface["controllerRef"],
+                                      "channel_port_reference": interface_data["channelPortRef"] if "channelPortRef" in interface_data else "",
+                                      "controller": controller_reference_label[interface["controllerRef"]],
+                                      "channel": interface_data["channel"],
+                                      "part": "unknown",
+                                      "link_status": "unknown",
+                                      "speed": {"current": "unknown", "maximum": "unknown", "supported": []},
+                                      "mtu": None,
+                                      "guid": None,
+                                      "lid": None,
+                                      "nqn": None,
+                                      "iqn": None,
+                                      "wwpn": None,
+                                      "ipv4": None,  # enabled, config_method, address, subnet, gateway
+                                      "ipv6": None}  # for expansion if needed
+
+                    # Add target information
+                    for target in targets:
+                        if target["nodeName"]["ioInterfaceType"] == "nvmeof":
+                            interface_info.update({"nqn": target["nodeName"]["nvmeNodeName"]})
+                        if target["nodeName"]["ioInterfaceType"] == "iscsi":
+                            interface_info.update({"iqn": target["nodeName"]["iscsiNodeName"]})
+
+                    # iSCSI IO interface
+                    if interface_type == "iscsi":
+                        interface_info.update({"ipv4": {"enabled": interface_data["ipv4Enabled"],
+                                                        "config_method": interface_data["ipv4Data"]["ipv4AddressConfigMethod"],
+                                                        "address": interface_data["ipv4Data"]["ipv4AddressData"]["ipv4Address"],
+                                                        "subnet": interface_data["ipv4Data"]["ipv4AddressData"]["ipv4SubnetMask"],
+                                                        "gateway": interface_data["ipv4Data"]["ipv4AddressData"]["ipv4GatewayAddress"]}})
+
+                        # InfiniBand (iSER) protocol
+                        if interface_data["interfaceData"]["type"] == "infiniband" and interface_data["interfaceData"]["infinibandData"]["isIser"]:
+                            interface_info.update({"protocol": "ib_iser"})
+
+                            # Get more details from hardware-inventory
+                            for ib_port in hardware_inventory_facts["ibPorts"]:
+                                if ib_port["channelPortRef"] == interface_info["channel_port_reference"]:
+                                    interface_info.update({"link_status": ib_port["linkState"],
+                                                           "guid": ib_port["globalIdentifier"],
+                                                           "lid": ib_port["localIdentifier"],
+                                                           "speed": {"current": strip_interface_speed(ib_port["currentSpeed"]),
+                                                                     "maximum": strip_interface_speed(ib_port["supportedSpeed"])[-1],
+                                                                     "supported": strip_interface_speed(ib_port["supportedSpeed"])}})
+
+
+                        # iSCSI protocol
+                        elif interface_data["interfaceData"]["type"] == "ethernet":
+                            ethernet_data = interface_data["interfaceData"]["ethernetData"]
+                            interface_info.update({"protocol": "iscsi"})
+                            interface_info.update({"part": "%s,%s" % (ethernet_data["partData"]["vendorName"], ethernet_data["partData"]["partNumber"]),
+                                                   "link_status": ethernet_data["linkStatus"],
+                                                   "mtu": ethernet_data["maximumFramePayloadSize"],
+                                                   "speed": {"current": strip_interface_speed(ethernet_data["currentInterfaceSpeed"]),
+                                                             "maximum": strip_interface_speed(ethernet_data["maximumInterfaceSpeed"]),
+                                                             "supported": strip_interface_speed(ethernet_data["supportedInterfaceSpeeds"])}})
+
+                    # Fibre Channel IO interface
+                    elif interface_type == "fc":
+                        interface_info.update({"wwpn": interface_data["addressId"],
+                                               "part": interface_data["part"],
+                                               "link_status": interface_data["linkStatus"],
+                                               "speed": {"current": strip_interface_speed(interface_data["currentInterfaceSpeed"]),
+                                                         "maximum": strip_interface_speed(interface_data["maximumInterfaceSpeed"]),
+                                                         "supported": "unknown"}})
+
+                        # NVMe over fibre channel protocol
+                        if (command_protocol_properties and command_protocol_properties[0]["commandProtocol"] == "nvme" and
+                                command_protocol_properties[0]["nvmeProperties"]["commandSet"] == "nvmeof" and
+                                command_protocol_properties[0]["nvmeProperties"]["nvmeofProperties"]["fcProperties"]):
+                            interface_info.update({"protocol": "nvme_fc"})
+
+                        # Fibre channel protocol
+                        else:
+                            interface_info.update({"protocol": "fc"})
+
+                    # SAS IO interface
+                    elif interface_type == "sas":
+                        interface_info.update({"protocol": "sas",
+                                               "wwpn": interface_data["addressId"],
+                                               "part": interface_data["part"],
+                                               "speed": {"current": strip_interface_speed(interface_data["currentInterfaceSpeed"]),
+                                                         "maximum": strip_interface_speed(interface_data["maximumInterfaceSpeed"]),
+                                                         "supported": "unknown"}})
+
+                    # Infiniband IO interface
+                    elif interface_type == "ib":
+                        interface_info.update({"link_status": interface_data["linkState"],
+                                               "speed": {"current": strip_interface_speed(interface_data["currentSpeed"]),
+                                                         "maximum": strip_interface_speed(interface_data["supportedSpeed"])[-1],
+                                                         "supported": strip_interface_speed(interface_data["supportedSpeed"])},
+                                               "mtu": interface_data["maximumTransmissionUnit"],
+                                               "guid": interface_data["globalIdentifier"],
+                                               "lid": interface_data["localIdentifier"]})
+
+                        # Determine protocol (NVMe over Infiniband, InfiniBand iSER, InfiniBand SRP)
+                        if interface_data["isNVMeSupported"]:
+                            interface_info.update({"protocol": "nvme_ib"})
+                        elif interface_data["isISERSupported"]:
+                            interface_info.update({"protocol": "ib_iser"})
+                        elif interface_data["isSRPSupported"]:
+                            interface_info.update({"protocol": "ib_srp"})
+
+                        # Determine command protocol information
+                        if command_protocol_properties:
+                            for command_protocol_property in command_protocol_properties:
+                                if command_protocol_property["commandProtocol"] == "nvme":
+                                    if command_protocol_property["nvmeProperties"]["commandSet"] == "nvmeof":
+                                        ip_address_data = command_protocol_property["nvmeProperties"]["nvmeofProperties"]["ibProperties"]["ipAddressData"]
+                                        if ip_address_data["addressType"] == "ipv4":
+                                            interface_info.update({"ipv4": {"enabled": True,
+                                                                            "config_method": "configStatic",
+                                                                            "address": ip_address_data["ipv4Data"]["ipv4Address"],
+                                                                            "subnet": ip_address_data["ipv4Data"]["ipv4SubnetMask"],
+                                                                            "gateway": ip_address_data["ipv4Data"]["ipv4GatewayAddress"]}})
+
+                                elif command_protocol_property["commandProtocol"] == "scsi":
+                                    if command_protocol_property["scsiProperties"]["scsiProtocolType"] == "iser":
+                                        ipv4_data = command_protocol_property["scsiProperties"]["iserProperties"]["ipv4Data"]
+                                        interface_info.update({"ipv4": {"enabled": True,
+                                                                        "config_method": ipv4_data["ipv4AddressConfigMethod"],
+                                                                        "address": ipv4_data["ipv4AddressData"]["ipv4Address"],
+                                                                        "subnet": ipv4_data["ipv4AddressData"]["ipv4SubnetMask"],
+                                                                        "gateway": ipv4_data["ipv4AddressData"]["ipv4GatewayAddress"]}})
+
+                    # Ethernet IO interface
+                    elif interface_type == "ethernet":
+                        ethernet_data = interface_data["interfaceData"]["ethernetData"]
+                        interface_info.update({"part": "%s,%s" % (ethernet_data["partData"]["vendorName"], ethernet_data["partData"]["partNumber"]),
+                                               "link_status": ethernet_data["linkStatus"],
+                                               "mtu": ethernet_data["maximumFramePayloadSize"],
+                                               "speed": {"current": strip_interface_speed(ethernet_data["currentInterfaceSpeed"]),
+                                                         "maximum": strip_interface_speed(ethernet_data["maximumInterfaceSpeed"]),
+                                                         "supported": strip_interface_speed(ethernet_data["supportedInterfaceSpeeds"])}})
+
+                        # Determine command protocol information
+                        if command_protocol_properties:
+                            for command_protocol_property in command_protocol_properties:
+                                if command_protocol_property["commandProtocol"] == "nvme":
+                                    if command_protocol_property["nvmeProperties"]["commandSet"] == "nvmeof":
+
+                                        nvmeof_properties = command_protocol_property["nvmeProperties"]["nvmeofProperties"]
+                                        if nvmeof_properties["provider"] == "providerRocev2":
+                                            ipv4_data = nvmeof_properties["roceV2Properties"]["ipv4Data"]
+                                            interface_info.update({"protocol": "nvme_roce"})
+                                            interface_info.update({"ipv4": {"enabled": nvmeof_properties["roceV2Properties"]["ipv4Enabled"],
+                                                                            "config_method": ipv4_data["ipv4AddressConfigMethod"],
+                                                                            "address": ipv4_data["ipv4AddressData"]["ipv4Address"],
+                                                                            "subnet": ipv4_data["ipv4AddressData"]["ipv4SubnetMask"],
+                                                                            "gateway": ipv4_data["ipv4AddressData"]["ipv4GatewayAddress"]}})
+
+                    facts['netapp_hostside_io_interfaces'].append(interface_info)
+
         # Create a dictionary of volume lists keyed by host names
         facts['netapp_volumes_by_initiators'] = dict()
         for mapping in array_facts['storagePoolBundle']['lunMapping']:
@@ -590,7 +771,49 @@ class Facts(NetAppESeriesModule):
                     if host['name'] not in facts['netapp_volumes_by_initiators'].keys():
                         facts['netapp_volumes_by_initiators'].update({host['name']: []})
 
+                    # Determine host io interface protocols
+                    host_types = [port['type'] for port in host['ports']]
+                    hostside_io_interface_protocols = []
+                    host_port_protocols = []
+                    host_port_information = {}
+                    for interface in facts['netapp_hostside_io_interfaces']:
+                        hostside_io_interface_protocols.append(interface["protocol"])
+                        for host_type in host_types:
+                            if host_type == "iscsi" and interface["protocol"] in ["iscsi", "ib_iser"]:
+                                host_port_protocols.append(interface["protocol"])
+                                if interface["protocol"] in host_port_information:
+                                    host_port_information[interface["protocol"]].append(interface)
+                                else:
+                                    host_port_information.update({interface["protocol"]: [interface]})
+                            elif host_type == "fc" and interface["protocol"] in ["fc"]:
+                                host_port_protocols.append(interface["protocol"])
+                                if interface["protocol"] in host_port_information:
+                                    host_port_information[interface["protocol"]].append(interface)
+                                else:
+                                    host_port_information.update({interface["protocol"]: [interface]})
+                            elif host_type == "sas" and interface["protocol"] in ["sas"]:
+                                host_port_protocols.append(interface["protocol"])
+                                if interface["protocol"] in host_port_information:
+                                    host_port_information[interface["protocol"]].append(interface)
+                                else:
+                                    host_port_information.update({interface["protocol"]: [interface]})
+                            elif host_type == "ib" and interface["protocol"] in ["ib_iser", "ib_srp"]:
+                                host_port_protocols.append(interface["protocol"])
+                                if interface["protocol"] in host_port_information:
+                                    host_port_information[interface["protocol"]].append(interface)
+                                else:
+                                    host_port_information.update({interface["protocol"]: [interface]})
+                            elif host_type == "nvmeof" and interface["protocol"] in ["nvme_ib", "nvme_fc", "nvme_roce"]:
+                                host_port_protocols.append(interface["protocol"])
+                                if interface["protocol"] in host_port_information:
+                                    host_port_information[interface["protocol"]].append(interface)
+                                else:
+                                    host_port_information.update({interface["protocol"]: [interface]})
+
                     for volume in all_volumes:
+
+                        storage_pool = [pool["name"] for pool in facts['netapp_storage_pools'] if pool["id"] == volume["volumeGroupRef"]][0]
+
                         if mapping['id'] in [volume_mapping['id'] for volume_mapping in volume['listOfMappings']]:
 
                             # Determine workload name if there is one
@@ -604,6 +827,22 @@ class Facts(NetAppESeriesModule):
                                             metadata = dict((entry['key'], entry['value'])
                                                             for entry in workload_tag['attributes']
                                                             if entry['key'] != 'profileId')
+
+                            # Get volume specific metadata tags
+                            volume_metadata_raw = dict()
+                            volume_metadata = dict()
+                            for entry in volume['metadata']:
+                                volume_metadata_raw.update({entry["key"]: entry["value"]})
+
+                            for sorted_key in sorted(volume_metadata_raw.keys()):
+                                if re.match(".*~[0-9]$", sorted_key):
+                                    key = re.sub("~[0-9]$", "", sorted_key)
+                                    if key in volume_metadata:
+                                        volume_metadata[key] = volume_metadata[key] + volume_metadata_raw[sorted_key]
+                                    else:
+                                        volume_metadata.update({key: volume_metadata_raw[sorted_key]})
+                                else:
+                                    volume_metadata.update({sorted_key: volume_metadata_raw[sorted_key]})
 
                             # Determine drive count
                             stripe_count = 0
@@ -619,15 +858,20 @@ class Facts(NetAppESeriesModule):
                                 stripe_count = vg_drive_num - 1
                             if volume['raidLevel'] == "raid6":
                                 stripe_count = vg_drive_num - 2
-
                             facts['netapp_volumes_by_initiators'][host['name']].append(
                                 dict(name=volume['name'],
-                                     host_types=[port['type'] for port in host['ports']],
+                                     storage_pool=storage_pool,
+                                     host_types=set(host_types),
+                                     host_port_information=host_port_information,
+                                     host_port_protocols=set(host_port_protocols),
+                                     hostside_io_interface_protocols=set(hostside_io_interface_protocols),
                                      id=volume['id'],
                                      wwn=volume['wwn'],
                                      eui=volume['extendedUniqueIdentifier'],
                                      workload_name=workload_name,
+                                     workload_metadata=metadata,
                                      meta_data=metadata,
+                                     volume_metadata=volume_metadata,
                                      raid_level=volume['raidLevel'],
                                      segment_size_kb=int(volume['segmentSize'] / 1024),
                                      stripe_count=stripe_count))
@@ -655,13 +899,13 @@ class Facts(NetAppESeriesModule):
 def strip_interface_speed(speed):
     """Converts symbol interface speeds to a more common notation. Example: 'speed10gig' -> '10g'"""
     if isinstance(speed, list):
-        result = [match(r"speed[0-9]{1,3}[gm]", sp) for sp in speed]
+        result = [re.match(r"speed[0-9]{1,3}[gm]", sp) for sp in speed]
         result = [sp.group().replace("speed", "") if result else "unknown" for sp in result if sp]
-        result = ["auto" if match(r"auto", sp) else sp for sp in result]
+        result = ["auto" if re.match(r"auto", sp) else sp for sp in result]
     else:
-        result = match(r"speed[0-9]{1,3}[gm]", speed)
+        result = re.match(r"speed[0-9]{1,3}[gm]", speed)
         result = result.group().replace("speed", "") if result else "unknown"
-        result = "auto" if match(r"auto", result.lower()) else result
+        result = "auto" if re.match(r"auto", result.lower()) else result
     return result
 
 
