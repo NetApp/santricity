@@ -134,9 +134,8 @@ Example Storage System Inventory File (Simple example without storage system dis
             size_unit: tb
             volume_metadata:  # Used by netapp_eseries.host.mount role to format and mount volumes
               format_type: xfs
-              mount_options1: "noatime,nodiratime,logbufs=8,logbsize=256k,largeio"
-              mount_options2: "inode64,swalloc,allocsize=131072k,nobarrier,_netdev"
-              mount_directory: "/data/beegfs/"
+              mount_opt: "noatime,nodiratime,logbufs=8,logbsize=256k,largeio,inode64,swalloc,allocsize=131072k,nobarrier,_netdev"
+              mount_dir: "/data/beegfs/"
 
 Example Storage System Inventory File (Discover storage system)
 -------------------------------------
@@ -634,7 +633,7 @@ Collection Variables
             workload_name:                         # Name of the volume's workload
             workload_metadata:                     # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.
             volume_metadata                        # Dictionary containing arbitrary entries used to define information about the volume itself.
-                                                   #    Note: mount_to_host, format_type, format_options, mount_directory, mount_options are used by netapp_eseries.host.mount role to format and mount volumes.
+                                                   #    Note: format_type, format_options, mount_dir, mount_options are used by netapp_eseries.host.mount role to format and mount volumes.
             write_cache_enable:                    # Enables write caching which will cache all writes.
                                                    #    created on the storage array.
 

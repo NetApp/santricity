@@ -655,7 +655,6 @@ class Facts(NetAppESeriesModule):
                                                                      "maximum": strip_interface_speed(ib_port["supportedSpeed"])[-1],
                                                                      "supported": strip_interface_speed(ib_port["supportedSpeed"])}})
 
-
                         # iSCSI protocol
                         elif interface_data["interfaceData"]["type"] == "ethernet":
                             ethernet_data = interface_data["interfaceData"]["ethernetData"]
@@ -763,6 +762,125 @@ class Facts(NetAppESeriesModule):
 
                     facts['netapp_hostside_io_interfaces'].append(interface_info)
 
+        # Gather information from controller->hostInterfaces if available (This is a deprecated data structure. Prefer information from ioInterface.
+        for controller in array_facts['controller']:
+            if "hostInterfaces" in controller.keys():
+                for interface in controller['hostInterfaces']:
+
+                    # Ignore any issue with this data structure since its a deprecated data structure.
+                    try:
+                        interface_type = interface["interfaceType"]
+                        interface_data = interface["fibre" if interface_type == "fc" else interface_type]
+
+                        # Build generic information for each interface entry
+                        interface_info = {"protocol": "unknown",
+                                          "interface_reference": interface_data["interfaceRef"],
+                                          "controller_reference": controller["controllerRef"],
+                                          "channel_port_reference": interface_data["channelPortRef"] if "channelPortRef" in interface_data else "",
+                                          "controller": controller_reference_label[controller["controllerRef"]],
+                                          "channel": interface_data["channel"],
+                                          "part": "unknown",
+                                          "link_status": "unknown",
+                                          "speed": {"current": "unknown", "maximum": "unknown", "supported": []},
+                                          "mtu": None,
+                                          "guid": None,
+                                          "lid": None,
+                                          "nqn": None,
+                                          "iqn": None,
+                                          "wwpn": None,
+                                          "ipv4": None,  # enabled, config_method, address, subnet, gateway
+                                          "ipv6": None}  # for expansion if needed
+
+                        # Add target information
+                        for target in targets:
+                            if target["nodeName"]["ioInterfaceType"] == "nvmeof":
+                                interface_info.update({"nqn": target["nodeName"]["nvmeNodeName"]})
+                            if target["nodeName"]["ioInterfaceType"] == "iscsi":
+                                interface_info.update({"iqn": target["nodeName"]["iscsiNodeName"]})
+
+                        # iSCSI IO interface
+                        if interface_type == "iscsi":
+                            interface_info.update({"ipv4": {"enabled": interface_data["ipv4Enabled"],
+                                                            "config_method": interface_data["ipv4Data"]["ipv4AddressConfigMethod"],
+                                                            "address": interface_data["ipv4Data"]["ipv4AddressData"]["ipv4Address"],
+                                                            "subnet": interface_data["ipv4Data"]["ipv4AddressData"]["ipv4SubnetMask"],
+                                                            "gateway": interface_data["ipv4Data"]["ipv4AddressData"]["ipv4GatewayAddress"]}})
+                            # InfiniBand (iSER) protocol
+                            if interface_data["interfaceData"]["type"] == "infiniband" and interface_data["interfaceData"]["infinibandData"]["isIser"]:
+                                interface_info.update({"protocol": "ib_iser"})
+
+                                # Get more details from hardware-inventory
+                                for ib_port in hardware_inventory_facts["ibPorts"]:
+                                    if ib_port["channelPortRef"] == interface_info["channel_port_reference"]:
+                                        interface_info.update({"link_status": ib_port["linkState"],
+                                                               "guid": ib_port["globalIdentifier"],
+                                                               "lid": ib_port["localIdentifier"],
+                                                               "speed": {"current": strip_interface_speed(ib_port["currentSpeed"]),
+                                                                         "maximum": strip_interface_speed(ib_port["supportedSpeed"])[-1],
+                                                                         "supported": strip_interface_speed(ib_port["supportedSpeed"])}})
+                            # iSCSI protocol
+                            elif interface_data["interfaceData"]["type"] == "ethernet":
+                                ethernet_data = interface_data["interfaceData"]["ethernetData"]
+                                interface_info.update({"protocol": "iscsi"})
+                                interface_info.update({"part": "%s,%s" % (ethernet_data["partData"]["vendorName"], ethernet_data["partData"]["partNumber"]),
+                                                       "link_status": ethernet_data["linkStatus"],
+                                                       "mtu": ethernet_data["maximumFramePayloadSize"],
+                                                       "speed": {"current": strip_interface_speed(ethernet_data["currentInterfaceSpeed"]),
+                                                                 "maximum": strip_interface_speed(ethernet_data["maximumInterfaceSpeed"]),
+                                                                 "supported": strip_interface_speed(ethernet_data["supportedInterfaceSpeeds"])}})
+                        # Fibre Channel IO interface
+                        elif interface_type == "fc":
+                            interface_info.update({"protocol": "fc",
+                                                   "wwpn": interface_data["addressId"],
+                                                   "link_status": interface_data["linkStatus"],
+                                                   "speed": {"current": strip_interface_speed(interface_data["currentInterfaceSpeed"]),
+                                                             "maximum": strip_interface_speed(interface_data["maximumInterfaceSpeed"]),
+                                                             "supported": "unknown"}})
+                        # SAS IO interface
+                        elif interface_type == "sas":
+                            interface_info.update({"protocol": "sas",
+                                                   "wwpn": interface_data["iocPort"]["portTypeData"]["portIdentifier"],
+                                                   "part": interface_data["part"],
+                                                   "speed": {"current": strip_interface_speed(interface_data["currentInterfaceSpeed"]),
+                                                             "maximum": strip_interface_speed(interface_data["maximumInterfaceSpeed"]),
+                                                             "supported": "unknown"}})
+                        # Infiniband IO interface
+                        elif interface_type == "ib":
+                            interface_info.update({"link_status": interface_data["linkState"],
+                                                   "speed": {"current": strip_interface_speed(interface_data["currentSpeed"]),
+                                                             "maximum": strip_interface_speed(interface_data["supportedSpeed"])[-1],
+                                                             "supported": strip_interface_speed(interface_data["supportedSpeed"])},
+                                                   "mtu": interface_data["maximumTransmissionUnit"],
+                                                   "guid": interface_data["globalIdentifier"],
+                                                   "lid": interface_data["localIdentifier"]})
+
+                            # Determine protocol (NVMe over Infiniband, InfiniBand iSER, InfiniBand SRP)
+                            if interface_data["isNVMeSupported"]:
+                                interface_info.update({"protocol": "nvme_ib"})
+                            elif interface_data["isISERSupported"]:
+                                interface_info.update({"protocol": "ib_iser"})
+                            elif interface_data["isSRPSupported"]:
+                                interface_info.update({"protocol": "ib_srp"})
+
+                        # Ethernet IO interface
+                        elif interface_type == "ethernet":
+                            ethernet_data = interface_data["interfaceData"]["ethernetData"]
+                            interface_info.update({"part": "%s,%s" % (ethernet_data["partData"]["vendorName"], ethernet_data["partData"]["partNumber"]),
+                                                   "link_status": ethernet_data["linkStatus"],
+                                                   "mtu": ethernet_data["maximumFramePayloadSize"],
+                                                   "speed": {"current": strip_interface_speed(ethernet_data["currentInterfaceSpeed"]),
+                                                             "maximum": strip_interface_speed(ethernet_data["maximumInterfaceSpeed"]),
+                                                             "supported": strip_interface_speed(ethernet_data["supportedInterfaceSpeeds"])}})
+
+                        # Only add interface if not already added (i.e. was part of ioInterface structure)
+                        for existing_hostside_io_interfaces in facts['netapp_hostside_io_interfaces']:
+                            if existing_hostside_io_interfaces["interface_reference"] == interface_info["interface_reference"]:
+                                break
+                        else:
+                            facts['netapp_hostside_io_interfaces'].append(interface_info)
+                    except:
+                        pass
+
         # Create a dictionary of volume lists keyed by host names
         facts['netapp_volumes_by_initiators'] = dict()
         for mapping in array_facts['storagePoolBundle']['lunMapping']:
@@ -782,36 +900,64 @@ class Facts(NetAppESeriesModule):
                             if host_type == "iscsi" and interface["protocol"] in ["iscsi", "ib_iser"]:
                                 host_port_protocols.append(interface["protocol"])
                                 if interface["protocol"] in host_port_information:
-                                    host_port_information[interface["protocol"]].append(interface)
+                                    # Skip duplicate entries into host_port_information
+                                    for host_port_info in host_port_information[interface["protocol"]]:
+                                        if interface["interface_reference"] == host_port_info["interface_reference"]:
+                                            break
+                                    else:
+                                        host_port_information[interface["protocol"]].append(interface)
                                 else:
                                     host_port_information.update({interface["protocol"]: [interface]})
+
                             elif host_type == "fc" and interface["protocol"] in ["fc"]:
                                 host_port_protocols.append(interface["protocol"])
                                 if interface["protocol"] in host_port_information:
-                                    host_port_information[interface["protocol"]].append(interface)
+                                    # Skip duplicate entries into host_port_information
+                                    for host_port_info in host_port_information[interface["protocol"]]:
+                                        if interface["interface_reference"] == host_port_info["interface_reference"]:
+                                            break
+                                    else:
+                                        host_port_information[interface["protocol"]].append(interface)
                                 else:
                                     host_port_information.update({interface["protocol"]: [interface]})
+
                             elif host_type == "sas" and interface["protocol"] in ["sas"]:
                                 host_port_protocols.append(interface["protocol"])
                                 if interface["protocol"] in host_port_information:
-                                    host_port_information[interface["protocol"]].append(interface)
+                                    # Skip duplicate entries into host_port_information
+                                    for host_port_info in host_port_information[interface["protocol"]]:
+                                        if interface["interface_reference"] == host_port_info["interface_reference"]:
+                                            break
+                                    else:
+                                        host_port_information[interface["protocol"]].append(interface)
                                 else:
                                     host_port_information.update({interface["protocol"]: [interface]})
+
                             elif host_type == "ib" and interface["protocol"] in ["ib_iser", "ib_srp"]:
                                 host_port_protocols.append(interface["protocol"])
                                 if interface["protocol"] in host_port_information:
-                                    host_port_information[interface["protocol"]].append(interface)
+                                    # Skip duplicate entries into host_port_information
+                                    for host_port_info in host_port_information[interface["protocol"]]:
+                                        if interface["interface_reference"] == host_port_info["interface_reference"]:
+                                            break
+                                    else:
+                                        host_port_information[interface["protocol"]].append(interface)
                                 else:
                                     host_port_information.update({interface["protocol"]: [interface]})
+
                             elif host_type == "nvmeof" and interface["protocol"] in ["nvme_ib", "nvme_fc", "nvme_roce"]:
                                 host_port_protocols.append(interface["protocol"])
                                 if interface["protocol"] in host_port_information:
-                                    host_port_information[interface["protocol"]].append(interface)
+                                    # Skip duplicate entries into host_port_information
+                                    for host_port_info in host_port_information[interface["protocol"]]:
+                                        if interface["interface_reference"] == host_port_info["interface_reference"]:
+                                            break
+                                    else:
+                                        host_port_information[interface["protocol"]].append(interface)
                                 else:
                                     host_port_information.update({interface["protocol"]: [interface]})
 
                     for volume in all_volumes:
-
                         storage_pool = [pool["name"] for pool in facts['netapp_storage_pools'] if pool["id"] == volume["volumeGroupRef"]][0]
 
                         if mapping['id'] in [volume_mapping['id'] for volume_mapping in volume['listOfMappings']]:
