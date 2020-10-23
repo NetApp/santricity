@@ -39,7 +39,8 @@
       become: True
       changed_when: False
       failed_when: "host_interface_linux.rc != 0"
-      when: 'eseries_initiator_protocol in ["iscsi", "ib_iser"] and "eseries_iscsi_iqn" not in (hostvars[item].keys() | list) and hostvars[item]["ansible_facts"]["system"] == "Linux"'
+      when: '(hostvars[item]["ansible_facts"]["system"] == "Linux" and
+              ("eseries_iscsi_iqn" not in (hostvars[item].keys() | list) or eseries_initiator_protocol not in ["iscsi", "ib_iser"]))'
       loop: "{{ lookup('list', (hosts['expected_hosts'].keys() | list)) }}"
 
     - name: Collect host and host group interface information for Windows
@@ -48,7 +49,8 @@
       delegate_to: "{{ item }}"
       changed_when: False
       failed_when: "host_interface_windows.rc != 0"
-      when: 'eseries_initiator_protocol in ["iscsi", "ib_iser"] and "eseries_iscsi_iqn" not in (hostvars[item].keys() | list) and hostvars[item]["ansible_facts"]["os_family"] == "Windows"'
+      when: '(hostvars[item]["ansible_facts"]["os_family"] == "Windows" and
+              ("eseries_iscsi_iqn" not in (hostvars[item].keys() | list) or eseries_initiator_protocol not in ["iscsi", "ib_iser"]))'
       loop: "{{ lookup('list', (hosts['expected_hosts'].keys() | list)) }}"
 
     - name: Aggregate host/host group interface information
