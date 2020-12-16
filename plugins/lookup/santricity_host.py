@@ -100,6 +100,6 @@ class LookupModule(LookupBase):
 
                             elif volume["host"] not in non_inventory_hosts and volume["host"] not in non_inventory_groups:
                                 raise AnsibleError("Expected host or host group does not exist in your Ansible inventory and is not specified in"
-                                                   " eseries_host_object variable!")
+                                                   " eseries_host_object variable! [%s]." % volume["host"])
 
         return [info]
