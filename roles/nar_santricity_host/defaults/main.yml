@@ -293,4 +293,11 @@ eseries_initiator_command:
     linux: "grep -o nqn.* /etc/nvme/hostnqn"
     windows: ""   # add windows command for determining host nqn address(es)
 
+eseries_iscsi_iqn_prefix: "iqn.2005-03.org.open-iscsi:" # Last 12 characters from host machine-id (uuid) will be appended to the prefix if the host does not have a required iqn.
+eseries_nvme_nqn_prefix: "2014-08.org.nvmexpress:uuid:" # Host machine-id (uuid) will be appended to the prefix if the host does not have a required nqn.
+eseries_protocols_using_eseries_iscsi_iqn: ["iscsi", "ib_iser"]
+eseries_protocols_using_eseries_nvme_nqn: ["nvme_ib", "nvme_fc", "nvme_roce"]
+eseries_iscsi_iqn_path: "/etc/iscsi/"  #initiatorname.iscsi"
+eseries_nvme_nqn_path: "/etc/nvme/"  #hostnqn"
+
 eseries_remove_all_configuration: False   # WARNING!!! This flag will force any storage pool, volume, host, hostgroup and mapping to be absent. Choices: True, False
