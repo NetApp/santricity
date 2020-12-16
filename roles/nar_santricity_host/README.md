@@ -271,10 +271,10 @@ Role Variables
 
     # Initiator-Target Protocol Variable Defaults
         Note that the following commands need to produce a unique list of IQNs or WWNs of the interfaces used, line separated. Overwrite as necessary.
-    eseries_initiator_protocol: fc     # This variable defines which protocol the storage array will use. Choices: fc, iscsi, sas, ib_iser, ib_srp, nvme_ib, nvme_roce
+    eseries_initiator_protocol: fc     # This variable defines which protocol the storage array will use. Choices: fc, iscsi, sas, ib_iser, ib_srp, nvme_ib, nvme_fc, nvme_roce
     eseries_initiator_command:
       fc:
-        linux: "systool -c fc_host -v | grep port_name | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"
+        linux: "cat /sys/class/fc_host/host*/port_name | sort | uniq"
         windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'Fibre Channel' | Select-Object -Property PortAddress |
                    Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
       iscsi:
@@ -285,21 +285,23 @@ Role Variables
         # NetApp IMT for SAS attached E-Series SAN hosts recommends adding all possible SAS addresses with the base address
         # starting at 0, and the last address ending in 3 for single port HBAs, or 7 for dual port HBAs. Since determining
         # single vs . dual port HBAs adds complexity, we always add all 8 possible permutations of the SAS address.
-        linux: "systool -c scsi_host -v | grep host_sas_address | cut -d '\"' -f 2 | cut -d 'x' -f 2 | sort | uniq"
-        windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'SAS' | Select-Object -Property PortAddress |
-                   Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
+        linux: "cat /sys/class/sas_host/host*/device/scsi_host/*/host_sas_address | sort | uniq"
+        windows: "(Get-InitiatorPort | Where-Object -P ConnectionType -EQ 'SAS' | Select-Object -Property PortAddress | Format-Table -AutoSize -HideTableHeaders | Out-String).trim()"
       ib_iser:
         linux: "grep -o iqn.* /etc/iscsi/initiatorname.iscsi"
         windows: ""   # add windows command for determining host iqn address(es)
       ib_srp:
-        linux: "ibstat -p"
-        windows: ""     # Add Windows command for determining host guid
+        linux: "for fp in /sys/class/infiniband/*/ports/*/gids/*; do out=`cat $fp | tr -d :`; port=`expr substr $out 17 32`; if [ $port != 0000000000000000 ]; then echo 0x$port; fi; done | sort | uniq"
+        windows: ""   # add windows command for determining host guid
       nvme_ib:
-        linux: ""       # Add Linux command for determining host nqn address(es)
-        windows: ""     # Add Windows command for determining host nqn address(es)
+        linux: "grep -o nqn.* /etc/nvme/hostnqn"
+        windows: ""   # add windows command for determining host nqn address(es)
+      nvme_fc:
+        linux: "grep -o nqn.* /etc/nvme/hostnqn"
+        windows: ""   # add windows command for determining host nqn address(es)
       nvme_roce:
-        linux: ""       # Add Linux command for determining host nqn address(es)
-        windows: ""     # Add Windows command for determining host nqn address(es)
+        linux: "grep -o nqn.* /etc/nvme/hostnqn"
+        windows: ""   # add windows command for determining host nqn address(es)
 
     # Manual host definitions, Linux and Windows systems can be automatically populated based on host mappings found in eseries_storage_pool_configuration
     eseries_host_force_port: true                 # Default for whether ports are to be allowed to be re-assigned (boolean)
