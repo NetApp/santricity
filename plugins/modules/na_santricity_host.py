@@ -271,7 +271,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
                         break
                 else:
                     # self.module.fail_json(msg="Invalid port type! Type [%s]. Port [%s]." % (port["type"], port["label"]))
-                    self.module.warn(msg="Port type not found in hostside interfaces! Type [%s]. Port [%s]." % (port["type"], port["label"]))
+                    self.module.warn("Port type not found in hostside interfaces! Type [%s]. Port [%s]." % (port["type"], port["label"]))
         except Exception as error:
             # For older versions of web services
             for port in self.ports:

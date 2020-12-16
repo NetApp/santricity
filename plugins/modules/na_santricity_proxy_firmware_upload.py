@@ -108,7 +108,7 @@ class NetAppESeriesProxyFirmwareUpload(NetAppESeriesModule):
                 rc, response = self.request("firmware/upload/", method="POST", data=data, headers=headers)
             except Exception as error:
                 self.upload_failures.append(filename)
-                self.module.warn(msg="Failed to upload firmware file. File [%s]" % filename)
+                self.module.warn("Failed to upload firmware file. File [%s]" % filename)
 
     def delete_files(self):
         """Remove firmware and nvsram file."""
@@ -117,7 +117,7 @@ class NetAppESeriesProxyFirmwareUpload(NetAppESeriesModule):
                 rc, response = self.request("firmware/upload/%s" % filename, method="DELETE")
             except Exception as error:
                 self.upload_failures.append(filename)
-                self.module.warn(msg="Failed to delete firmware file. File [%s]" % filename)
+                self.module.warn("Failed to delete firmware file. File [%s]" % filename)
 
     def apply(self):
         """Upgrade controller firmware."""
