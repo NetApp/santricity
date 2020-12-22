@@ -471,7 +471,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
             self.module.fail_json(msg="Failed to remove host.  Host[%s]. Array Id [%s]. Error [%s]." % (self.host_obj["id"], self.ssid, to_native(err)))
 
     def build_success_payload(self, host=None):
-        keys = ["id"]
+        keys = []  # ["id"]
 
         if host:
             result = dict((key, host[key]) for key in keys)
