@@ -84,6 +84,8 @@ class LookupModule(LookupBase):
 
                 else:
                     raise AnsibleError("The host or host group [%s] is not defined!" % volume["host"])
+            else:
+                mapping_info.append({"volume": volume["name"]})
 
         return mapping_info
 
