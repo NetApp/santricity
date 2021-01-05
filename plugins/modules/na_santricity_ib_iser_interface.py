@@ -172,10 +172,10 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
 
             controller_ifaces = []
             for iface in ifaces:
-                if iface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and iface["ioInterfaceTypeData"]["iscsi"]["controllerId"] == controller_id:
+                if iface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and iface["controllerRef"] == controller_id:
                     controller_ifaces.append([iface["ioInterfaceTypeData"]["iscsi"]["channel"], iface,
                                               ifaces_status[iface["ioInterfaceTypeData"]["iscsi"]["channelPortRef"]]])
-                elif iface["ioInterfaceTypeData"]["interfaceType"] == "ib" and iface["ioInterfaceTypeData"]["ib"]["controllerId"] == controller_id:
+                elif iface["ioInterfaceTypeData"]["interfaceType"] == "ib" and iface["controllerRef"] == controller_id:
                     controller_ifaces.append([iface["ioInterfaceTypeData"]["ib"]["channel"], iface,
                                               iface["ioInterfaceTypeData"]["ib"]["linkState"]])
 
@@ -191,13 +191,20 @@ class NetAppESeriesIbIserInterface(NetAppESeriesModule):
 
     def is_change_required(self):
         """Determine whether change is required."""
+        changed_required = False
         iface = self.get_target_interface()
-        if ((iface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and iface["iscsi"]["ipv4Data"]["ipv4AddressData"]["ipv4Address"] != self.address) or
-                (iface["ioInterfaceTypeData"]["interfaceType"] == "ib" and
-                 iface["commandProtocolPropertiesList"]["commandProtocolProperties"][0]["scsiProperties"]["scsiProtocolType"] == "iser")):
-            return True
+        if (iface["ioInterfaceTypeData"]["interfaceType"] == "iscsi" and
+                iface["ioInterfaceTypeData"]["iscsi"]["ipv4Data"]["ipv4AddressData"]["ipv4Address"] != self.address):
+            changed_required = True
 
-        return False
+        elif iface["ioInterfaceTypeData"]["interfaceType"] == "ib" and iface["ioInterfaceTypeData"]["ib"]["isISERSupported"]:
+            for properties in iface["commandProtocolPropertiesList"]["commandProtocolProperties"]:
+                if (properties["commandProtocol"] == "scsi" and
+                        properties["scsiProperties"]["scsiProtocolType"] == "iser" and
+                        properties["scsiProperties"]["iserProperties"]["ipv4Data"]["ipv4AddressData"]["ipv4Address"] != self.address):
+                    changed_required = True
+
+        return changed_required
 
     def make_request_body(self):
         iface = self.get_target_interface()
