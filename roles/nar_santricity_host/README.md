@@ -32,17 +32,15 @@ Example Storage System Inventory File (Discover storage system with proxy)
     eseries_initiator_protocol: iscsi
 
     # Controller port definitions
-    eseries_controller_port_config_method: static
-    eseries_controller_port_subnet_mask: 255.255.255.0
-    eseries_controller_port:
+    eseries_controller_iscsi_port_config_method: static
+    eseries_controller_iscsi_port_subnet_mask: 255.255.255.0
+    eseries_controller_iscsi_port:
       controller_a:
-        ports:
-          - address: 192.168.2.100
-          - address: 192.168.2.110
+        - address: 192.168.2.100
+        - address: 192.168.2.110
       controller_b:
-        ports:
-          - address: 192.168.3.100
-          - address: 192.168.3.110
+        - address: 192.168.3.100
+        - address: 192.168.3.110
 
     # Storage pool and volume configuration
     eseries_storage_pool_configuration:
