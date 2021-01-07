@@ -60,6 +60,29 @@ Example Storage System Inventory File (Without storage system discovery)
 
     (...)   # Same as the previous example
 
+Yet Another Example System Inventory File
+-----------------------------------------
+    eseries_system_api_url: https://192.168.1.200:8443/devmgr/v2/
+    eseries_system_password: admin_password
+    eseries_validate_certs: false
+
+    eseries_initiator_protocol: nvme_ib
+    eseries_controller_nvme_ib_port:
+      controller_a:
+        - 192.168.1.100
+        - 192.168.1.110
+      controller_b:
+        - 192.168.2.100
+        - 192.168.2.110
+
+    eseries_storage_pool_configuration:
+      - name: vg[1-2]
+        raid_level: raid6
+        criteria_drive_count: 12
+        criteria_volume_count: 4
+        criteria_reserve_free_capacity_pct: 7
+        common_volume_host: server_group
+
 Role Variables
 --------------
 **Note that when values are specified below, they indicate the default value.**
@@ -212,11 +235,15 @@ Role Variables
         secure_pool:                               # Default for storage pool drive security. This flag will enable the security at rest feature. There must be sufficient FDE
                                                    #    or FIPS security capable drives. Choices: true, false
         criteria_drive_count:                      # Default storage pool drive count.
+        criteria_volume_count:                     # Number of equally sized volumes to create. All available storage pool space will be used. The option will be ignored
+                                                   #    if volumes is defined.
+        criteria_reserve_free_capacity_pct         # Percent of reserve free space capacity to leave when creating the criteria_volume_count volumes.
+        common_volume_host                         # Host or host group for the criteria_volume_count volumes should be mapped.
         reserve_drive_count:                       # Default reserve drive count for drive reconstruction for storage pools using dynamic disk pool and the raid level must be
                                                    #    set for raidDiskPool.
         criteria_min_usable_capacity:              # Default minimum required capacity for storage pools.
         criteria_drive_type:                       # Default drive type for storage pools. Choices: hdd, ssd
-        criteria_size_unit:                        # Default unit size for all storage pool related sizing. Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
+        criteria_size_unit:                        # Default unit size for all storage pool related sizing. Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb, pct
         criteria_drive_min_size:                   # Default minimum drive size for storage pools.
         criteria_drive_require_da:                 # Default for whether storage pools are required to have data assurance (DA) compatible drives. Choices: true, false
         criteria_drive_require_fde:                # Default for whether storage pools are required to have drive security compatible drives. Choices: true, false
@@ -247,7 +274,7 @@ Role Variables
                                                    #     - Windows ATTO: Windows OS and the ATTO Technology, Inc. driver
             size:                                  # Size of the volume or presented size of the thinly provisioned volume.
             size_unit:                             # Unit size for the size, thin_volume_repo_size, and thin_volume_max_repo_size
-                                                   #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
+                                                   #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb, pct
             segment_size_kb:                       # Indicates the amount of data stored on a drive before moving on to the next drive in the volume group. Does not apply to pool volumes.
             thin_provision:                        # Whether volumes should be thinly provisioned.
             thin_volume_repo_size:                 # Actually allocated space for thinly provisioned volumes.

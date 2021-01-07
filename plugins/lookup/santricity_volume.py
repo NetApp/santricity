@@ -21,11 +21,38 @@ class LookupModule(LookupBase):
 
         vol_list = list()
         for sp_info in inventory["eseries_storage_pool_configuration"]:
-
-            if "name" not in sp_info.keys() or "volumes" not in sp_info.keys():
+            if "name" not in sp_info.keys():
                 continue
+            if "volumes" in sp_info.keys() and ("criteria_volume_count" in sp_info.keys() or "criteria_reserve_free_capacity_pct" in sp_info.keys()):
+                raise AnsibleError("Incompatible parameters: You cannot specify both volumes with either criteria_volume_count or "
+                                   "criteria_reserve_free_capacity for any given eseries_storage_pool_configuration entry.")
+            if ("common_volume_configuration" in sp_info.keys() and isinstance(sp_info["common_volume_configuration"], dict) and
+                    "size" in sp_info["common_volume_configuration"].keys() and "criteria_reserve_free_capacity_pct" in sp_info.keys()):
+                raise AnsibleError("Incompatible parameters: You cannot specify both size in common_volume_configuration with "
+                                   "criteria_reserve_free_capacity for any given eseries_storage_pool_configuration entry.")
 
-            if not isinstance(sp_info["volumes"], list):
+            if "volumes" not in sp_info.keys():
+                if "criteria_volume_count" in sp_info.keys():
+                    if "common_volume_configuration" not in sp_info:
+                        sp_info.update({"common_volume_configuration": {}})
+
+                    reserve_free_capacity_pct = sp_info["criteria_reserve_free_capacity_pct"] if "criteria_reserve_free_capacity_pct" in sp_info.keys() else 0.0
+                    volume_size = (100.0 - reserve_free_capacity_pct) / sp_info["criteria_volume_count"]
+                    count_digits = len(str(sp_info["criteria_volume_count"]))
+
+                    if "size" not in sp_info["common_volume_configuration"].keys():
+                        sp_info["common_volume_configuration"].update({"size": volume_size, "size_unit": "pct"})
+                    if "host" not in sp_info["common_volume_configuration"].keys() and "common_volume_host" in sp_info.keys():
+                        sp_info["common_volume_configuration"].update({"host": sp_info["common_volume_host"]})
+
+                    for count in range(sp_info["criteria_volume_count"]):
+                        if "volumes" not in sp_info.keys():
+                            sp_info.update({"volumes": []})
+                        sp_info["volumes"].append({"name": "%s_%0*d" % (sp_info["name"], count_digits, count)})
+                else:
+                    continue
+
+            elif not isinstance(sp_info["volumes"], list):
                 raise AnsibleError("Volumes must be a list")
 
             for sp in patternize(sp_info["name"], inventory):
@@ -51,7 +78,6 @@ class LookupModule(LookupBase):
                         if "volume_metadata" in vol_info.keys():
                             combined_volume_metadata.update(vol_info["volume_metadata"])
                             vol_options.update({"volume_metadata": combined_volume_metadata})
-
 
                         if "state" in sp_info and sp_info["state"] == "absent":
                             vol_options.update({"state": "absent"})
