@@ -38,16 +38,16 @@ options:
     size_unit:
         description:
             - The unit used to interpret the size parameter
+            - pct unit defines a percent of total usable storage pool size.
         type: str
-        choices: ["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb"]
+        choices: ["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb", "pct"]
         default: "gb"
     size:
         description:
             - Required only when I(state=="present").
             - Size of the volume in I(size_unit).
             - Size of the virtual volume in the case of a thin volume in I(size_unit).
-            - Maximum virtual volume size of a thin provisioned volume is 256tb; however other OS-level restrictions may
-              exist.
+            - Maximum virtual volume size of a thin provisioned volume is 256tb; however other OS-level restrictions may exist.
         type: float
         required: true
     segment_size_kb:
@@ -82,7 +82,7 @@ options:
         description:
             - This is the maximum amount the thin volume repository will be allowed to grow.
             - Only has significance when I(thin_volume_expansion_policy=="automatic").
-            - When the percentage I(thin_volume_repo_size) of I(thin_volume_max_repo_size) exceeds
+            - When the pct I(thin_volume_repo_size) of I(thin_volume_max_repo_size) exceeds
               I(thin_volume_growth_alert_threshold) then a warning will be issued and the storage array will execute
               the I(thin_volume_expansion_policy) policy.
             - Expansion operations when I(thin_volume_expansion_policy=="automatic") will increase the maximum
@@ -106,7 +106,7 @@ options:
     thin_volume_growth_alert_threshold:
         description:
             - This is the thin provision repository utilization threshold (in percent).
-            - When the percentage of used storage of the maximum repository size exceeds this value then a alert will
+            - When the pct of used storage of the maximum repository size exceeds this value then a alert will
               be issued and the I(thin_volume_expansion_policy) will be executed.
             - Values must be between or equal to 10 and 99.
         type: int
@@ -298,7 +298,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             state=dict(choices=["present", "absent"], default="present"),
             name=dict(required=True, type="str"),
             storage_pool_name=dict(type="str"),
-            size_unit=dict(default="gb", choices=["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb"], type="str"),
+            size_unit=dict(default="gb", choices=["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb", "pct"], type="str"),
             size=dict(type="float"),
             segment_size_kb=dict(type="int", default=128, required=False),
             owning_controller=dict(type="str", choices=["A", "B"], required=False),
@@ -335,7 +335,12 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         self.size_unit = args["size_unit"]
         self.segment_size_kb = args["segment_size_kb"]
         if args["size"]:
-            self.size_b = self.convert_to_aligned_bytes(args["size"])
+            if self.size_unit == "pct":
+                if args["thin_provision"]:
+                    self.module.fail_json(msg="'pct' is an invalid size unit for thin provisioning! Array [%s]." % self.ssid)
+                self.size_percent = args["size"]
+            else:
+                self.size_b = self.convert_to_aligned_bytes(args["size"])
 
         self.owning_controller_id = None
         if args["owning_controller"]:
@@ -829,6 +834,10 @@ class NetAppESeriesVolume(NetAppESeriesModule):
 
         self.volume_detail = self.get_volume()
         self.pool_detail = self.get_storage_pool()
+        if self.size_unit == "pct":
+            space_mb = round(float(self.pool_detail["totalRaidedSpace"]), -8) / 1024 ** 2 - 10
+            self.size_unit = "mb"
+            self.size_b = self.convert_to_aligned_bytes(space_mb * (self.size_percent / 100))
 
         # Determine whether changes need to be applied to existing workload tags
         if self.state == 'present' and self.update_workload_tags(check_mode=True):
