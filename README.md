@@ -260,8 +260,19 @@ Example Storage System Inventory File
             size: 10
             size_unit: tb
 
+Storage System Credentials
+--------------------------
+    Proxy:
+        - The proxy's credentials should be defined at the group inventory level (eseries_proxy_api_url, eseries_proxy_api_password, eseries_subnet) and each storage system host inventory file should include its password (eseries_system_password) and the system's serial number (eseries_system_serial).
+        - You can substitute a unique proxy storage system identifier (eseries_proxy_ssid) for the system's serial number if the system has already been added to the proxy. However, using the storage system serial number is the preferred method since it will never change and is always known to the system. If you would like to be able to reference the system from the proxy using a unique identifier of your choice then add it in addition to the system's serial number.
+        - If your storage system has never been added to the Web Service Proxy, utilizing your system's serial number (eseries_system_serial) ensures that the SANtricity collection can discover it and set its initial admin password if not previously done.
+
+    Direct:
+        - Provide the storage system's serial number, password and the network subnet (eseries_system_serial, eseries_system_password, and eseries_subnet) to ensure that it will be discoverable; this information will also ensure the admin password has been set. The discovery process can be lengthy depending on the size and speed of the subnet. This can be mitigated by configuring static management interfaces (eseries_management_interfaces) otherwise each playbook execution will search for the DHCP assigned address.
+        - If the storage system's Web Service Embedded API url (eseries_system_api_url) is known then it can be used in place of the system's serial number.
+
 Collection Variables
---------------
+--------------------
 **Note that when values are specified below, they indicate the default value.**
 
     eseries_subnet:                   # Network subnet to search for the storage system specified in CIDR form. Example: 192.168.1.0/24
@@ -679,7 +690,7 @@ Collection Variables
       - name:         # Host label as referenced by the storage array.
         state:        # Specifies whether host definition should be exist. Choices: present, absent
         ports:        # List of port definitions
-          - type:     # Port protocol definition (iscsi, fc, sas, ib, nvme). Note that you should use 'iscsi' prior to Santricity version 11.60 for IB iSER.
+          - type:     # Port protocol definition (iscsi, fc, sas, ib, nvme). Note that you should use 'iscsi' prior to SANtricity version 11.60 for IB iSER.
             label:    # Arbitrary port label
             port:     # Port initiator (iqn, wwn, etc)
         group:        # Host's host group

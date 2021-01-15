@@ -143,7 +143,7 @@
 
     - name: Check whether eseries_system_serial and eseries_subnet are defined.
       fail:
-        msg: "eseries_system_serial and eseries_subnet must be defined in order to search for storage system."
+        msg: "Unable to discover storage system. Check network connection and storage system inventory (See SANtricity README, section Storage System Credentials)"
       when: eseries_system_serial is not defined or eseries_subnet is not defined
 
     - name: Determine storage system Web Services information
@@ -156,7 +156,7 @@
             {%- endfor %}
           {%- endfor %}
           {{ info }}
-#      no_log: true
+      no_log: true
 
     - name: Check whether storage system was discovered.
       fail:
