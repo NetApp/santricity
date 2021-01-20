@@ -9,7 +9,8 @@
 
 - name: Collect volume host and host group list
   set_fact:
-    hosts: "{{ lookup('netapp_eseries.santricity.santricity_host', hostvars[inventory_hostname]) }}"
+    hosts: "{{ lookup('netapp_eseries.santricity.santricity_host', hostvars[inventory_hostname],
+                      volumes=lookup('netapp_eseries.santricity.santricity_volume', hostvars[inventory_hostname])) }}"
 
 - name: Retrieve required details and map luns
   block:
