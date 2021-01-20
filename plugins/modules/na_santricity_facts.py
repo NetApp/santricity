@@ -622,6 +622,7 @@ class Facts(NetAppESeriesModule):
                                       "lid": None,
                                       "nqn": None,
                                       "iqn": None,
+                                      "wwnn": None,
                                       "wwpn": None,
                                       "ipv4": None,  # enabled, config_method, address, subnet, gateway
                                       "ipv6": None}  # for expansion if needed
@@ -668,7 +669,8 @@ class Facts(NetAppESeriesModule):
 
                     # Fibre Channel IO interface
                     elif interface_type == "fc":
-                        interface_info.update({"wwpn": interface_data["addressId"],
+                        interface_info.update({"wwnn": interface_data["nodeName"],
+                                               "wwpn": interface_data["addressId"],
                                                "part": interface_data["part"],
                                                "link_status": interface_data["linkStatus"],
                                                "speed": {"current": strip_interface_speed(interface_data["currentInterfaceSpeed"]),
@@ -787,6 +789,7 @@ class Facts(NetAppESeriesModule):
                                           "lid": None,
                                           "nqn": None,
                                           "iqn": None,
+                                          "wwnn": None,
                                           "wwpn": None,
                                           "ipv4": None,  # enabled, config_method, address, subnet, gateway
                                           "ipv6": None}  # for expansion if needed
@@ -831,6 +834,7 @@ class Facts(NetAppESeriesModule):
                         # Fibre Channel IO interface
                         elif interface_type == "fc":
                             interface_info.update({"protocol": "fc",
+                                                   "wwnn": interface_data["nodeName"],
                                                    "wwpn": interface_data["addressId"],
                                                    "link_status": interface_data["linkStatus"],
                                                    "speed": {"current": strip_interface_speed(interface_data["currentInterfaceSpeed"]),
