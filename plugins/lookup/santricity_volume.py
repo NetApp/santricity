@@ -48,7 +48,7 @@ class LookupModule(LookupBase):
                     for count in range(sp_info["criteria_volume_count"]):
                         if "volumes" not in sp_info.keys():
                             sp_info.update({"volumes": []})
-                        sp_info["volumes"].append({"name": "%s_%0*d" % (sp_info["name"], count_digits, count)})
+                        sp_info["volumes"].append({"name": "[pool]_%0*d" % (count_digits, count)})
                 else:
                     continue
 
@@ -81,6 +81,8 @@ class LookupModule(LookupBase):
 
                         if "state" in sp_info and sp_info["state"] == "absent":
                             vol_options.update({"state": "absent"})
+                        else:
+                            vol_options.update({"state": "present"})
 
                         vol_options.update({"name": vol, "storage_pool_name": sp})
                         vol_list.append(vol_options)
