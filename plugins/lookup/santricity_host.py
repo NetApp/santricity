@@ -51,59 +51,6 @@ class LookupModule(LookupBase):
             non_inventory_hosts = [host["name"] for host in inventory["eseries_host_object"]]
             non_inventory_groups = [host["group"] for host in inventory["eseries_host_object"] if "group" in host]
 
-        # # Determine expected hosts and host groups
-        # for storage_pool in inventory["eseries_storage_pool_configuration"]:
-        #     if "volumes" in storage_pool:
-        #         for volume in storage_pool["volumes"]:
-        #
-        #             if (("state" in volume and volume["state"] == "present") or
-        #                     ("eseries_volume_state" in inventory and inventory["eseries_volume_state"] == "present") or
-        #                     ("state" not in volume and "eseries_volume_state" not in inventory)):
-        #                 if "host" in volume:
-        #                     if volume["host"] in groups:
-        #
-        #                         if volume["host"] not in info["host_groups"].keys():
-        #
-        #                             # Add all expected group hosts
-        #                             for expected_host in inventory["groups"][volume["host"]]:
-        #                                 if "host_type" in volume:
-        #                                     info["expected_hosts"].update({expected_host: {"state": "present",
-        #                                                                                    "host_type": volume["host_type"],
-        #                                                                                    "group": volume["host"]}})
-        #                                 elif "common_volume_configuration" in storage_pool and "host_type" in storage_pool["common_volume_configuration"]:
-        #                                     info["expected_hosts"].update({expected_host: {"state": "present",
-        #                                                                                    "host_type": storage_pool["common_volume_configuration"]["host_type"],
-        #                                                                                    "group": volume["host"]}})
-        #                                 elif "eseries_system_default_host_type" in inventory:
-        #                                     info["expected_hosts"].update({expected_host: {"state": "present",
-        #                                                                                    "host_type": inventory["eseries_system_default_host_type"],
-        #                                                                                    "group": volume["host"]}})
-        #                                 else:
-        #                                     info["expected_hosts"].update({expected_host: {"state": "present",
-        #                                                                                    "group": volume["host"]}})
-        #
-        #                             info["host_groups"].update({volume["host"]: inventory["groups"][volume["host"]]})
-        #
-        #                     elif volume["host"] in hosts:
-        #                         if "host_type" in volume:
-        #                             info["expected_hosts"].update({volume["host"]: {"state": "present",
-        #                                                                             "host_type": volume["host_type"],
-        #                                                                             "group": None}})
-        #                         elif "common_volume_configuration" in storage_pool and "host_type" in storage_pool["common_volume_configuration"]:
-        #                             info["expected_hosts"].update({volume["host"]: {"state": "present",
-        #                                                                             "host_type": storage_pool["common_volume_configuration"]["host_type"],
-        #                                                                             "group": volume["host"]}})
-        #                         elif "eseries_system_default_host_type" in inventory:
-        #                             info["expected_hosts"].update({volume["host"]: {"state": "present",
-        #                                                                             "host_type": inventory["eseries_system_default_host_type"],
-        #                                                                             "group": volume["host"]}})
-        #                         else:
-        #                             info["expected_hosts"].update({volume["host"]: {"state": "present",
-        #                                                                             "group": None}})
-        #
-        #                     elif volume["host"] not in non_inventory_hosts and volume["host"] not in non_inventory_groups:
-        #                         raise AnsibleError("Expected host or host group does not exist in your Ansible inventory and is not specified in"
-        #                                            " eseries_host_object variable! [%s]." % volume["host"])
         for volume in volumes:
             if volume["state"] == "present" and "host" in volume.keys():
 
