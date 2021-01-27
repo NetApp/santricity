@@ -835,7 +835,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         self.volume_detail = self.get_volume()
         self.pool_detail = self.get_storage_pool()
         if self.size_unit == "pct":
-            space_mb = round(float(self.pool_detail["totalRaidedSpace"]), -8) / 1024 ** 2 - 10
+            space_mb = round(float(self.pool_detail["totalRaidedSpace"]), -8) / 1024 ** 2 - 100
             self.size_unit = "mb"
             self.size_b = self.convert_to_aligned_bytes(space_mb * (self.size_percent / 100))
 
