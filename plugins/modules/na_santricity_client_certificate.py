@@ -174,8 +174,8 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
             user_installed_certificates = [certificate for certificate in current_certificates if certificate["isUserInstalled"]]
             existing_certificates = []
             for path in self.certificates:
+                fingerprint = self.certificate_fingerprint(path)
                 for current_certificate in user_installed_certificates:
-                    fingerprint = self.certificate_fingerprint(path)
                     if current_certificate["sha256Fingerprint"] == fingerprint or current_certificate["shaFingerprint"] == fingerprint:
                         existing_certificates.append(current_certificate)
                         break
