@@ -211,7 +211,12 @@ Example Storage System Inventory File
         - security.admin
 
     eseries_client_certificate_certificates:
-      - /path/to/client_certificate.crt
+      - /path/to/client_certificate.pem
+    eseries_server_certificate:
+      controller_a:
+        public_certificate: "/path/to/controller_a_server_certificate_bundle.pem"
+      controller_b:
+        public_certificate: "/path/to/controller_b_server_certificate_bundle.pem"
 
     eseries_firmware_firmware: "/path/to/firmware.dlp"
     eseries_firmware_nvsram: "/path/to/nvsram.dlp"
@@ -417,6 +422,22 @@ Collection Variables
                                     #                       and other critical support-related functionality, but not the sorage configuration.
                                     #                   security.admin - allows users access to authentication/authorization configuration, as
                                     #                       well as the audit log configuration, adn certification management.
+
+    # SSL configurations
+    eseries_client_certificate_certificates:    # List of client certificate file paths
+    eseries_server_certificate:                 # Server certificate information
+      controller_a:                             # Controller A server certificate information
+        authoritative_certificates:             # List of authoritative certificate file paths for controller A. Only include bundles or certificates that do
+                                                #   not contain the public server certificate.
+        public_certificate:                     # File path for public server certificate or certificate bundle that includes the public server certificate.
+                                                #    This may also include the private key.
+        private_key:                            # File path to the server certificate private key. Only required when CSR was not generated using Santricity.
+      controller_b:                             # Controller B server certificate information
+        authoritative_certificates:             # List of authoritative certificate file paths for controller A. Only include bundles or certificates that do
+                                                #   not contain the public server certificate.
+        public_certificate:                     # File path for public server certificate or certificate bundle that includes the public server certificate.
+                                                #    This may also include the private key.
+        private_key:                            # File path to the server certificate private key. Only required when CSR was not generated using SANtricity.
 
     # Drive firmware defaults
     eseries_drive_firmware_firmware_list:                 # Local path list for drive firmware.

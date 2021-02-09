@@ -67,6 +67,11 @@ Example Storage System Inventory File (Discover storage system with proxy)
 
     eseries_client_certificate_certificates:
       - /path/to/client_certificate.crt
+    eseries_server_certificate:
+      controller_a:
+        public_certificate: "/path/to/controller_a_server_certificate_bundle.pem"
+      controller_b:
+        public_certificate: "/path/to/controller_b_server_certificate_bundle.pem"
 
     eseries_firmware_firmware: "/path/to/firmware.dlp"
     eseries_firmware_nvsram: "/path/to/nvsram.dlp"
@@ -151,6 +156,24 @@ Role Variables
     eseries_system_security_password:    # Storage system security username password
     eseries_system_storage_password:     # Storage system storage username password
     eseries_system_support_password:     # Storage system support username password
+
+    # SSL configurations
+    eseries_client_certificate_certificates:    # List of client certificate file paths
+    eseries_server_certificate:                 # Server certificate information
+      controller_a:                             # Controller A server certificate information
+        authoritative_certificates:             # List of authoritative certificate file paths for controller A. Only include bundles or certificates that do
+                                                #   not contain the public server certificate.
+        public_certificate:                     # File path for public server certificate or certificate bundle that includes the public server certificate.
+                                                #    This may also include the private key.
+        private_key:                            # File path to the server certificate private key. Only required when CSR was not generated using Santricity.
+        use_self_signed:                        # Whether to utilize a self-signed server certificate. Warning! This will remove all server certificates.
+      controller_b:                             # Controller B server certificate information
+        authoritative_certificates:             # List of authoritative certificate file paths for controller A. Only include bundles or certificates that do
+                                                #   not contain the public server certificate.
+        public_certificate:                     # File path for public server certificate or certificate bundle that includes the public server certificate.
+                                                #    This may also include the private key.
+        private_key:                            # File path to the server certificate private key. Only required when CSR was not generated using SANtricity.
+        use_self_signed:                        # Whether to utilize a self-signed server certificate. Warning! This will remove all server certificates.
 
     # Storage management interface defaults
         Note:  eseries_management_* variables have the lowest priority and will be overwritten by those found in eseries_management_interfaces; use these to defined host group defaults.
