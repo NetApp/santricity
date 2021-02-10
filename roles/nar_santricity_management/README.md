@@ -157,23 +157,13 @@ Role Variables
     eseries_system_storage_password:     # Storage system storage username password
     eseries_system_support_password:     # Storage system support username password
 
-    # SSL configurations
-    eseries_client_certificate_certificates:    # List of client certificate file paths
-    eseries_server_certificate:                 # Server certificate information
-      controller_a:                             # Controller A server certificate information
-        authoritative_certificates:             # List of authoritative certificate file paths for controller A. Only include bundles or certificates that do
-                                                #   not contain the public server certificate.
-        public_certificate:                     # File path for public server certificate or certificate bundle that includes the public server certificate.
-                                                #    This may also include the private key.
-        private_key:                            # File path to the server certificate private key. Only required when CSR was not generated using Santricity.
-        use_self_signed:                        # Whether to utilize a self-signed server certificate. Warning! This will remove all server certificates.
-      controller_b:                             # Controller B server certificate information
-        authoritative_certificates:             # List of authoritative certificate file paths for controller A. Only include bundles or certificates that do
-                                                #   not contain the public server certificate.
-        public_certificate:                     # File path for public server certificate or certificate bundle that includes the public server certificate.
-                                                #    This may also include the private key.
-        private_key:                            # File path to the server certificate private key. Only required when CSR was not generated using SANtricity.
-        use_self_signed:                        # Whether to utilize a self-signed server certificate. Warning! This will remove all server certificates.
+    # SSL/TLS certificate configurations
+    eseries_client_certificate_common_certificates:    # List of common client certificate file paths. These files will be appended to each client certificate list.
+    eseries_client_certificate_certificates:           # List of client certificate file paths
+    eseries_server_certificate_common_certificates:    # List of common server certificates. These files will be appended to each controller's server certificate list.
+    eseries_server_certificate:
+      controller_a:                                    # List of server certificates for the storage systems controller A. Leave blank to use self-signed certificate.
+      controller_b:                                    # List of server certificates for the storage systems controller B. Leave blank to use self-signed certificate.
 
     # Storage management interface defaults
         Note:  eseries_management_* variables have the lowest priority and will be overwritten by those found in eseries_management_interfaces; use these to defined host group defaults.

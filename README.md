@@ -423,21 +423,13 @@ Collection Variables
                                     #                   security.admin - allows users access to authentication/authorization configuration, as
                                     #                       well as the audit log configuration, adn certification management.
 
-    # SSL configurations
-    eseries_client_certificate_certificates:    # List of client certificate file paths
-    eseries_server_certificate:                 # Server certificate information
-      controller_a:                             # Controller A server certificate information
-        authoritative_certificates:             # List of authoritative certificate file paths for controller A. Only include bundles or certificates that do
-                                                #   not contain the public server certificate.
-        public_certificate:                     # File path for public server certificate or certificate bundle that includes the public server certificate.
-                                                #    This may also include the private key.
-        private_key:                            # File path to the server certificate private key. Only required when CSR was not generated using Santricity.
-      controller_b:                             # Controller B server certificate information
-        authoritative_certificates:             # List of authoritative certificate file paths for controller A. Only include bundles or certificates that do
-                                                #   not contain the public server certificate.
-        public_certificate:                     # File path for public server certificate or certificate bundle that includes the public server certificate.
-                                                #    This may also include the private key.
-        private_key:                            # File path to the server certificate private key. Only required when CSR was not generated using SANtricity.
+    # SSL/TLS certificate configurations - Note that both individual certificates or wildcard certificates are accepted.
+    eseries_client_certificate_common_certificates:    # List of common client certificate file paths. These files will be appended to each client certificate list.
+    eseries_client_certificate_certificates:           # List of client certificate file paths
+    eseries_server_certificate_common_certificates:    # List of common server certificates. These files will be appended to each controller's server certificate list.
+    eseries_server_certificate:
+      controller_a:                                    # List of server certificates for the storage systems controller A. Leave blank to use self-signed certificate.
+      controller_b:                                    # List of server certificates for the storage systems controller B. Leave blank to use self-signed certificate.
 
     # Drive firmware defaults
     eseries_drive_firmware_firmware_list:                 # Local path list for drive firmware.
