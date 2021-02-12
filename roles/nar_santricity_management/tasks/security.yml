@@ -32,18 +32,118 @@
         {%- if eseries_system_support_password is defined and eseries_system_support_password and non_admin_list.update({"support": eseries_system_support_password})%}{%- endif %}
       {{ non_admin_list }}
 
-- name: Ensure client-side certificates are installed
+- name: Ensure client certificates are installed
   na_santricity_client_certificate:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
     api_password: "{{ current_eseries_api_password }}"
     validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
-    certificates: "{{ eseries_client_certificate_certificates }}"
-  when: eseries_client_certificate_certificates is defined
+    certificates: "{{ certificates }}"
+  when: eseries_client_certificate_certificates is defined or eseries_client_certificate_common_certificates is defined
   tags:
     - security
     - certificates
+  vars:
+    certificates: |-
+      {%- set certs = [] -%}
+
+      {#- Add common client certificates -#}
+      {%- if eseries_client_certificate_common_certificates is defined -%}
+        {%- if eseries_client_certificate_common_certificates is string() -%}
+          {%- if certs.append(eseries_client_certificate_common_certificates) -%}{%- endif -%}
+        {%- elif eseries_client_certificate_common_certificates is iterable() -%}
+          {%- if certs.extend(eseries_client_certificate_common_certificates) -%}{%- endif -%}
+        {%- endif -%}
+      {%- endif -%}
+
+      {#- Add controller A client certificates -#}
+      {%- if eseries_client_certificate_certificates is defined -%}
+        {%- if eseries_client_certificate_certificates is string() and eseries_client_certificate_certificates is not in certs -%}
+          {%- if certs.append(eseries_client_certificate_certificates) -%}{%- endif -%}
+        {%- elif eseries_client_certificate_certificates is iterable() -%}
+          {%- for client_cert in eseries_client_certificate_certificates if client_cert not in certs -%}
+            {%- if certs.append(client_cert) -%}{%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+      {%- endif -%}
+      {{- certs -}}
+
+- name: Ensure controller A server certificates are installed
+  na_santricity_server_certificate:
+    ssid: "{{ current_eseries_ssid }}"
+    api_url: "{{ current_eseries_api_url }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+    controller: "A"
+    certificates: "{{ certificates }}"
+  when: eseries_server_certificate_common_certificates is defined or eseries_server_certificate['controller_a'] is defined
+  tags:
+    - security
+    - certificates
+  vars:
+    certificates: |-
+      {%- set certs = [] -%}
+
+      {#- Add common server certificates -#}
+      {%- if eseries_server_certificate_common_certificates is defined -%}
+        {%- if eseries_server_certificate_common_certificates is string() -%}
+          {%- if certs.append(eseries_server_certificate_common_certificates) -%}{%- endif -%}
+        {%- elif eseries_server_certificate_common_certificates is iterable() -%}
+          {%- if certs.extend(eseries_server_certificate_common_certificates) -%}{%- endif -%}
+        {%- endif -%}
+      {%- endif -%}
+
+      {#- Add controller A certificates -#}
+      {%- if eseries_server_certificate is defined and eseries_server_certificate["controller_a"] is defined -%}
+        {%- if eseries_server_certificate["controller_a"] is string() and eseries_server_certificate["controller_a"] not in certs -%}
+          {%- if certs.append(eseries_server_certificate["controller_a"]) -%}{%- endif -%}
+        {%- elif eseries_server_certificate["controller_a"] is iterable() -%}
+          {%- for server_cert in eseries_server_certificate["controller_a"] if server_cert not in certs -%}
+            {%- if certs.append(server_cert) -%}{%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+      {%- endif -%}
+      {{- certs -}}
+
+- name: Ensure controller B server certificates are installed
+  na_santricity_server_certificate:
+    ssid: "{{ current_eseries_ssid }}"
+    api_url: "{{ current_eseries_api_url }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+    controller: "B"
+    certificates: "{{ certificates }}"
+  when: eseries_server_certificate_common_certificates is defined or eseries_server_certificate['controller_b'] is defined
+  tags:
+    - security
+    - certificates
+  vars:
+    certificates: |-
+      {%- set certs = [] -%}
+
+      {#- Add common server certificates -#}
+      {%- if eseries_server_certificate_common_certificates is defined -%}
+        {%- if eseries_server_certificate_common_certificates is string() -%}
+          {%- if certs.append(eseries_server_certificate_common_certificates) -%}{%- endif -%}
+        {%- elif eseries_server_certificate_common_certificates is iterable() -%}
+          {%- if certs.extend(eseries_server_certificate_common_certificates) -%}{%- endif -%}
+        {%- endif -%}
+      {%- endif -%}
+
+      {#- Add controller A certificates -#}
+      {%- if eseries_server_certificate is defined and eseries_server_certificate["controller_b"] is defined -%}
+        {%- if eseries_server_certificate["controller_b"] is string() and eseries_server_certificate["controller_b"] not in certs -%}
+          {%- if certs.append(eseries_server_certificate["controller_b"]) -%}{%- endif -%}
+        {%- elif eseries_server_certificate["controller_b"] is iterable() -%}
+          {%- for server_cert in eseries_server_certificate["controller_b"] if server_cert not in certs -%}
+            {%- if certs.append(server_cert) -%}{%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+      {%- endif -%}
+      {{- certs -}}
 
 - name: Ensure LDAP has been configured
   na_santricity_ldap:

@@ -67,6 +67,11 @@ Example Storage System Inventory File (Discover storage system with proxy)
 
     eseries_client_certificate_certificates:
       - /path/to/client_certificate.crt
+    eseries_server_certificate:
+      controller_a:
+        public_certificate: "/path/to/controller_a_server_certificate_bundle.pem"
+      controller_b:
+        public_certificate: "/path/to/controller_b_server_certificate_bundle.pem"
 
     eseries_firmware_firmware: "/path/to/firmware.dlp"
     eseries_firmware_nvsram: "/path/to/nvsram.dlp"
@@ -151,6 +156,14 @@ Role Variables
     eseries_system_security_password:    # Storage system security username password
     eseries_system_storage_password:     # Storage system storage username password
     eseries_system_support_password:     # Storage system support username password
+
+    # SSL/TLS certificate configurations
+    eseries_client_certificate_common_certificates:    # List of common client certificate file paths. These files will be appended to each client certificate list.
+    eseries_client_certificate_certificates:           # List of client certificate file paths
+    eseries_server_certificate_common_certificates:    # List of common server certificates. These files will be appended to each controller's server certificate list.
+    eseries_server_certificate:
+      controller_a:                                    # List of server certificates for the storage systems controller A. Leave blank to use self-signed certificate.
+      controller_b:                                    # List of server certificates for the storage systems controller B. Leave blank to use self-signed certificate.
 
     # Storage management interface defaults
         Note:  eseries_management_* variables have the lowest priority and will be overwritten by those found in eseries_management_interfaces; use these to defined host group defaults.

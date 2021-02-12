@@ -211,7 +211,12 @@ Example Storage System Inventory File
         - security.admin
 
     eseries_client_certificate_certificates:
-      - /path/to/client_certificate.crt
+      - /path/to/client_certificate.pem
+    eseries_server_certificate:
+      controller_a:
+        public_certificate: "/path/to/controller_a_server_certificate_bundle.pem"
+      controller_b:
+        public_certificate: "/path/to/controller_b_server_certificate_bundle.pem"
 
     eseries_firmware_firmware: "/path/to/firmware.dlp"
     eseries_firmware_nvsram: "/path/to/nvsram.dlp"
@@ -417,6 +422,14 @@ Collection Variables
                                     #                       and other critical support-related functionality, but not the sorage configuration.
                                     #                   security.admin - allows users access to authentication/authorization configuration, as
                                     #                       well as the audit log configuration, adn certification management.
+
+    # SSL/TLS certificate configurations - Note that both individual certificates or wildcard certificates are accepted.
+    eseries_client_certificate_common_certificates:    # List of common client certificate file paths. These files will be appended to each client certificate list.
+    eseries_client_certificate_certificates:           # List of client certificate file paths
+    eseries_server_certificate_common_certificates:    # List of common server certificates. These files will be appended to each controller's server certificate list.
+    eseries_server_certificate:
+      controller_a:                                    # List of server certificates for the storage systems controller A. Leave blank to use self-signed certificate.
+      controller_b:                                    # List of server certificates for the storage systems controller B. Leave blank to use self-signed certificate.
 
     # Drive firmware defaults
     eseries_drive_firmware_firmware_list:                 # Local path list for drive firmware.
