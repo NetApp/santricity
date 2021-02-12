@@ -158,26 +158,38 @@ class NetAppESeriesDiscover:
         """Determine where an E-Series storage system is available at a specific ip address."""
         for port in self.ports:
             if port == "8080":
-                url = "http://%s:%s/devmgr/v2/storage-systems/1/" % (address, port)
+                url = "http://%s:%s/" % (address, port)
             else:
-                url = "https://%s:%s/devmgr/v2/storage-systems/1/" % (address, port)
-            try:
-                rc, sa_data = request(url + "symbol/getSAData", validate_certs=False, force_basic_auth=False, ignore_errors=True)
-                if rc == 401:   # Unauthorized
-                    self.module.warn("Fail over and discover any storage system without a set admin password. This will discover systems without a set password"
-                                     " such as newly deployed storage systems. Address [%s]." % address)
-                    # Fail over and discover any storage system without a set admin password. This will cover newly deployed systems.
-                    rc, graph = request(url + "graph", validate_certs=False, url_username="admin", url_password="", timeout=self.SEARCH_TIMEOUT)
-                    sa_data = graph["sa"]["saData"]
+                url = "https://%s:%s/" % (address, port)
 
-                if sa_data["chassisSerialNumber"] in systems_found:
-                    systems_found[sa_data["chassisSerialNumber"]]["api_urls"].append(url)
+            try:
+                rc, about = request(url + "devmgr/v2/storage-systems/1/about", validate_certs=False, force_basic_auth=False, ignore_errors=True)
+                if about["serialNumber"] in systems_found:
+                    systems_found[about["serialNumber"]]["api_urls"].append(url)
                 else:
-                    systems_found.update({sa_data["chassisSerialNumber"]: {"api_urls": [url], "label": sa_data["storageArrayLabel"],
-                                                                           "addresses": [], "proxy_ssid": "", "proxy_required": False}})
+                    systems_found.update({about["serialNumber"]: {"api_urls": [url], "label": about["name"],
+                                                                  "addresses": [], "proxy_ssid": "", "proxy_required": False}})
                 break
             except Exception as error:
-                pass
+                try:
+                    rc, sa_data = request(url + "devmgr/v2/storage-systems/1/symbol/getSAData", validate_certs=False, force_basic_auth=False,
+                                          ignore_errors=True)
+                    if rc == 401:  # Unauthorized
+                        self.module.warn(
+                            "Fail over and discover any storage system without a set admin password. This will discover systems without a set password"
+                            " such as newly deployed storage systems. Address [%s]." % address)
+                        # Fail over and discover any storage system without a set admin password. This will cover newly deployed systems.
+                        rc, graph = request(url + "graph", validate_certs=False, url_username="admin", url_password="", timeout=self.SEARCH_TIMEOUT)
+                        sa_data = graph["sa"]["saData"]
+
+                    if sa_data["chassisSerialNumber"] in systems_found:
+                        systems_found[sa_data["chassisSerialNumber"]]["api_urls"].append(url)
+                    else:
+                        systems_found.update({sa_data["chassisSerialNumber"]: {"api_urls": [url], "label": sa_data["storageArrayLabel"],
+                                                                               "addresses": [], "proxy_ssid": "", "proxy_required": False}})
+                    break
+                except Exception as error:
+                    pass
 
     def no_proxy_discover(self):
         """Discover E-Series storage systems using embedded web services."""
