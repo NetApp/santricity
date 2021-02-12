@@ -161,9 +161,14 @@ Role Variables
     eseries_client_certificate_common_certificates:    # List of common client certificate file paths. These files will be appended to each client certificate list.
     eseries_client_certificate_certificates:           # List of client certificate file paths
     eseries_server_certificate_common_certificates:    # List of common server certificates. These files will be appended to each controller's server certificate list.
+    eseries_server_certificate_common_passphrase:      # Common passphrase for decrypting PEM (PKCS8) private key.
     eseries_server_certificate:
-      controller_a:                                    # List of server certificates for the storage systems controller A. Leave blank to use self-signed certificate.
-      controller_b:                                    # List of server certificates for the storage systems controller B. Leave blank to use self-signed certificate.
+      controller_a:
+        certificates:                                  # List of server certificates for the storage systems controller A. Leave blank to use self-signed certificate.
+        passphrase:                                    # Passphrase for decrypting PEM (PKCS8) private key.
+      controller_b:
+        certificates:                                  # List of server certificates for the storage systems controller B. Leave blank to use self-signed certificate.
+        passphrase:                                    # Passphrase for decrypting PEM (PKCS8) private key.
 
     # Storage management interface defaults
         Note:  eseries_management_* variables have the lowest priority and will be overwritten by those found in eseries_management_interfaces; use these to defined host group defaults.

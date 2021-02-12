@@ -33,6 +33,7 @@ options:
   passphrase:
     description:
       - Passphrase for PEM encoded private key encryption.
+      - If I(passphrase) is not supplied then Ansible will prompt for private key certificate.
     type: str
     required: false
 notes:

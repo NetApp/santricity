@@ -78,7 +78,8 @@
     validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
     controller: "A"
     certificates: "{{ certificates }}"
-  when: eseries_server_certificate_common_certificates is defined or eseries_server_certificate['controller_a'] is defined
+    passphrase: "{{ eseries_server_certificate['controller_a']['passphrase'] | default(eseries_server_certificate_common_passphrase | default(omit)) }}"
+  when: eseries_server_certificate_common_certificates is defined or eseries_server_certificate['controller_a'] is defined or eseries_server_certificate['controller_a']['certificates'] is defined
   tags:
     - security
     - certificates
@@ -96,11 +97,11 @@
       {%- endif -%}
 
       {#- Add controller A certificates -#}
-      {%- if eseries_server_certificate is defined and eseries_server_certificate["controller_a"] is defined -%}
-        {%- if eseries_server_certificate["controller_a"] is string() and eseries_server_certificate["controller_a"] not in certs -%}
-          {%- if certs.append(eseries_server_certificate["controller_a"]) -%}{%- endif -%}
-        {%- elif eseries_server_certificate["controller_a"] is iterable() -%}
-          {%- for server_cert in eseries_server_certificate["controller_a"] if server_cert not in certs -%}
+      {%- if eseries_server_certificate is defined and eseries_server_certificate["controller_a"] is defined or eseries_server_certificate["controller_b"]["certificates"] is defined-%}
+        {%- if eseries_server_certificate["controller_a"]["certificates"] is string() and eseries_server_certificate["controller_a"]["certificates"] not in certs -%}
+          {%- if certs.append(eseries_server_certificate["controller_a"]["certificates"]) -%}{%- endif -%}
+        {%- elif eseries_server_certificate["controller_a"]["certificates"] is iterable() -%}
+          {%- for server_cert in eseries_server_certificate["controller_a"]["certificates"] if server_cert not in certs -%}
             {%- if certs.append(server_cert) -%}{%- endif -%}
           {%- endfor -%}
         {%- endif -%}
@@ -116,7 +117,8 @@
     validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
     controller: "B"
     certificates: "{{ certificates }}"
-  when: eseries_server_certificate_common_certificates is defined or eseries_server_certificate['controller_b'] is defined
+    passphrase: "{{ eseries_server_certificate['controller_b']['passphrase'] | default(eseries_server_certificate_common_passphrase | default(omit)) }}"
+  when: eseries_server_certificate_common_certificates is defined or eseries_server_certificate['controller_b'] is defined or eseries_server_certificate['controller_b']['certificates'] is defined
   tags:
     - security
     - certificates
@@ -134,11 +136,11 @@
       {%- endif -%}
 
       {#- Add controller A certificates -#}
-      {%- if eseries_server_certificate is defined and eseries_server_certificate["controller_b"] is defined -%}
-        {%- if eseries_server_certificate["controller_b"] is string() and eseries_server_certificate["controller_b"] not in certs -%}
-          {%- if certs.append(eseries_server_certificate["controller_b"]) -%}{%- endif -%}
-        {%- elif eseries_server_certificate["controller_b"] is iterable() -%}
-          {%- for server_cert in eseries_server_certificate["controller_b"] if server_cert not in certs -%}
+      {%- if eseries_server_certificate is defined and eseries_server_certificate["controller_b"] is defined or eseries_server_certificate["controller_b"]["certificates"] is defined -%}
+        {%- if eseries_server_certificate["controller_b"]["certificates"] is string() and eseries_server_certificate["controller_b"] not in certs -%}
+          {%- if certs.append(eseries_server_certificate["controller_b"]["certificates"]) -%}{%- endif -%}
+        {%- elif eseries_server_certificate["controller_b"]["certificates"] is iterable() -%}
+          {%- for server_cert in eseries_server_certificate["controller_b"]["certificates"] if server_cert not in certs -%}
             {%- if certs.append(server_cert) -%}{%- endif -%}
           {%- endfor -%}
         {%- endif -%}

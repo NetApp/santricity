@@ -214,9 +214,12 @@ Example Storage System Inventory File
       - /path/to/client_certificate.pem
     eseries_server_certificate:
       controller_a:
-        public_certificate: "/path/to/controller_a_server_certificate_bundle.pem"
+        certificate:
+          - "/path/to/controller_a_server_certificate_bundle.pem"
       controller_b:
-        public_certificate: "/path/to/controller_b_server_certificate_bundle.pem"
+        passphrase: keypass
+        certificate:
+          - "/path/to/controller_b_server_certificate_bundle.pem"
 
     eseries_firmware_firmware: "/path/to/firmware.dlp"
     eseries_firmware_nvsram: "/path/to/nvsram.dlp"
@@ -427,9 +430,14 @@ Collection Variables
     eseries_client_certificate_common_certificates:    # List of common client certificate file paths. These files will be appended to each client certificate list.
     eseries_client_certificate_certificates:           # List of client certificate file paths
     eseries_server_certificate_common_certificates:    # List of common server certificates. These files will be appended to each controller's server certificate list.
+    eseries_server_certificate_common_passphrase:      # Common passphrase for decrypting PEM (PKCS8) private key.
     eseries_server_certificate:
-      controller_a:                                    # List of server certificates for the storage systems controller A. Leave blank to use self-signed certificate.
-      controller_b:                                    # List of server certificates for the storage systems controller B. Leave blank to use self-signed certificate.
+      controller_a:
+        certificates:                                  # List of server certificates for the storage systems controller A. Leave blank to use self-signed certificate.
+        passphrase:                                    # Passphrase for decrypting PEM (PKCS8) private key.
+      controller_b:
+        certificates:                                  # List of server certificates for the storage systems controller B. Leave blank to use self-signed certificate.
+        passphrase:                                    # Passphrase for decrypting PEM (PKCS8) private key.
 
     # Drive firmware defaults
     eseries_drive_firmware_firmware_list:                 # Local path list for drive firmware.
