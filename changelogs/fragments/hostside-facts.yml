@@ -1,0 +1,2 @@
+minor_changes:
+  - na_santricity_facts - Add storage system information to facilitate ``netapp_eseries.host`` collection various protocol configuration.

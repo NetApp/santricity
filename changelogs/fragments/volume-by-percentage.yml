@@ -1,0 +1,3 @@
+minor_changes:
+  - na_santricity_volume - Add percentage size unit (pct) and which allows the creates volumes based on the total storage pool size.
+  - nar_santricity_host - Add eseries_storage_pool_configuration list options, criteria_volume_count, criteria_reserve_free_capacity_pct, and common_volume_host to facilitate volumes based on percentages of storage pool or volume group.
