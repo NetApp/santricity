@@ -27,6 +27,6 @@ sections:
   - Bugfixes
 - - known_issues
   - Known Issues
-title: Netapp_Eseries.Santricity
+title: Netapp E-Series SANtricity Collection
 trivial_section_name: trivial
 use_fqcn: true

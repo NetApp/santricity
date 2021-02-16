@@ -1,4 +1,3 @@
-major_changes:
-  - na_santricity_server_certificate - New module to configure storage system's web server certificate configuration.
 minor_changes:
+  - na_santricity_server_certificate - New module to configure storage system's web server certificate configuration.
   - nar_santricity_management - Add support for server certificate management.
