@@ -2,7 +2,7 @@
 setupBlackduckBuildParameters()
 
 def hubProjectName = "ansible-santricity-collection"  //"esg"
-def hubProjectVersion = "1.1"
+def hubProjectVersion = "1.2"
 
 
 pipeline {
