@@ -335,7 +335,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
 
         # Check whether request needs to be forwarded on to the controller web services rest api.
         self.url_path_prefix = ""
-        if not self.is_embedded() and self.ssid != 0:
+        if not self.is_embedded() and self.ssid != "0" and self.ssid != "PROXY":
             self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid
 
     def get_configuration(self):
