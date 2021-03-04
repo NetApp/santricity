@@ -9,7 +9,6 @@
 - name: Ensure security settings are configured
   import_tasks: security.yml
   delegate_to: localhost
-  ignore_errors: true
 
 - name: Ensure management interfaces are configured
   import_tasks: interface.yml
@@ -23,14 +22,17 @@
 - name: Ensure all global system settings are configured
   import_tasks: system.yml
   delegate_to: localhost
-  ignore_errors: true
 
 - name: Ensure event logging has been configured
   import_tasks: logging.yml
   delegate_to: localhost
-  ignore_errors: true
 
 - name: Ensure drive and controller firmware are correct
   import_tasks: firmware.yml
   delegate_to: localhost
-  ignore_errors: true
+
+- name: Ensure snapshot consistency groups exist
+  import_tasks: snapshot.yml
+  delegate_to: localhost
+  tags:
+    - snapshot

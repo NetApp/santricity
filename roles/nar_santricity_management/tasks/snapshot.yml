@@ -1,0 +1,94 @@
+#eseries_snapshot_groups_maximum_snapshots:             # Default maximum point-in-time snapshot images (Default: 32).
+#eseries_snapshot_groups_reserve_capacity_pct:          # Default reserve capacity percentage (Default: 40)
+#eseries_snapshot_groups_alert_threshold_pct:           # Default reserve capacity percentage full to alert administrators (Default 75).
+#eseries_snapshot_groups_reserve_capacity_full_policy:  # Default full reserve capacity policy (Default: purge). Choices: [purge, reject]
+#eseries_snapshot_groups_rollback_priority:             # Default point-in-time rollback priority (Default: medium). Choices [lowest, low, medium, high, highest]
+#eseries_snapshot_groups_rollback_backup:               # Default whether snapshot should be taken prior to rolling back base volumes (Default: true).
+#eseries_snapshot_groups_snapshot_volume_writable:      # Default whether consistency group snapshot volumes should be writable (Default: true).
+#eseries_snapshot_groups_snapshot_volume_validate:      # Default whether consistency group snapshot volumes should be validated (Default: false).
+#eseries_snapshot_groups_remove_unspecified:            # Whether to remove any snapshot groups not specified (Default: false).
+#
+#eseries_snapshot_groups:
+#  - name:
+#    maximum_snapshots:
+#    alert_threshold_pct:
+#    reserve_capacity_full_policy:
+#    rollback_priority:
+#    volumes:
+#      - name:
+#        reserve_capacity_pct:
+#        preferred_reserve_storage_pool:
+#        snapshot_volume_writable:
+#        snapshot_volume_validate:
+#      - (...)
+
+- name: Determine if any snapshot consistency groups are no longer needed.
+  block:
+    - name: Retrieve all snapshot consistency groups
+      uri:
+        url: "{{ current_eseries_api_url }}storage-systems/{{ current_eseries_ssid }}/consistency-groups"
+        method: GET
+        url_password: "{{ current_eseries_api_password }}"
+        url_username: "{{ current_eseries_api_username }}"
+        validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+      register: existing_consistency_groups
+
+    - name: Ensure all snapshot consistency groups exist.
+      na_santricity_snapshot:
+        ssid: "{{ current_eseries_ssid }}"
+        api_url: "{{ current_eseries_api_url }}"
+        api_username: "{{ current_eseries_api_username }}"
+        api_password: "{{ current_eseries_api_password }}"
+        validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+        state: absent
+        type: group
+        group_name: "{{ item['name'] }}"
+      loop: "{{ unspecified_groups }}"
+      vars:
+        unspecified_groups: |-
+          {%- set unspecified_groups = [] -%}
+          {%- for group in eseries_snapshot_groups -%}
+            {%- for existing_group in existing_consistency_groups["results"]["json"] if existing_group["name"] == group["name"] -%}
+            {%- else -%}
+              {%- if unspecified_groups.append(group) -%}{%- endif -%}
+            {%- endfor -%}
+          {%- endfor -%}
+          {{- unspecified_groups -}}
+  when: eseries_snapshot_groups_remove_unspecified == True
+
+- name: Ensure all snapshot consistency groups exist.
+  na_santricity_snapshot:
+    ssid: "{{ current_eseries_ssid }}"
+    api_url: "{{ current_eseries_api_url }}"
+    api_username: "{{ current_eseries_api_username }}"
+    api_password: "{{ current_eseries_api_password }}"
+    validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+    state: present
+    type: group
+    group_name: "{{ item['name'] }}"
+    maximum_snapshots: "{{ item['maximum_snapshots'] }}"
+    alert_threshold_pct: "{{ item['alert_threshold_pct'] }}"
+    reserve_capacity_full_policy: "{{ item['reserve_capacity_full_policy'] }}"
+    rollback_priority: "{{ item['rollback_priority'] }}"
+    volumes: "{{ item['volumes'] }}"
+  loop: "{{ consistency_groups }}"
+  vars:
+    consistency_groups: |-
+      {%- set consistency_groups = [] -%}
+      {%- for group in eseries_snapshot_groups -%}
+        {%- set info = {"name": group["name"],
+                        "maximum_snapshots": group["maximum_snapshots"] | default(eseries_snapshot_groups_maximum_snapshots | default(omit)),
+                        "alert_threshold_pct": group["alert_threshold_pct"] | default(eseries_snapshot_groups_alert_threshold_pct | default(omit)),
+                        "reserve_capacity_full_policy": group["reserve_capacity_full_policy"] | default(eseries_snapshot_groups_reserve_capacity_full_policy | default(omit)),
+                        "rollback_priority": group["rollback_priority"] | default(eseries_snapshot_groups_rollback_priority | default(omit)),
+                        "volumes": []} -%}
+        {%- for volume in group["volumes"] -%}
+          {%- if info["volumes"].append({
+            "volume": volume["name"],
+            "reserve_capacity_pct": volume["reserve_capacity_pct"] | default(eseries_snapshot_groups_reserve_capacity_pct | default(omit)),
+            "preferred_reserve_storage_pool": volume["preferred_reserve_storage_pool"] | default(omit)}) -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {%- if consistency_groups.append(info) -%}{%- endif -%}
+      {%- endfor -%}
+      {{- consistency_groups -}}
