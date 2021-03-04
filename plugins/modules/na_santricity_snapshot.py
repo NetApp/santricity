@@ -131,12 +131,6 @@ options:
     type: bool
     default: true
     required: false
-  rollback_wait:
-    description:
-      - Wait for rollback operation to complete.
-    type: bool
-    default: false
-    required: false
   pit_name:
     description:
       - Name of a consistency group's snapshot images.
@@ -300,7 +294,6 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                                rollback=dict(type="bool", default=False, required=False),
                                rollback_priority=dict(type="str", default="medium", choices=["highest", "high", "medium", "low", "lowest"], required=False),
                                rollback_backup=dict(type="bool", default=True, required=False),
-                               rollback_wait=dict(type="bool", default=False, required=False),
                                pit_name=dict(type="str", required=False),
                                pit_description=dict(type="str", required=False),
                                pit_timestamp=dict(type="str", required=False),
@@ -319,7 +312,6 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
         self.rollback_priority = args["rollback_priority"]
         self.rollback_backup = args["rollback_backup"]
         self.rollback_priority = args["rollback_priority"]
-        self.rollback_wait = args["rollback_wait"]
         self.pit_name = args["pit_name"]
         self.pit_description = args["pit_description"]
         self.view_name = args["view_name"]
@@ -342,7 +334,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
         self.pit_timestamp_tokens = 0
         if args["pit_timestamp"]:
             if args["pit_timestamp"] in ["newest", "oldest"]:
-                pass
+                self.pit_timestamp = args["pit_timestamp"]
             elif re.match("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} (AM|PM|am|pm)", args["pit_timestamp"]):
                 self.pit_timestamp = datetime.strptime(args["pit_timestamp"], "%Y-%m-%d %I:%M:%S %p")
                 self.pit_timestamp_tokens = 6
@@ -407,11 +399,11 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
             self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid
 
         self.cache = {"get_consistency_group": {},
-                      "get_all_volumes_by_id": {},
-                      "get_all_volumes_by_name": {},
                       "get_all_storage_pools_by_id": {},
                       "get_all_storage_pools_by_name": {},
-                      "get_all_concat_repository_volumes_by_id": {},
+                      "get_all_volumes_by_id": {},
+                      "get_all_volumes_by_name": {},
+                      "get_all_concat_volumes_by_id": {},
                       "get_pit_images_by_timestamp": {},
                       "get_pit_images_by_name": {},
                       "get_pit_images_metadata": {},
@@ -427,11 +419,18 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
 
                 for storage_pool in storage_pools:
                     self.cache["get_all_storage_pools_by_id"].update({storage_pool["id"]: storage_pool})
-                    self.cache["get_all_storage_pools_by_id"].update({storage_pool["name"]: storage_pool})
+                    self.cache["get_all_storage_pools_by_name"].update({storage_pool["name"]: storage_pool})
             except Exception as error:
                 self.module.fail_json(msg="Failed to retrieve volumes! Error [%s]. Array [%s]." % (error, self.ssid))
 
         return self.cache["get_all_storage_pools_by_id"]
+
+    def get_all_storage_pools_by_name(self):
+        """Retrieve and return all storage pools/volume groups."""
+        if not self.cache["get_all_storage_pools_by_name"]:
+            self.get_all_storage_pools_by_id()
+
+        return self.cache["get_all_storage_pools_by_name"]
 
     def get_all_volumes_by_id(self):
         """Retrieve and return a dictionary of all thick and thin volumes keyed by id."""
@@ -455,6 +454,19 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
 
         return self.cache["get_all_volumes_by_name"]
 
+    def get_all_concat_volumes_by_id(self):
+        """Retrieve and return a dictionary of all thick and thin volumes keyed by id."""
+        if not self.cache["get_all_concat_volumes_by_id"]:
+            try:
+                rc, concat_volumes = self.request("storage-systems/%s/repositories/concat" % self.ssid)
+
+                for volume in concat_volumes:
+                    self.cache["get_all_concat_volumes_by_id"].update({volume["id"]: volume})
+            except Exception as error:
+                self.module.fail_json(msg="Failed to retrieve reserve capacity volumes! Error [%s]. Array [%s]." % (error, self.ssid))
+
+        return self.cache["get_all_concat_volumes_by_id"]
+
     def get_consistency_group(self):
         """Retrieve consistency groups and return information on the expected group."""
         existing_volumes = self.get_all_volumes_by_id()
@@ -472,6 +484,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                                                                     "maximum_snapshots": consistency_group["autoDeleteLimit"],
                                                                     "rollback_priority": consistency_group["rollbackPriority"],
                                                                     "reserve_capacity_full_policy": consistency_group["repFullPolicy"],
+                                                                    "sequence_numbers": consistency_group["uniqueSequenceNumber"],
                                                                     "base_volumes": []})
 
                         for member_volume in member_volumes:
@@ -496,8 +509,9 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
         return self.cache["get_consistency_group"]
 
     def get_candidates(self, base_volumes):
-        """Determine the base volume candidates."""
+        """Determine the base volume candidates. The information passed via base_volumes will be added to the return structure."""
         existing_storage_pools_by_id = self.get_all_storage_pools_by_id()
+        existing_storage_pools_by_name = self.get_all_storage_pools_by_name()
         existing_volumes_by_name = self.get_all_volumes_by_name()
 
         base_volumes_info = []
@@ -506,23 +520,24 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                 base_volume_storage_pool_id = existing_volumes_by_name[volume_name]["volumeGroupRef"]
                 base_volume_storage_pool_name = existing_storage_pools_by_id[base_volume_storage_pool_id]["name"]
 
-                preferred_reserve_storage_pool = base_volume_storage_pool_name
+                preferred_reserve_storage_pool = base_volume_storage_pool_id
                 if volume_info["preferred_reserve_storage_pool"]:
-                    preferred_reserve_storage_pool = volume_info["preferred_reserve_storage_pool"]
+                    preferred_reserve_storage_pool = existing_storage_pools_by_name[volume_info["preferred_reserve_storage_pool"]]["id"]
 
-                base_volumes_info.append({"name": volume_name,
-                                          "id": existing_volumes_by_name[volume_name]["id"],
-                                          "storage_pool_name": base_volume_storage_pool_name,
-                                          "storage_pool_id": base_volume_storage_pool_id,
-                                          "reserve_capacity_pct": volume_info["reserve_capacity_pct"],
-                                          "preferred_reserve_storage_pool": preferred_reserve_storage_pool,
-                                          "candidate": None})
+                initial_base_volumes_info = volume_info
+                initial_base_volumes_info.update({"name": volume_name,
+                                                  "id": existing_volumes_by_name[volume_name]["id"],
+                                                  "storage_pool_name": base_volume_storage_pool_name,
+                                                  "storage_pool_id": base_volume_storage_pool_id,
+                                                  "preferred_reserve_storage_pool": preferred_reserve_storage_pool,
+                                                  "candidate": None})
+                base_volumes_info.append(initial_base_volumes_info)
             else:
                 self.module.fail_json(msg="Volume does not exist! Volume [%s]. Group [%s]. Array [%s]." % (volume_name, self.group_name, self.ssid))
 
         # Get the reserve capacity volume candidates.
         storage_pool_requirements = {}
-        for base_volume_info in base_volumes_info:
+        for candidate_count, base_volume_info in enumerate(base_volumes_info):
             candidate_request = {"candidateRequest": {"baseVolumeRef": base_volume_info["id"],
                                                       "percentCapacity": base_volume_info["reserve_capacity_pct"],
                                                       "concatVolumeType": "snapshot"}}
@@ -531,12 +546,16 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                 rc, candidates = self.request("storage-systems/%s/repositories/concat/single" % self.ssid, method="POST", data=candidate_request)
 
                 for candidate in candidates:
-                    if candidate["volumeGroupId"] == base_volume_info["storage_pool_id"]:
+                    if candidate["volumeGroupId"] == base_volume_info["preferred_reserve_storage_pool"]:
                         if candidate["volumeGroupId"] not in storage_pool_requirements:
                             storage_pool_requirements.update({candidate["volumeGroupId"]: int(candidate["capacity"])})
                         else:
                             storage_pool_requirements[candidate["volumeGroupId"]] += int(candidate["capacity"])
 
+                        candidate_name = candidate["candidate"]["newVolCandidate"]["memberVolumeLabel"]
+                        candidate_number = int(re.search("[0-9]+", candidate_name)[0])
+                        candidate["candidate"]["newVolCandidate"]["memberVolumeLabel"] = candidate_name.replace(str(candidate_number),
+                                                                                                                str(candidate_number + candidate_count))
                         base_volume_info["candidate"] = candidate
                         break
                 else:
@@ -625,6 +644,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
 
     def get_pit_info(self):
         """Determine consistency group's snapshot images base on provided arguments (pit_name or timestamp)."""
+
         def _check_timestamp(timestamp):
             """Check whether timestamp matches I(pit_timestamp)"""
             return (self.pit_timestamp.year == timestamp.year and
@@ -647,14 +667,24 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                                 self.module.fail_json(msg="Snapshot image does not exist that matches both name and supplied timestamp!"
                                                           " Group [%s]. Image [%s]. Array [%s]." % (self.group_name, image, self.ssid))
             elif self.pit_timestamp:
-                if self.pit_timestamp == "newest":
-                    pass
-                elif self.pit_timestamp == "oldest":
-                    pass
-                else:
-                    pit_images_by_timestamp = self.get_pit_images_by_timestamp()
-                    sequence_number = None
+                group = self.get_consistency_group()
+                pit_images_by_timestamp = self.get_pit_images_by_timestamp()
+                sequence_number = None
 
+                if self.pit_timestamp == "newest":
+                    sequence_number = group["sequence_numbers"][-1]
+
+                    for image_timestamp in pit_images_by_timestamp.keys():
+                        if int(pit_images_by_timestamp[image_timestamp]["sequence_number"]) == int(sequence_number):
+                            self.cache["get_pit_info"] = pit_images_by_timestamp[image_timestamp]
+                            break
+                elif self.pit_timestamp == "oldest":
+                    sequence_number = group["sequence_numbers"][0]
+                    for image_timestamp in pit_images_by_timestamp.keys():
+                        if int(pit_images_by_timestamp[image_timestamp]["sequence_number"]) == int(sequence_number):
+                            self.cache["get_pit_info"] = pit_images_by_timestamp[image_timestamp]
+                            break
+                else:
                     for image_timestamp in pit_images_by_timestamp.keys():
                         if _check_timestamp(image_timestamp):
                             if sequence_number and sequence_number != pit_images_by_timestamp[image_timestamp]["sequence_number"]:
@@ -699,6 +729,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
         # Check if base volumes need to be added or removed from consistency group.
         remaining_base_volumes = {base_volumes["name"]: base_volumes for base_volumes in group["base_volumes"]}
         add_volumes = {}
+        expand_volumes = {}
 
         for volume_name, volume_info in self.volumes.items():
             reserve_capacity_pct = volume_info["reserve_capacity_pct"]
@@ -707,12 +738,55 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                 # Check if reserve capacity needs to be expanded or trimmed.
                 base_volume_reserve_capacity_pct = remaining_base_volumes[volume_name]["reserve_capacity_pct"]
                 if reserve_capacity_pct > base_volume_reserve_capacity_pct:
-                    expand_pct = reserve_capacity_pct - base_volume_reserve_capacity_pct
-                    changes["expand_reserve_capacity"].append({"name": volume_name, "expand_pct": expand_pct})
+
+                    expand_reserve_capacity_pct = reserve_capacity_pct - base_volume_reserve_capacity_pct
+                    expand_volumes.update({volume_name: {"reserve_capacity_pct": expand_reserve_capacity_pct,
+                                                         "preferred_reserve_storage_pool": volume_info["preferred_reserve_storage_pool"],
+                                                         "reserve_volume_id": remaining_base_volumes[volume_name]["repository_volume_info"]["id"]}})
 
                 elif reserve_capacity_pct < base_volume_reserve_capacity_pct:
+                    existing_volumes_by_id = self.get_all_volumes_by_id()
+                    existing_volumes_by_name = self.get_all_volumes_by_name()
+                    existing_concat_volumes_by_id = self.get_all_concat_volumes_by_id()
                     trim_pct = base_volume_reserve_capacity_pct - reserve_capacity_pct
-                    changes["expand_reserve_capacity"].append({"name": volume_name, "trim_pct": trim_pct})
+
+                    # Check whether there are any snapshot images; if there are then throw an exception indicating that a trim operation
+                    #   cannot be done when snapshots exist.
+                    for timestamp, image in self.get_pit_images_by_timestamp():
+                        if existing_volumes_by_id(image["base_volume_id"])["name"] == volume_name:
+                            self.module.fail_json(msg="Reserve capacity cannot be trimmed when snapshot images exist for base volume!"
+                                                      " Base volume [%s]. Group [%s]. Array [%s]." % (volume_name, self.group_name, self.ssid))
+
+                    # Collect information about all that needs to be trimmed to meet or exceed required trim percentage.
+                    concat_volume_id = remaining_base_volumes[volume_name]["repository_volume_info"]["id"]
+                    concat_volume_info = existing_concat_volumes_by_id[concat_volume_id]
+                    base_volume_info = existing_volumes_by_name[volume_name]
+                    base_volume_size_bytes = int(base_volume_info["totalSizeInBytes"])
+
+                    total_member_volume_size_bytes = 0
+                    member_volumes_to_trim = []
+                    for trim_count, member_volume_id in enumerate(reversed(concat_volume_info["memberRefs"][1:])):
+                        member_volume_info = existing_volumes_by_id[member_volume_id]
+                        member_volumes_to_trim.append(member_volume_info)
+
+                        total_member_volume_size_bytes += int(member_volume_info["totalSizeInBytes"])
+                        total_trimmed_size_pct = round(total_member_volume_size_bytes / base_volume_size_bytes * 100)
+
+                        if total_trimmed_size_pct >= trim_pct:
+                            changes["trim_reserve_capacity"].append({"concat_volume_id": concat_volume_id, "trim_count": trim_count + 1})
+
+                            # Expand after trim if needed.
+                            if total_trimmed_size_pct > trim_pct:
+                                expand_reserve_capacity_pct = total_trimmed_size_pct - trim_pct
+                                expand_volumes.update({volume_name: {"reserve_capacity_pct": expand_reserve_capacity_pct,
+                                                                     "preferred_reserve_storage_pool": volume_info["preferred_reserve_storage_pool"],
+                                                                     "reserve_volume_id": remaining_base_volumes[volume_name]["repository_volume_info"]["id"]}})
+                            break
+                    else:
+                        initial_reserve_volume_info = existing_volumes_by_id[concat_volume_info["memberRefs"][0]]
+                        minimum_capacity_pct = round(int(initial_reserve_volume_info["totalSizeInBytes"]) / base_volume_size_bytes * 100)
+                        self.module.fail_json(msg="Cannot delete initial reserve capacity volume! Minimum reserve capacity percent [%s]."
+                                                  " Base volume [%s]. Group [%s]. Array [%s]." % (minimum_capacity_pct, volume_name, self.group_name, self.ssid))
 
                 remaining_base_volumes.pop(volume_name)
             else:
@@ -720,6 +794,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                                                   "preferred_reserve_storage_pool": volume_info["preferred_reserve_storage_pool"]}})
 
         changes["add_volumes"] = self.get_candidates(add_volumes)
+        changes["expand_reserve_capacity"] = self.get_candidates(expand_volumes)
         changes["remove_volumes"] = remaining_base_volumes
 
         return changes
@@ -838,15 +913,29 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                 self.module.fail_json(msg="Failed to add reserve capacity volume! Base volume [%s]. Group [%s]. Error [%s]. "
                                           "Array [%s]." % (name, self.group_name, error, self.ssid))
 
-    def expand_reserve_capacities(self, info):
+    def expand_reserve_capacities(self, expand_reserve_volume_info_list):
         """Expand base volume(s) reserve capacity."""
-        self.module.fail_json(msg="expand: %s" % info)
+        for info in expand_reserve_volume_info_list:
+            expand_request = {"repositoryRef": info["reserve_volume_id"],
+                              "expansionCandidate": info["candidate"]["candidate"]}
+            try:
+                rc, resp = self.request("/storage-systems/%s/repositories/concat/%s/expand" % (self.ssid, info["reserve_volume_id"]),
+                                        method="POST", data=expand_request)
+            except Exception as error:
+                self.module.fail_json(msg="Failed to add reserve capacity volume! Group [%s]. Error [%s]. Array [%s]." % (self.group_name, error, self.ssid))
 
-    def trim_reserve_capacities(self, info):
+    def trim_reserve_capacities(self, trim_reserve_volume_info_list):
         """trim base volume(s) reserve capacity."""
-        self.module.fail_json(msg="trim: %s" % info)
+        for info in trim_reserve_volume_info_list:
+            trim_request = {"concatVol": info["concat_volume_id"],
+                            "trimCount": info["trim_count"],
+                            "retainRepositoryMembers": False}
+            try:
+                rc, trim = self.request("storage-systems/%s/symbol/trimConcatVolume?verboseErrorResponse=true" % self.ssid, method="POST", data=trim_request)
+            except Exception as error:
+                self.module.fail_json(msg="Failed to trim reserve capacity. Group [%s]. Array [%s]. Error [%s]." % (self.group_name, self.ssid, error))
 
-    def generate_snapshot_images(self):
+    def generate_pit_images(self):
         """Generate snapshot image(s) for the base volumes in the consistency group."""
         group_id = self.get_consistency_group()["consistency_group_id"]
 
@@ -859,10 +948,11 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                     rc, key_values = self.request(self.url_path_prefix + "key-values/ansible_%s_%s" % (self.group_name, self.pit_name), method="POST",
                                                   data="%s|%s|%s" % (images[0]["pitTimestamp"], self.pit_name, self.pit_description))
                 except Exception as error:
-                    self.module.fail_json(
-                        msg="Failed to create metadata for snapshot images! Group [%s]. Array [%s]. Error [%s]." % (self.group_name, self.ssid, error))
+                    self.module.fail_json(msg="Failed to create metadata for snapshot images!"
+                                              " Group [%s]. Array [%s]. Error [%s]." % (self.group_name, self.ssid, error))
         except Exception as error:
-            self.module.fail_json(msg="Failed to create consistency group snapshot images! Group [%s]. Array [%s]. Error [%s]." % (self.group_name, self.ssid, error))
+            self.module.fail_json(msg="Failed to create consistency group snapshot images!"
+                                      " Group [%s]. Array [%s]. Error [%s]." % (self.group_name, self.ssid, error))
 
     def remove_pit_images(self, pit_info):
         """Remove selected snapshot point-in-time images."""
@@ -916,7 +1006,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
         group_id = group_info["consistency_group_id"]
 
         if self.rollback_backup:
-            self.generate_snapshot_images()
+            self.generate_pit_images()
 
         # Ensure consistency group rollback priority is set correctly prior to rollback.
         if self.rollback_priority:
@@ -924,18 +1014,14 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                 rc, resp = self.request("storage-systems/%s/consistency-groups/%s" % (self.ssid, group_id), method="POST",
                                         data={"rollbackPriority": self.rollback_priority})
             except Exception as error:
-                self.module.fail_json(msg="Failed to updated consistency group rollback priority!" 
+                self.module.fail_json(msg="Failed to updated consistency group rollback priority!"
                                           " Group [%s]. Array [%s]. Error [%s]." % (self.group_name, self.ssid, error))
 
         try:
             rc, resp = self.request("storage-systems/%s/symbol/startPITRollback" % self.ssid, method="POST",
                                     data={"pitRef": [image["id"] for image in rollback_info["images"]]})
         except Exception as error:
-            self.module.fail_json(msg="%s" % {"pitRef": rollback_info["image_refs"]})
-            # self.module.fail_json(msg="Failed to initiate rollback operations!" " Group [%s]. Array [%s]. Error [%s]." % (self.group_name, self.ssid, error))
-
-        if self.rollback_wait:
-            pass
+            self.module.fail_json(msg="Failed to initiate rollback operations!" " Group [%s]. Array [%s]. Error [%s]." % (self.group_name, self.ssid, error))
 
     def apply(self):
         """Apply any required snapshot state changes."""
@@ -958,7 +1044,6 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                     group_changes = self.get_consistency_group_view()
                     if group_changes:
                         changes_required = True
-
             elif self.state == "present":
                 if self.type == "group":
                     group_changes = self.update_changes_required()
@@ -968,38 +1053,30 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                             group_changes["expand_reserve_capacity"] or
                             group_changes["trim_reserve_capacity"]):
                         changes_required = True
-
                 elif self.type == "pit":
                     changes_required = True
-
                 elif self.type == "view":
                     if not self.volumes:
                         for volume in group["base_volumes"]:
                             self.volumes.update({volume["name"]: None})
-
                     group_changes = self.view_changes_required()
                     if group_changes:
                         changes_required = True
-
             elif self.state == "rollback":
                 if not self.volumes:
                     for volume in group["base_volumes"]:
                         self.volumes.update({volume["name"]: None})
-
                 group_changes = self.rollback_changes_required()
                 if group_changes:
                     changes_required = True
-
         else:
             if self.state == "present":
                 if self.type == "group":
                     group_changes = self.create_changes_required()
                     changes_required = True
-
                 elif self.type == "pit":
                     self.module.fail_json("Snapshot point-in-time images cannot be taken when the snapshot consistency group does not exist!"
                                           " Group [%s]. Array [%s]." % (self.group_name, self.ssid))
-
                 elif self.type == "view":
                     self.module.fail_json("Snapshot view cannot be created when the snapshot consistency group does not exist!"
                                           " Group [%s]. Array [%s]." % (self.group_name, self.ssid))
@@ -1024,14 +1101,14 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                             self.update_snapshot_consistency_group(group_changes["update_group"])
                         if group_changes["add_volumes"]:
                             self.add_base_volumes(group_changes["add_volumes"])
-                        elif group_changes["remove_volumes"]:
+                        if group_changes["remove_volumes"]:
                             self.remove_base_volumes(group_changes["remove_volumes"])
+                        if group_changes["trim_reserve_capacity"]:
+                            self.trim_reserve_capacities(group_changes["trim_reserve_capacity"])
                         if group_changes["expand_reserve_capacity"]:
                             self.expand_reserve_capacities(group_changes["expand_reserve_capacity"])
-                        elif group_changes["trim_reserve_capacity"]:
-                            self.trim_reserve_capacities(group_changes["trim_reserve_capacity"])
                     elif self.type == "pit":
-                        self.generate_snapshot_images()
+                        self.generate_pit_images()
                     elif self.type == "view":
                         self.generate_view(group_changes)
 
