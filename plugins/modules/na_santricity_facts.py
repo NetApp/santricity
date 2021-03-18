@@ -290,6 +290,7 @@ RETURN = """
                 sample: True
 """
 
+from datetime import datetime
 import re
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 try:
@@ -349,6 +350,15 @@ class Facts(NetAppESeriesModule):
             rc, hardware_inventory_facts = self.request("storage-systems/%s/hardware-inventory" % self.ssid)
         except Exception as error:
             self.module.fail_json(msg="Failed to obtain hardware inventory from storage array with id [%s]. Error [%s]" % (self.ssid, str(error)))
+
+        # Get storage system specific key-value pairs
+        key_value_url = "key-values"
+        if not self.is_embedded() and self.ssid.lower() not in ["0", "proxy"]:
+            key_value_url = "storage-systems/%s/forward/devmgr/v2/key-values"
+        try:
+            rc, key_values = self.request(key_value_url)
+        except Exception as error:
+            self.module.fail_json(msg="Failed to obtain embedded key-value database. Array [%s]. Error [%s]" % (self.ssid, str(error)))
 
         facts['netapp_storage_array'] = dict(
             name=array_facts['sa']['saData']['storageArrayLabel'],
@@ -527,6 +537,74 @@ class Facts(NetAppESeriesModule):
                 workload=v['metadata'],
 
             ) for v in all_volumes]
+
+        facts['netapp_snapshot_consistency_groups'] = []
+        for group in array_facts["highLevelVolBundle"]["pitConsistencyGroup"]:
+            reserve_capacity_full_policy = "purge" if group["repFullPolicy"] == "purgepit" else "reject"
+            group_info = {"id": group["id"],
+                          "name": group["name"],
+                          "reserve_capacity_full_policy": reserve_capacity_full_policy,
+                          "rollback_priority": group["rollbackPriority"],
+                          "base_volumes": [],
+                          "pit_images": [],
+                          "pit_views": {}}
+
+            # Determine all consistency group base volumes.
+            volumes_by_id = {}
+            for pit_group in array_facts["highLevelVolBundle"]["pitGroup"]:
+                if pit_group["consistencyGroupRef"] == group["id"]:
+                    for volume in array_facts["volume"]:
+                        if volume["id"] == pit_group["baseVolume"]:
+                            volumes_by_id.update({volume["id"]: volume["name"]})
+                            group_info["base_volumes"].append({"id": volume["id"],
+                                                               "name": volume["name"],
+                                                               "reserve_capacity_volume_id": pit_group["repositoryVolume"]})
+                            break
+
+            # Determine all consistency group pit snapshot images.
+            group_pit_key_values = {}
+            for entry in key_values:
+                if re.search("ansible_%s_" % group["name"], entry["key"]):
+                    pit_name = entry["key"].replace("ansible_%s_" % group["name"], "")
+                    pit_values = entry["value"].split("|")
+                    if len(pit_values) == 3:
+                        timestamp, image_id, description = pit_values
+                        group_pit_key_values.update({timestamp: {"name": pit_name, "description": description}})
+
+            pit_by_id = {}
+            for pit in array_facts["highLevelVolBundle"]["pit"]:
+                if pit["consistencyGroupId"] == group["id"]:
+
+                    if pit["pitTimestamp"] in group_pit_key_values.keys():
+                        pit_image = {"name": group_pit_key_values["name"], "description": group_pit_key_values["description"],
+                                     "timestamp": datetime.fromtimestamp(int(pit["pitTimestamp"])).strftime("%Y-%m-%d %H:%M:%S")}
+                    else:
+                        pit_image = {"name": "", "description": "",
+                                     "timestamp": datetime.fromtimestamp(int(pit["pitTimestamp"])).strftime("%Y-%m-%d %H:%M:%S")}
+                    group_info["pit_images"].append(pit_image)
+                    pit_by_id.update({pit["id"]: pit_image})
+
+            # Determine all consistency group pit views.
+            for view in array_facts["highLevelVolBundle"]["pitView"]:
+                if view["consistencyGroupId"] == group["id"]:
+                    view_timestamp = datetime.fromtimestamp(int(view["viewTime"])).strftime("%Y-%m-%d %H:%M:%S")
+                    reserve_capacity_pct = int(round(float(view["repositoryCapacity"]) / float(view["baseVolumeCapacity"]) * 100))
+                    if view_timestamp in group_info["pit_views"].keys():
+                        group_info["pit_views"][view_timestamp]["volumes"].append({"name": view["name"],
+                                                                                   "base_volume": volumes_by_id[view["baseVol"]],
+                                                                                   "writable": view["accessMode"] == "readWrite",
+                                                                                   "reserve_capacity_pct": reserve_capacity_pct,
+                                                                                   "status": view["status"]})
+                    else:
+                        group_info["pit_views"].update({view_timestamp: {"name": pit_by_id[view["basePIT"]]["name"],
+                                                                         "description": pit_by_id[view["basePIT"]]["description"],
+                                                                         "volumes": [{"name": view["name"],
+                                                                                      "base_volume": volumes_by_id[view["baseVol"]],
+                                                                                      "writable": view["accessMode"] == "readWrite",
+                                                                                      "reserve_capacity_pct": reserve_capacity_pct,
+                                                                                      "status": view["status"]}]}})
+
+            facts['netapp_snapshot_consistency_groups'].append(group_info)
 
         lun_mappings = dict()
         for host in facts['netapp_hosts']:
