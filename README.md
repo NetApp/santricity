@@ -669,6 +669,34 @@ Collection Variables
             write_cache_enable:                    # Enables write caching which will cache all writes.
                                                    #    created on the storage array.
 
+    # Snapshot Consistency Group Default Policy Specifications
+    # --------------------------------------------------------
+    eseries_snapshot_groups_maximum_snapshots:             # Default maximum point-in-time snapshot images (Default: 32).
+    eseries_snapshot_groups_reserve_capacity_pct:          # Default reserve capacity percentage (Default: 40)
+    eseries_snapshot_groups_alert_threshold_pct:           # Default reserve capacity percentage full to alert administrators (Default 75).
+    eseries_snapshot_groups_reserve_capacity_full_policy:  # Default full reserve capacity policy (Default: purge). Choices: [purge, reject]
+    eseries_snapshot_groups_rollback_priority:             # Default point-in-time rollback priority (Default: medium). Choices [lowest, low, medium, high, highest]
+    eseries_snapshot_groups_rollback_backup:               # Default whether snapshot should be taken prior to rolling back base volumes (Default: true).
+    eseries_snapshot_groups_snapshot_volume_writable:      # Default whether consistency group snapshot volumes should be writable (Default: true).
+    eseries_snapshot_groups_snapshot_volume_validate:      # Default whether consistency group snapshot volumes should be validated (Default: false).
+    eseries_snapshot_groups_remove_unspecified:            # Whether to remove any snapshot groups not specified (Default: false).
+    eseries_snapshot_groups:
+      - name:                                              # Name of snapshot consistency group.
+        maximum_snapshots:                                 # Maximum allowed snapshot point-in-time images for consistency group (Default: 32).
+        alert_threshold_pct:                               # Reserve capacity full alert threshold for storage system administrators (Default: 75).
+        reserve_capacity_full_policy:                      # Policy to implement when reserve capacity is full (Default: purge). Choices [purge, reject]
+        rollback_priority:                                 # Storage system priority for base volume rollback (Default: medium). Choices [lowest, low, medium, high, highest]
+        volumes:                                           # Information for each volume in the consistency group.
+          - name:                                          # Base volume name
+            reserve_capacity_pct:                          # Reserve capacity measured as a percentage of the base volume (Default: 40). Reserve capacity can be expanded
+                                                            #   and trimmed; however, the trim operation requires there be no base volume snapshots images in the group.
+            preferred_reserve_storage_pool:                # Preferred reserve capacity storage pool or volume group. This will default to the base volume's
+                                                            #   storage pool or volume group. The reserve capacity volume cannot be changed once created.
+            snapshot_volume_writable:                      # Whether consistency group snapshot volumes should be writable (Default: true).
+            snapshot_volume_validate:                      # Whether consistency group snapshot volumes should be validated (Default: false).
+          - (...)
+
+
     # Initiator-Target Protocol Variable Defaults
         Note that the following commands need to produce a unique list of IQNs or WWNs of the interfaces used, line separated. Overwrite as necessary.
     eseries_initiator_protocol: fc     # Storage system protocol. Choices: fc, iscsi, sas, ib_iser, ib_srp, nvme_ib, nvme_fc, nvme_roce

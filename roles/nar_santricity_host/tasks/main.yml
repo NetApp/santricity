@@ -15,36 +15,41 @@
 
 - name: Configure NetApp E-Series storage system disk pool configuration
   import_tasks: storage_pool_present.yml
-  delegate_to: localhost
+  connection: local
   tags:
     - storage_pools
 
 - name: Configure NetApp E-Series storage system volume configuration
   import_tasks: volume.yml
-  delegate_to: localhost
+  connection: local
   tags:
     - volumes
 
 - name: Configure NetApp E-Series storage system disk pool configuration
   import_tasks: storage_pool_absent.yml
-  delegate_to: localhost
+  connection: local
   tags:
     - storage_pools
 
 - name: Configure storage system's hosts/hostgroups initiators
   import_tasks: initiator.yml
-  delegate_to: localhost
+  connection: local
   tags:
     - initiators
 
 - name: Map storage system's volumes to host objects
   import_tasks: lun_mapping.yml
-  delegate_to: localhost
   tags:
     - lun_mappings
 
 - name: Configure controllers interfaces
   import_tasks: interface.yml
-  delegate_to: localhost
+  connection: local
   tags:
     - interface
+
+- name: Configure snapshot consistency groups
+  import_tasks: snapshot.yml
+  connection: local
+  tags:
+    - snapshot
