@@ -8,6 +8,7 @@
     minimum_password_length: "{{ item['value']['proxy_minimum_password_length'] }}"
     user: admin
     password: "{{ item['value']['proxy_password'] }}"
+  connection: local
   loop: "{{ lookup('dict', proxy_admin, wantlist=True) }}"
   no_log: true
   vars:
@@ -38,6 +39,7 @@
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
     user: "{{ item['value']['proxy_username'] }}"
     password: "{{ item['value']['proxy_password'] }}"
+  connection: local
   loop: "{{ lookup('dict', proxy_non_admin, wantlist=True) }}"
   no_log: true
   vars:
@@ -102,6 +104,7 @@
     user_attribute: "{{ item['value']['ldap_user_attribute'] | default(omit) }}"
     role_mappings: "{{ item['value']['ldap_role_mappings'] | default(omit) }}"
   ignore_errors: true
+  connection: local
   loop: "{{ lookup('dict', proxy_admin, wantlist=True) }}"
   vars:
     proxy_admin: |-

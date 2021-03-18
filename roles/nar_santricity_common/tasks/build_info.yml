@@ -10,6 +10,7 @@
       Content-Type: "application/json"
       Accept: "application/json"
     validate_certs: false
+  connection: local
   register: about
   failed_when: false
   when: eseries_proxy_api_url is defined or eseries_system_api_url is defined

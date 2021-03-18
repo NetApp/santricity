@@ -1,5 +1,5 @@
 - name: Add storage systems to SANtricity Web Services Proxy
-  netapp_eseries.santricity.na_santricity_proxy_systems:
+  na_santricity_proxy_systems:
     api_url: "{{ item['key'] }}"
     api_username: "{{ item['value']['proxy_username'] }}"
     api_password: "{{ item['value']['proxy_password'] }}"
@@ -9,8 +9,9 @@
     password: "{{ item['value']['proxy_default_password'] | default(omit) }}"
     tags: "{{ item['value']['proxy_default_system_tags'] | default(omit) }}"
     systems: "{{ item['value']['proxy_systems'] }}"
+  connection: local
   loop: "{{ lookup('dict', proxy_systems_info, wantlist=True) }}"
-#  no_log: true
+  no_log: true
   vars:
     proxy_systems_info: |-
       {#- Build a dictionary of all inventoried proxies keyed by their api url #}

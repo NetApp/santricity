@@ -65,6 +65,7 @@
         url_username: "{{ eseries_proxy_api_username | default('admin') }}"
         url_password: "{{ eseries_proxy_api_password }}"
         validate_certs: false
+      connection: local
       register: proxy_systems
     - name: Determine associated management interface IP addresses.
       set_fact:

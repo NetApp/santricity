@@ -8,6 +8,7 @@
           Accept: "application/json"
         validate_certs: false
       ignore_errors: true
+      connection: local
       register: about_results
       loop: "{{ lookup('list', eseries_api_url_list) }}"
 
