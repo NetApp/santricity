@@ -565,10 +565,12 @@ class Facts(NetAppESeriesModule):
             group_pit_key_values = {}
             for entry in key_values:
                 if re.search("ansible_%s_" % group["name"], entry["key"]):
-                    pit_name = entry["key"].replace("ansible_%s_" % group["name"], "")
+                    pit_name = entry["key"].replace("ansible|%s|" % group["name"], "")
                     pit_values = entry["value"].split("|")
                     if len(pit_values) == 3:
                         timestamp, image_id, description = pit_values
+                        group_pit_key_values.update({timestamp: {"name": pit_name, "description": description}})
+                    else:
                         group_pit_key_values.update({timestamp: {"name": pit_name, "description": description}})
 
             pit_by_id = {}

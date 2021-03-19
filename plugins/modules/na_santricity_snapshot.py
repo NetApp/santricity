@@ -711,8 +711,8 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                 rc, key_values = self.request(self.url_path_prefix + "key-values")
 
                 for entry in key_values:
-                    if re.search("ansible_%s_" % self.group_name, entry["key"]):
-                        name = entry["key"].replace("ansible_%s_" % self.group_name, "")
+                    if re.search("ansible\\|%s\\|" % self.group_name, entry["key"]):
+                        name = entry["key"].replace("ansible|%s|" % self.group_name, "")
                         values = entry["value"].split("|")
                         if len(values) == 3:
                             timestamp, image_id, description = values
@@ -781,7 +781,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                 for key_value in key_values:
                     key = key_value["key"]
                     value = key_value["value"]
-                    if re.match("ansible\\|.*\\|.*", value):
+                    if re.match("ansible\|.*\|.*", value):
                         for image in images:
                             if str(image["pitTimestamp"]) == value.split("|")[0]:
                                 break
