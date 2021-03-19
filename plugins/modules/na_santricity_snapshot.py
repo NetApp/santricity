@@ -195,6 +195,10 @@ options:
       - Default whether snapshop volumes should be validated.
     type: bool
     required: false
+notes:
+  - Key-value pairs are used to keep track of snapshot names and descriptions since the snapshot point-in-time images do have metadata associated with their
+    data structures; therefore, it is necessary to clean out old keys that are no longer associated with an actual image. This cleaning action is performed each
+    time this module is executed.
 """
 EXAMPLES = """
 - name: Ensure snapshot consistency group exists.
@@ -300,10 +304,17 @@ EXAMPLES = """
 """
 RETURN = """
 changed:
-    description: Whether changes have been made.
-    type: bool
-    returned: always
-    sample: true
+  description: Whether changes have been made.
+  type: bool
+  returned: always
+group_changes:
+  description: All changes performed to the consistency group.
+  type: complex
+  returned: always
+deleted_metadata_keys:
+  description: Kseys that were purged from the key-value datastore.
+  type: list
+  returned: always
 """
 from datetime import datetime
 import re
@@ -326,7 +337,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                                                             snapshot_volume_host=dict(type="str", default=None, required=False),
                                                             snapshot_volume_lun=dict(type="int", default=None, required=False))),
                                maximum_snapshots=dict(type="int", default=32, required=False),
-                               reserve_capacity_pct=dict(type=int, default=40, required=False),
+                               reserve_capacity_pct=dict(type="int", default=40, required=False),
                                preferred_reserve_storage_pool=dict(type="str", default=None, required=False),
                                alert_threshold_pct=dict(type="int", default=75, required=False),
                                reserve_capacity_full_policy=dict(type="str", default="purge", choices=["purge", "reject"], required=False),
@@ -471,6 +482,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                       "get_pit_images_by_timestamp": {},
                       "get_pit_images_by_name": {},
                       "get_pit_images_metadata": {},
+                      "get_unused_pit_key_values": [],
                       "get_pit_info": None,
                       "get_consistency_group_view": {},
                       "view_changes_required": []}
@@ -758,6 +770,28 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
             self.get_pit_images_by_timestamp()
 
         return self.cache["get_pit_images_by_name"]
+
+    def get_unused_pit_key(self):
+        """Determine all embedded pit key-values that do not match existing snapshot images."""
+        if not self.cache["get_unused_pit_key_values"]:
+            try:
+                rc, images = self.request("storage-systems/%s/snapshot-images" % self.ssid)
+                rc, key_values = self.request("key-values")
+
+                for key_value in key_values:
+                    key = key_value["key"]
+                    value = key_value["value"]
+                    if re.match("ansible\\|.*\\|.*", value):
+                        for image in images:
+                            if str(image["pitTimestamp"]) == value.split("|")[0]:
+                                break
+                        else:
+                            self.cache["get_unused_pit_key_values"].append(key)
+            except Exception as error:
+                self.module.warn("Failed to retrieve all snapshots to determine all key-value pairs that do no match a point-in-time snapshot images!"
+                                 " Array [%s]. Error [%s]." % (self.ssid, error))
+
+        return self.cache["get_unused_pit_key_values"]
 
     def get_pit_info(self):
         """Determine consistency group's snapshot images base on provided arguments (pit_name or timestamp)."""
@@ -1160,7 +1194,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
             # Embedded web services should store the pit_image metadata since sending it to the proxy will be written to it instead.
             if self.pit_name:
                 try:
-                    rc, key_values = self.request(self.url_path_prefix + "key-values/ansible_%s_%s" % (self.group_name, self.pit_name), method="POST",
+                    rc, key_values = self.request(self.url_path_prefix + "key-values/ansible|%s|%s" % (self.group_name, self.pit_name), method="POST",
                                                   data="%s|%s|%s" % (images[0]["pitTimestamp"], self.pit_name, self.pit_description))
                 except Exception as error:
                     self.module.fail_json(msg="Failed to create metadata for snapshot images!"
@@ -1189,10 +1223,19 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
         # Embedded web services should store the pit_image metadata since sending it to the proxy will be written to it instead.
         if self.pit_name:
             try:
-                rc, key_values = self.request(self.url_path_prefix + "key-values/ansible_%s_%s" % (self.group_name, self.pit_name), method="DELETE")
+                rc, key_values = self.request(self.url_path_prefix + "key-values/ansible|%s|%s" % (self.group_name, self.pit_name), method="DELETE")
             except Exception as error:
                 self.module.fail_json(msg="Failed to delete metadata for snapshot images!"
                                           " Group [%s]. Array [%s]. Error [%s]." % (self.group_name, self.ssid, error))
+
+    def cleanup_old_pit_metadata(self, keys):
+        """Delete unused point-in-time image metadata."""
+        for key in keys:
+            try:
+                rc, images = self.request("key-values/%s" % key, method="DELETE")
+            except Exception as error:
+                self.module.fail_json(msg="Failed to purge unused point-in-time image metadata! Key [%s]. Array [%s]."
+                                          " Error [%s]." % (key, self.ssid, error))
 
     def create_view(self, view_info):
         """Generate consistency group view."""
@@ -1454,8 +1497,11 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                 self.module.fail_json("Rollback operation is not available when the snapshot consistency group does not exist!"
                                       " Group [%s]. Array [%s]." % (self.group_name, self.ssid))
 
+        # Determine if they're any key-value pairs that need to be cleaned up since snapshot pit images were deleted outside of this module.
+        unused_pit_keys = self.get_unused_pit_key()
+
         # Apply any required changes.
-        if changes_required and not self.module.check_mode:
+        if (changes_required or unused_pit_keys) and not self.module.check_mode:
             if group:
                 if self.state == "absent":
                     if self.type == "group":
@@ -1511,7 +1557,10 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                 self.create_snapshot_consistency_group(group_changes["create_group"])
                 self.add_base_volumes(group_changes["add_volumes"])
 
-        self.module.exit_json(changed=changes_required, group_changes=group_changes)
+            if unused_pit_keys:
+                self.cleanup_old_pit_metadata()
+
+        self.module.exit_json(changed=changes_required, group_changes=group_changes, deleted_metadata_keys=unused_pit_keys)
 
 
 def main():
