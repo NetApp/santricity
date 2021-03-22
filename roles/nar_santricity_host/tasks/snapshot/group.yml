@@ -61,7 +61,7 @@
                         "volumes": []} -%}
         {%- for volume in group["volumes"] -%}
           {%- if info["volumes"].append({
-            "volume": volume["name"],
+            "volume": volume["volume"],
             "reserve_capacity_pct": volume["reserve_capacity_pct"] | default(eseries_snapshot_groups_reserve_capacity_pct | default(omit)),
             "preferred_reserve_storage_pool": volume["preferred_reserve_storage_pool"] | default(omit)}) -%}
           {%- endif -%}

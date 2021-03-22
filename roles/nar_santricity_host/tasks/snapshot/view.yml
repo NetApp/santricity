@@ -68,7 +68,7 @@
   loop: "{{ consistency_group_views }}"
   vars:
     consistency_group_views: |-
-      {%- set views = [] -%}
+      {%- set consistency_group_views = [] -%}
       {%- for view in eseries_snapshot_views | default([]) -%}
         {%- set view_info = {"name": view["name"], "group_name": view["group_name"]} -%}
         {%- if "pit_name" in (view.keys() | list) and view_info.update({"pit_name": view["pit_name"]}) -%}{%- endif -%}
@@ -114,6 +114,6 @@
             {%- if view_info["volumes"].append(volume_info) -%}{%- endif -%}
           {%- endfor -%}
         {%- endif -%}
-        {%- if views.append(view_info) -%}{%- endif -%}
+        {%- if consistency_group_views.append(view_info) -%}{%- endif -%}
       {%- endfor -%}
-      {{- views -}}
+      {{- consistency_group_views -}}

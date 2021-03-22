@@ -274,7 +274,7 @@ eseries_snapshot_remove_unspecified: false                # Whether to remove an
 #    alert_threshold_pct:                                 # Reserve capacity full alert threshold for storage system administrators (Default: 75).
 #    rollback_priority:                                   # Storage system priority for base volume rollback (Default: medium). Choices [lowest, low, medium, high, highest]
 #    volumes:                                             # Information for each volume in the consistency group.
-#      - name:                                            # Base volume name
+#      - volume:                                          # Base volume name
 #        reserve_capacity_pct:                            # Reserve capacity measured as a percentage of the base volume (Default: 40). Reserve capacity can be expanded
                                                           #   and trimmed; however, the trim operation requires there be no base volume snapshots images in the group.
 #        preferred_reserve_storage_pool:                  # Preferred reserve capacity storage pool or volume group. This will default to the base volume's
@@ -288,7 +288,7 @@ eseries_snapshot_remove_unspecified: false                # Whether to remove an
 #eseries_snapshot_views_writable:                          # Default for whether to make snapshot volumes writable.
 #eseries_snapshot_views_validate:                          # Default for whether to validate snapshot volumes after creation.
 #eseries_snapshot_views:
-#  - name:                                                 # Consistency group's snapshot view's name.
+#  - volume:                                               # Consistency group's snapshot view's name.
 #    group_name:                                           # Snapshot consistency group's name.
 #    pit_name:                                             # Point-in-time snapshot images group name. (Only available when specified using Ansible na_santricity_module (via direct or role)
 #    pit_timestamp:                                        # Point-in-time snapshot images group timestamp. Snapshot image timestamp in the YYYY-MM-DD HH:MM:SS (AM|PM) (hours, minutes, seconds, and day-period are optional)
@@ -299,7 +299,7 @@ eseries_snapshot_remove_unspecified: false                # Whether to remove an
 #    preferred_reserve_storage_pool:                       # Preferred storage pool or volume group for the reserve capacity volume.
 #    alert_threshold:                                      # Reserve capacity percentage full to alert administrators
 #    volumes:                                              # (Optional) Select subset of volumes within the snapshot consistency group.
-#      - volume:                                           # Name of volume within consistency group.
+#      - name:                                             # Name of volume within consistency group.
 #        host:                                             # Host or host group to map snapshot volumes.
 #        writable:                                         # Whether snapshot volume of base volume images should be writable.
 #        validate:                                         # Whether snapshot volume should be validated which includes both a media scan and parity validation.
@@ -312,8 +312,9 @@ eseries_snapshot_remove_unspecified: false                # Whether to remove an
 #  - group_name:                                           # Snapshot consistency group's name.
 #    pit_name:                                             # Point-in-time snapshot images group name (Only available when specified using Ansible na_santricity_module (via direct or role)
 #    pit_timestamp:                                        # Point-in-time snapshot images group timestamp. Snapshot image timestamp in the YYYY-MM-DD HH:MM:SS (AM|PM) (hours, minutes, seconds, and day-period are optional)
-#    volumes:                                              # (Optional) Select subset of volumes within the snapshot consistency group.
-#      - volume:                                           # Name of volume within consistency group.
+#    rollback_priority:                                    # Storage system priority for base volume rollback (Default: medium). Choices [lowest, low, medium, high, highest]
+#    rollback_backup:                                      # Whether to create point-in-time snapshot images of the consistency group prior to rollback.
+#    volumes:                                              # (Optional) Select subset of volume names within the snapshot consistency group to rollback.
 
 # Initiator-Target Protocol Variable Defaults
 # -------------------------------------------

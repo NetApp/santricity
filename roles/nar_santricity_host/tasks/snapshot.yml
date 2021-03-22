@@ -8,12 +8,10 @@
   import_tasks: snapshot/view.yml
   when: eseries_snapshot_views | default(False) or eseries_snapshot_remove_unspecified == True
   tags:
-    - never
     - snapshot_view
 
 - name: Rollback base volumes to point-in-time snapshot images.
   import_tasks: snapshot/rollback.yml
   when: eseries_snapshot_rollbacks | default(False) or eseries_snapshot_remove_unspecified == True
   tags:
-    - never
     - snapshot_rollback
