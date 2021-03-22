@@ -1,5 +1,3 @@
-ANSIBLE_GATHERING: explicit
-
 # Web Services Embedded information
 #eseries_subnet:                         # Network subnet to search for the storage system specified in CIDR form. Example: 192.168.1.0/24
 #eseries_system_serial:                  # Storage system serial number. Be sure to quote if the serial is all numbers and begins with zero. (This is located
@@ -261,30 +259,61 @@ eseries_host_remove_unused_hostgroup: True    # Forces any unused groups to be r
 
 # Snapshot Consistency Group Default Policy Specifications
 # --------------------------------------------------------
-#eseries_snapshot_groups_maximum_snapshots:             # Default maximum point-in-time snapshot images (Default: 32).
-#eseries_snapshot_groups_reserve_capacity_pct:          # Default reserve capacity percentage (Default: 40)
-#eseries_snapshot_groups_alert_threshold_pct:           # Default reserve capacity percentage full to alert administrators (Default 75).
-#eseries_snapshot_groups_reserve_capacity_full_policy:  # Default full reserve capacity policy (Default: purge). Choices: [purge, reject]
-#eseries_snapshot_groups_rollback_priority:             # Default point-in-time rollback priority (Default: medium). Choices [lowest, low, medium, high, highest]
-#eseries_snapshot_groups_rollback_backup:               # Default whether snapshot should be taken prior to rolling back base volumes (Default: true).
-#eseries_snapshot_groups_snapshot_volume_writable:      # Default whether consistency group snapshot volumes should be writable (Default: true).
-#eseries_snapshot_groups_snapshot_volume_validate:      # Default whether consistency group snapshot volumes should be validated (Default: false).
-#eseries_snapshot_groups_remove_unspecified:            # Whether to remove any snapshot groups not specified (Default: false).
+eseries_snapshot_remove_unspecified: false                # Whether to remove any snapshot group or view that is not specified (Default: false).
+#eseries_snapshot_groups_maximum_snapshots:               # Default maximum point-in-time snapshot images (Default: 32).
+#eseries_snapshot_groups_reserve_capacity_pct:            # Default reserve capacity percentage (Default: 40)
+#eseries_snapshot_groups_preferred_reserve_storage_pool:  # Preferred storage pool or volume group for the reserve capacity volume.
+#eseries_snapshot_groups_reserve_capacity_full_policy:    # Default full reserve capacity policy (Default: purge). Choices: [purge, reject]
+#eseries_snapshot_groups_alert_threshold_pct:             # Default reserve capacity percentage full to alert administrators (Default 75).
 #eseries_snapshot_groups:
-#  - name:                                              # Name of snapshot consistency group.
-#    maximum_snapshots:                                 # Maximum allowed snapshot point-in-time images for consistency group (Default: 32).
-#    alert_threshold_pct:                               # Reserve capacity full alert threshold for storage system administrators (Default: 75).
-#    reserve_capacity_full_policy:                      # Policy to implement when reserve capacity is full (Default: purge). Choices [purge, reject]
-#    rollback_priority:                                 # Storage system priority for base volume rollback (Default: medium). Choices [lowest, low, medium, high, highest]
-#    volumes:                                           # Information for each volume in the consistency group.
-#      - name:                                          # Base volume name
-#        reserve_capacity_pct:                          # Reserve capacity measured as a percentage of the base volume (Default: 40). Reserve capacity can be expanded
-                                                        #   and trimmed; however, the trim operation requires there be no base volume snapshots images in the group.
-#        preferred_reserve_storage_pool:                # Preferred reserve capacity storage pool or volume group. This will default to the base volume's
-                                                        #   storage pool or volume group. The reserve capacity volume cannot be changed once created.
-#        snapshot_volume_writable:                      # Whether consistency group snapshot volumes should be writable (Default: true).
-#        snapshot_volume_validate:                      # Whether consistency group snapshot volumes should be validated (Default: false).
+#  - name:                                                # Name of snapshot consistency group.
+#    maximum_snapshots:                                   # Maximum allowed snapshot point-in-time images for consistency group (Default: 32).
+#    reserve_capacity_pct:                                # Reserve capacity measured as a percentage of the base volume (Default: 40). Reserve capacity can be expanded
+#                                                         #   and trimmed; however, the trim operation requires there be no base volume snapshots images in the group.
+#    reserve_capacity_full_policy:                        # Policy to implement when reserve capacity is full (Default: purge). Choices [purge, reject]
+#    alert_threshold_pct:                                 # Reserve capacity full alert threshold for storage system administrators (Default: 75).
+#    rollback_priority:                                   # Storage system priority for base volume rollback (Default: medium). Choices [lowest, low, medium, high, highest]
+#    volumes:                                             # Information for each volume in the consistency group.
+#      - name:                                            # Base volume name
+#        reserve_capacity_pct:                            # Reserve capacity measured as a percentage of the base volume (Default: 40). Reserve capacity can be expanded
+                                                          #   and trimmed; however, the trim operation requires there be no base volume snapshots images in the group.
+#        preferred_reserve_storage_pool:                  # Preferred reserve capacity storage pool or volume group. This will default to the base volume's
+                                                          #   storage pool or volume group. The reserve capacity volume cannot be changed once created.
 #      - (...)
+
+#eseries_snapshot_views_host:                              # Default host or host group to map all snapshot volumes.
+#eseries_snapshot_views_reserve_capacity_pct:              # Default reserve capacity percentage (Default: 40)
+#eseries_snapshot_views_preferred_reserve_storage_pool:    # Preferred storage pool or volume group for the reserve capacity volume.
+#eseries_snapshot_views_alert_threshold_pct:               # Default reserve capacity percentage full to alert administrators (Default 75).
+#eseries_snapshot_views_writable:                          # Default for whether to make snapshot volumes writable.
+#eseries_snapshot_views_validate:                          # Default for whether to validate snapshot volumes after creation.
+#eseries_snapshot_views:
+#  - name:                                                 # Consistency group's snapshot view's name.
+#    group_name:                                           # Snapshot consistency group's name.
+#    pit_name:                                             # Point-in-time snapshot images group name. (Only available when specified using Ansible na_santricity_module (via direct or role)
+#    pit_timestamp:                                        # Point-in-time snapshot images group timestamp. Snapshot image timestamp in the YYYY-MM-DD HH:MM:SS (AM|PM) (hours, minutes, seconds, and day-period are optional)
+#    host:                                                 # Host or host group to map snapshot volumes.
+#    writable:                                             # Whether snapshot volume of base volume images should be writable.
+#    validate:                                             # Whether snapshot volume should be validated which includes both a media scan and parity validation.
+#    reserve_capacity_pct:                                 # Percentage of base volume capacity to reserve for snapshot copy-on-writes (COW). Only used when snapshot volume is writable.
+#    preferred_reserve_storage_pool:                       # Preferred storage pool or volume group for the reserve capacity volume.
+#    alert_threshold:                                      # Reserve capacity percentage full to alert administrators
+#    volumes:                                              # (Optional) Select subset of volumes within the snapshot consistency group.
+#      - volume:                                           # Name of volume within consistency group.
+#        host:                                             # Host or host group to map snapshot volumes.
+#        writable:                                         # Whether snapshot volume of base volume images should be writable.
+#        validate:                                         # Whether snapshot volume should be validated which includes both a media scan and parity validation.
+#        reserve_capacity_pct:                             # Percentage of base volume capacity to reserve for snapshot copy-on-writes (COW). Only used when snapshot volume is writable.
+#        preferred_reserve_storage_pool:                   # Preferred storage pool or volume group for the reserve capacity volume.
+
+#eseries_snapshot_rollback_priority: medium                # Default point-in-time rollback priority (Default: medium). Choices [lowest, low, medium, high, highest]
+#eseries_snapshot_rollback_backup: true                    # Default whether snapshot should be taken prior to rolling back base volumes (Default: true).
+#eseries_snapshot_rollbacks:
+#  - group_name:                                           # Snapshot consistency group's name.
+#    pit_name:                                             # Point-in-time snapshot images group name (Only available when specified using Ansible na_santricity_module (via direct or role)
+#    pit_timestamp:                                        # Point-in-time snapshot images group timestamp. Snapshot image timestamp in the YYYY-MM-DD HH:MM:SS (AM|PM) (hours, minutes, seconds, and day-period are optional)
+#    volumes:                                              # (Optional) Select subset of volumes within the snapshot consistency group.
+#      - volume:                                           # Name of volume within consistency group.
 
 # Initiator-Target Protocol Variable Defaults
 # -------------------------------------------
