@@ -79,41 +79,34 @@
         {%- if "pit_timestamp" in (view.keys() | list) and view_info.update({"pit_timestamp": view["pit_timestamp"]}) -%}{%- endif -%}
 
         {%- if "host" in (view.keys() | list) or eseries_snapshot_views_host is defined -%}
-          {%- if view_info.update({"host": view["host"] | default(eseries_snapshot_views_host)}) -%}{%- endif -%}
-        {%- endif -%}
+          {%- if view_info.update({"host": view["host"] | default(eseries_snapshot_views_host)}) -%}{%- endif -%}{%- endif -%}
         {%- if "reserve_capacity_pct" in (view.keys() | list) or eseries_snapshot_views_reserve_capacity_pct is defined -%}
-          {%- if view_info.update({"reserve_capacity_pct": view["reserve_capacity_pct"] | default(eseries_snapshot_views_reserve_capacity_pct)}) -%}{%- endif -%}
-        {%- endif -%}
+          {%- if view_info.update({"reserve_capacity_pct": view["reserve_capacity_pct"] | default(eseries_snapshot_views_reserve_capacity_pct)}) -%}{%- endif -%}{%- endif -%}
         {%- if "preferred_reserve_storage_pool" in (view.keys() | list) or eseries_snapshot_views_preferred_reserve_storage_pool is defined -%}
-          {%- if view_info.update({"preferred_reserve_storage_pool": view["preferred_reserve_storage_pool"] | default(eseries_snapshot_views_preferred_reserve_storage_pool)}) -%}{%- endif -%}
-        {%- endif -%}
+          {%- if view_info.update({"preferred_reserve_storage_pool": view["preferred_reserve_storage_pool"] | default(eseries_snapshot_views_preferred_reserve_storage_pool)}) -%}{%- endif -%}{%- endif -%}
         {%- if "alert_threshold_pct" in (view.keys() | list) or eseries_snapshot_views_alert_threshold_pct is defined -%}
-          {%- if view_info.update({"alert_threshold_pct": view["alert_threshold_pct"] | default(eseries_snapshot_views_alert_threshold_pct)}) -%}{%- endif -%}
-        {%- endif -%}
+          {%- if view_info.update({"alert_threshold_pct": view["alert_threshold_pct"] | default(eseries_snapshot_views_alert_threshold_pct)}) -%}{%- endif -%}{%- endif -%}
         {%- if "writable" in (view.keys() | list) or eseries_snapshot_views_writable is defined -%}
-          {%- if view_info.update({"writable": view["writable"] | default(eseries_snapshot_views_writable)}) -%}{%- endif -%}
-        {%- endif -%}
+          {%- if view_info.update({"writable": view["writable"] | default(eseries_snapshot_views_writable)}) -%}{%- endif -%}{%- endif -%}
         {%- if "validate" in (view.keys() | list) or eseries_snapshot_views_validate is defined -%}
-          {%- if view_info.update({"validate": view["validate"] | default(eseries_snapshot_views_validate)}) -%}{%- endif -%}
-        {%- endif -%}
+          {%- if view_info.update({"validate": view["validate"] | default(eseries_snapshot_views_validate)}) -%}{%- endif -%}{%- endif -%}
         {%- if "alert_threshold_pct" in (view.keys() | list) or eseries_snapshot_views_alert_threshold_pct is defined -%}
-          {%- if view_info.update({"alert_threshold_pct": view["alert_threshold_pct"] | default(eseries_snapshot_views_alert_threshold_pct)}) -%}{%- endif -%}
-        {%- endif -%}
+          {%- if view_info.update({"alert_threshold_pct": view["alert_threshold_pct"] | default(eseries_snapshot_views_alert_threshold_pct)}) -%}{%- endif -%}{%- endif -%}
 
         {%- if "volumes" in (view.keys() | list) -%}
           {%- if view_info.update({"volumes": [] }) -%}{%- endif -%}
           {%- for volume in view["volumes"] -%}
             {%- set volume_info = {"volume": volume["volume"],
                                    "reserve_capacity_pct": volume["reserve_capacity_pct"] | default(view_info["reserve_capacity_pct"] | default(False)),
-                                   "writable": volume["writable"] | default(view_info["writable"] | default(True)),
-                                   "validate": volume["validate"] | default(view_info["validate"] | default(False))} -%}
+                                   "snapshot_volume_writable": volume["writable"] | default(view_info["writable"] | default(True)),
+                                   "snapshot_volume_validate": volume["validate"] | default(view_info["validate"] | default(False))} -%}
 
             {%- if "host" in (volume.keys() | list) or "host" in (view_info.keys() | list) -%}
-              {%- if volume_info.update({"host": volume["host"] | default(view_info["host"])}) -%}{%- endif -%}
-            {%- endif -%}
+              {%- if volume_info.update({"snapshot_volume_host": volume["host"] | default(view_info["host"])}) -%}{%- endif -%}{%- endif -%}
+            {%- if "lun" in (volume.keys() | list) -%}
+              {%- if volume_info.update({"snapshot_volume_lun": volume["lun"]}) -%}{%- endif -%}{%- endif -%}
             {%- if "preferred_reserve_storage_pool" in (volume.keys() | list) or "preferred_reserve_storage_pool" in (view_info.keys() | list) -%}
-              {%- if volume_info.update({"preferred_reserve_storage_pool": volume["preferred_reserve_storage_pool"] | default(view_info["preferred_reserve_storage_pool"])}) -%}{%- endif -%}
-            {%- endif -%}
+              {%- if volume_info.update({"preferred_reserve_storage_pool": volume["preferred_reserve_storage_pool"] | default(view_info["preferred_reserve_storage_pool"])}) -%}{%- endif -%}{%- endif -%}
 
             {%- if view_info["volumes"].append(volume_info) -%}{%- endif -%}
           {%- endfor -%}
