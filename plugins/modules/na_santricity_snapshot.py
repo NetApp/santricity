@@ -383,7 +383,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                 snapshot_volume_validate = volume_info["snapshot_volume_validate"] if "snapshot_volume_validate" in volume_info else self.view_validate
                 snapshot_volume_host = volume_info["snapshot_volume_host"] if "snapshot_volume_host" in volume_info else self.view_host
                 snapshot_volume_lun = volume_info["snapshot_volume_lun"] if "snapshot_volume_lun" in volume_info else None
-                if "preferred_reserve_storage_pool" in volume_info:
+                if "preferred_reserve_storage_pool" in volume_info and volume_info["preferred_reserve_storage_pool"]:
                     preferred_reserve_storage_pool = volume_info["preferred_reserve_storage_pool"]
                 else:
                     preferred_reserve_storage_pool = self.preferred_reserve_storage_pool
@@ -1037,7 +1037,6 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                         # Check writable mode
                         if volume_info["snapshot_volume_writable"] != (snapshot_volume["accessMode"] == "readWrite"):
                             volume_info.update({"snapshot_volume_id": snapshot_volume["id"]})
-                            # self.module.fail_json(msg="%s" % volume_info)
                             writable_volumes.update({volume_name: volume_info})
 
                         # Check reserve capacity.
@@ -1364,74 +1363,76 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
         except Exception as error:
             self.module.fail_json(msg="Failed to initiate rollback operations!" " Group [%s]. Array [%s]. Error [%s]." % (self.group_name, self.ssid, error))
 
+    def complete_volume_definitions(self):
+        """Determine the complete self.volumes structure."""
+        group = self.get_consistency_group()
+
+        if not self.volumes:
+            for volume in group["base_volumes"]:
+                self.volumes.update({volume["name"]: {"reserve_capacity_pct": self.reserve_capacity_pct,
+                                                      "preferred_reserve_storage_pool": self.preferred_reserve_storage_pool,
+                                                      "snapshot_volume_writable": self.view_writable,
+                                                      "snapshot_volume_validate": self.view_validate,
+                                                      "snapshot_volume_host": self.view_host,
+                                                      "snapshot_volume_lun": None}})
+
+        # Ensure a preferred_reserve_storage_pool has been selected
+        existing_storage_pools_by_id = self.get_all_storage_pools_by_id()
+        existing_storage_pools_by_name = self.get_all_storage_pools_by_name()
+        existing_volumes_by_name = self.get_all_volumes_by_name()
+        existing_volumes_by_id = self.get_all_volumes_by_id()
+        existing_mappings = self.get_mapping_by_id()
+        existing_host_and_hostgroup_by_id = self.get_all_hosts_and_hostgroups_by_id()
+        existing_host_and_hostgroup_by_name = self.get_all_hosts_and_hostgroups_by_name()
+        for volume_name, volume_info in self.volumes.items():
+            base_volume_storage_pool_id = existing_volumes_by_name[volume_name]["volumeGroupRef"]
+            base_volume_storage_pool_name = existing_storage_pools_by_id[base_volume_storage_pool_id]["name"]
+
+            # Check storage group information.
+            if volume_info["preferred_reserve_storage_pool"] is None:
+                volume_info["preferred_reserve_storage_pool"] = base_volume_storage_pool_name
+            elif volume_info["preferred_reserve_storage_pool"] not in existing_storage_pools_by_name.keys():
+                self.module.fail_json(msg="Preferred storage pool or volume group does not exist! Storage pool [%s]. Group [%s]."
+                                          " Array [%s]." % (volume_info["preferred_reserve_storage_pool"], self.group_name, self.ssid))
+
+            # Check host mapping information
+            if self.state == "present" and self.type == "view":
+                view_info = self.get_consistency_group_view()
+
+                if volume_info["snapshot_volume_host"]:
+                    if volume_info["snapshot_volume_host"] not in existing_host_and_hostgroup_by_name:
+                        self.module.fail_json(msg="Specified host or host group does not exist! Host [%s]. Group [%s]."
+                                                  " Array [%s]." % (volume_info["snapshot_volume_host"], self.group_name, self.ssid))
+
+                    if not volume_info["snapshot_volume_lun"]:
+                        if view_info:
+                            for snapshot_volume in view_info["snapshot_volumes"]:
+                                if snapshot_volume["listOfMappings"]:
+                                    mapping = snapshot_volume["listOfMappings"][0]
+                                    if (volume_name == existing_volumes_by_id[snapshot_volume["baseVol"]]["name"] and
+                                            volume_info["snapshot_volume_host"] == existing_host_and_hostgroup_by_id[mapping["mapRef"]]["name"]):
+                                        volume_info["snapshot_volume_lun"] = mapping["lun"]
+                                        break
+                            else:
+                                host_id = existing_host_and_hostgroup_by_name[volume_info["snapshot_volume_host"]]["id"]
+                                for next_lun in range(1, 100):
+
+                                    if host_id not in existing_mappings.keys():
+                                        existing_mappings.update({host_id: {}})
+
+                                    if next_lun not in existing_mappings[host_id].keys():
+                                        volume_info["snapshot_volume_lun"] = next_lun
+                                        existing_mappings[host_id].update({next_lun: None})
+                                        break
+
     def apply(self):
         """Apply any required snapshot state changes."""
-
         changes_required = False
         group = self.get_consistency_group()
         group_changes = {}
 
         # Determine which changes are required.
         if group:
-
-            # Complete self.volume structure if not completed.
-            if not self.volumes:
-                for volume in group["base_volumes"]:
-                    self.volumes.update({volume["name"]: {"reserve_capacity_pct": self.reserve_capacity_pct,
-                                                          "preferred_reserve_storage_pool": None,
-                                                          "snapshot_volume_writable": self.view_writable,
-                                                          "snapshot_volume_validate": self.view_validate,
-                                                          "snapshot_volume_host": self.view_host,
-                                                          "snapshot_volume_lun": None}})
-
-            # Ensure a preferred_reserve_storage_pool has been selected
-            existing_storage_pools_by_id = self.get_all_storage_pools_by_id()
-            existing_storage_pools_by_name = self.get_all_storage_pools_by_name()
-            existing_volumes_by_name = self.get_all_volumes_by_name()
-            existing_volumes_by_id = self.get_all_volumes_by_id()
-            existing_mappings = self.get_mapping_by_id()
-            existing_host_and_hostgroup_by_id = self.get_all_hosts_and_hostgroups_by_id()
-            existing_host_and_hostgroup_by_name = self.get_all_hosts_and_hostgroups_by_name()
-            for volume_name, volume_info in self.volumes.items():
-                base_volume_storage_pool_id = existing_volumes_by_name[volume_name]["volumeGroupRef"]
-                base_volume_storage_pool_name = existing_storage_pools_by_id[base_volume_storage_pool_id]["name"]
-
-                # Check storage group information.
-                if not volume_info["preferred_reserve_storage_pool"]:
-                    volume_info["preferred_reserve_storage_pool"] = base_volume_storage_pool_name
-                elif volume_info["preferred_reserve_storage_pool"] not in existing_storage_pools_by_name.keys():
-                    self.module.fail_json(msg="Preferred storage pool or volume group does not exist! Storage pool [%s]. Group [%s]."
-                                              " Array [%s]." % (volume_info["preferred_reserve_storage_pool"], self.group_name, self.ssid))
-
-                # Check host mapping information
-                if self.state == "present" and self.type == "view":
-                    view_info = self.get_consistency_group_view()
-
-                    if volume_info["snapshot_volume_host"]:
-                        if volume_info["snapshot_volume_host"] not in existing_host_and_hostgroup_by_name:
-                            self.module.fail_json(msg="Specified host or host group does not exist! Host [%s]. Group [%s]."
-                                                      " Array [%s]." % (volume_info["snapshot_volume_host"], self.group_name, self.ssid))
-
-                        if not volume_info["snapshot_volume_lun"]:
-                            if view_info:
-                                for snapshot_volume in view_info["snapshot_volumes"]:
-                                    if snapshot_volume["listOfMappings"]:
-                                        mapping = snapshot_volume["listOfMappings"][0]
-                                        if (volume_name == existing_volumes_by_id[snapshot_volume["baseVol"]]["name"] and
-                                                volume_info["snapshot_volume_host"] == existing_host_and_hostgroup_by_id[mapping["mapRef"]]["name"]):
-                                            volume_info["snapshot_volume_lun"] = mapping["lun"]
-                                            break
-                                else:
-                                    host_id = existing_host_and_hostgroup_by_name[volume_info["snapshot_volume_host"]]["id"]
-                                    for next_lun in range(1, 100):
-
-                                        if host_id not in existing_mappings.keys():
-                                            existing_mappings.update({host_id: {}})
-
-                                        if next_lun not in existing_mappings[host_id].keys():
-                                            volume_info["snapshot_volume_lun"] = next_lun
-                                            existing_mappings[host_id].update({next_lun: None})
-                                            break
 
             # Determine whether changes are required.
             if self.state == "absent":
@@ -1448,6 +1449,8 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                         changes_required = True
 
             elif self.state == "present":
+                self.complete_volume_definitions()
+
                 if self.type == "group":
                     group_changes = self.update_changes_required()
                     if (group_changes["update_group"] or
@@ -1475,6 +1478,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                         changes_required = True
 
             elif self.state == "rollback":
+                self.complete_volume_definitions()
                 if not self.volumes:
                     for volume in group["base_volumes"]:
                         self.volumes.update({volume["name"]: None})
@@ -1485,17 +1489,18 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
         else:
             if self.state == "present":
                 if self.type == "group":
+                    self.complete_volume_definitions()
                     group_changes = self.create_changes_required()
                     changes_required = True
                 elif self.type == "pit":
-                    self.module.fail_json("Snapshot point-in-time images cannot be taken when the snapshot consistency group does not exist!"
-                                          " Group [%s]. Array [%s]." % (self.group_name, self.ssid))
+                    self.module.fail_json(msg="Snapshot point-in-time images cannot be taken when the snapshot consistency group does not exist!"
+                                              " Group [%s]. Array [%s]." % (self.group_name, self.ssid))
                 elif self.type == "view":
-                    self.module.fail_json("Snapshot view cannot be created when the snapshot consistency group does not exist!"
-                                          " Group [%s]. Array [%s]." % (self.group_name, self.ssid))
+                    self.module.fail_json(msg="Snapshot view cannot be created when the snapshot consistency group does not exist!"
+                                              " Group [%s]. Array [%s]." % (self.group_name, self.ssid))
             elif self.state == "rollback":
-                self.module.fail_json("Rollback operation is not available when the snapshot consistency group does not exist!"
-                                      " Group [%s]. Array [%s]." % (self.group_name, self.ssid))
+                self.module.fail_json(msg="Rollback operation is not available when the snapshot consistency group does not exist!"
+                                          " Group [%s]. Array [%s]." % (self.group_name, self.ssid))
 
         # Determine if they're any key-value pairs that need to be cleaned up since snapshot pit images were deleted outside of this module.
         unused_pit_keys = self.get_unused_pit_key()
