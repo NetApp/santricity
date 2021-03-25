@@ -353,6 +353,7 @@ class Facts(NetAppESeriesModule):
 
         # Get storage system specific key-value pairs
         key_value_url = "key-values"
+        key_values = []
         if not self.is_embedded() and self.ssid.lower() not in ["0", "proxy"]:
             key_value_url = "storage-systems/%s/forward/devmgr/v2/key-values"
         try:
@@ -564,13 +565,11 @@ class Facts(NetAppESeriesModule):
             # Determine all consistency group pit snapshot images.
             group_pit_key_values = {}
             for entry in key_values:
-                if re.search("ansible_%s_" % group["name"], entry["key"]):
+                if re.search("ansible\\|%s\\|" % group["name"], entry["key"]):
                     pit_name = entry["key"].replace("ansible|%s|" % group["name"], "")
                     pit_values = entry["value"].split("|")
                     if len(pit_values) == 3:
                         timestamp, image_id, description = pit_values
-                        group_pit_key_values.update({timestamp: {"name": pit_name, "description": description}})
-                    else:
                         group_pit_key_values.update({timestamp: {"name": pit_name, "description": description}})
 
             pit_by_id = {}
@@ -578,7 +577,8 @@ class Facts(NetAppESeriesModule):
                 if pit["consistencyGroupId"] == group["id"]:
 
                     if pit["pitTimestamp"] in group_pit_key_values.keys():
-                        pit_image = {"name": group_pit_key_values["name"], "description": group_pit_key_values["description"],
+                        pit_image = {"name": group_pit_key_values[pit["pitTimestamp"]]["name"],
+                                     "description": group_pit_key_values[pit["pitTimestamp"]]["description"],
                                      "timestamp": datetime.fromtimestamp(int(pit["pitTimestamp"])).strftime("%Y-%m-%d %H:%M:%S")}
                     else:
                         pit_image = {"name": "", "description": "",
@@ -1088,23 +1088,36 @@ class Facts(NetAppESeriesModule):
                                 stripe_count = vg_drive_num - 1
                             if volume['raidLevel'] == "raid6":
                                 stripe_count = vg_drive_num - 2
-                            facts['netapp_volumes_by_initiators'][host['name']].append(
-                                dict(name=volume['name'],
-                                     storage_pool=storage_pool,
-                                     host_types=set(host_types),
-                                     host_port_information=host_port_information,
-                                     host_port_protocols=set(host_port_protocols),
-                                     hostside_io_interface_protocols=set(hostside_io_interface_protocols),
-                                     id=volume['id'],
-                                     wwn=volume['wwn'],
-                                     eui=volume['extendedUniqueIdentifier'],
-                                     workload_name=workload_name,
-                                     workload_metadata=metadata,
-                                     meta_data=metadata,
-                                     volume_metadata=volume_metadata,
-                                     raid_level=volume['raidLevel'],
-                                     segment_size_kb=int(volume['segmentSize'] / 1024),
-                                     stripe_count=stripe_count))
+
+                            volume_info = {"type": volume['objectType'],
+                                           "name": volume['name'],
+                                           "storage_pool": storage_pool,
+                                           "host_types": set(host_types),
+                                           "host_port_information": host_port_information,
+                                           "host_port_protocols": set(host_port_protocols),
+                                           "hostside_io_interface_protocols": set(hostside_io_interface_protocols),
+                                           "id": volume['id'],
+                                           "wwn": volume['wwn'],
+                                           "eui": volume['extendedUniqueIdentifier'],
+                                           "workload_name": workload_name,
+                                           "workload_metadata": metadata,
+                                           "meta_data": metadata,
+                                           "volume_metadata": volume_metadata,
+                                           "raid_level": volume['raidLevel'],
+                                           "segment_size_kb": int(volume['segmentSize'] / 1024),
+                                           "stripe_count": stripe_count}
+                            facts['netapp_volumes_by_initiators'][host['name']].append(volume_info)
+
+                            # Use the base volume to populate related details for snapshot volumes.
+                            for pit_view_volume in array_facts["highLevelVolBundle"]["pitView"]:
+                                if volume["id"] == pit_view_volume["baseVol"]:
+                                    pit_view_volume_info = volume_info.copy()
+                                    pit_view_volume_info.update({"type": pit_view_volume["objectType"],
+                                                                 "name": pit_view_volume['name'],
+                                                                 "id": pit_view_volume['id'],
+                                                                 "wwn": pit_view_volume['wwn'],
+                                                                 "eui": pit_view_volume['extendedUniqueIdentifier']})
+                                    facts['netapp_volumes_by_initiators'][host['name']].append(pit_view_volume_info)
 
         features = [feature for feature in array_facts['sa']['capabilities']]
         features.extend([feature['capability'] for feature in array_facts['sa']['premiumFeatures']
