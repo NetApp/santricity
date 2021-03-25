@@ -34,6 +34,7 @@
         api_password: "{{ eseries_proxy_api_password }}"
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
         firmware: "{{ eseries_proxy_drive_firmware | default(omit) }}"
+      connection: local
       when: eseries_proxy_drive_firmware != []
     - name: Ensure SANtricity Web Services Proxy has the expected controller firmware and NVSRAM
       na_santricity_proxy_firmware_upload:
@@ -42,6 +43,7 @@
         api_password: "{{ eseries_proxy_api_password }}"
         validate_certs: "{{ eseries_validate_certs | default(omit) }}"
         firmware: "{{ eseries_proxy_firmware | default(omit) + eseries_proxy_nvsram | default(omit)}}"
+      connection: local
       when: eseries_proxy_nvsram != [] or eseries_proxy_firmware != []
   run_once: true
 
@@ -56,6 +58,7 @@
     wait_for_completion: "{{ eseries_drive_firmware_wait_for_completion | default(true) }}"
     ignore_inaccessible_drives: "{{ eseries_drive_firmware_ignore_inaccessible_drives | default(omit) }}"
     upgrade_drives_online: "{{ eseries_drive_firmware_upgrade_drives_online | default(omit) }}"
+  connection: local
   when: eseries_drive_firmware_firmware_list is defined
   tags:
     - firmware
@@ -72,6 +75,7 @@
     firmware: "{{ eseries_firmware_firmware | default('') }}"
     wait_for_completion: "{{ eseries_firmware_wait_for_completion | default(true) }}"
     clear_mel_events: "{{ eseries_firmware_ignore_mel_events | default(omit) }}"
+  connection: local
   when: eseries_firmware_nvsram is defined or eseries_firmware_firmware is defined
   tags:
     - firmware

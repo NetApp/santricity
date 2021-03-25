@@ -13,27 +13,27 @@
   tags:
     - always
 
+- name: Unconfigure snapshot consistency groups
+  import_tasks: snapshot.yml
+  when: eseries_remove_all_configuration == True | default(False)
+
 - name: Configure NetApp E-Series storage system disk pool configuration
   import_tasks: storage_pool_present.yml
-  connection: local
   tags:
     - storage_pools
 
 - name: Configure NetApp E-Series storage system volume configuration
   import_tasks: volume.yml
-  connection: local
   tags:
     - volumes
 
 - name: Configure NetApp E-Series storage system disk pool configuration
   import_tasks: storage_pool_absent.yml
-  connection: local
   tags:
     - storage_pools
 
 - name: Configure storage system's hosts/hostgroups initiators
   import_tasks: initiator.yml
-  connection: local
   tags:
     - initiators
 
@@ -44,10 +44,9 @@
 
 - name: Configure controllers interfaces
   import_tasks: interface.yml
-  connection: local
   tags:
     - interface
 
 - name: Configure snapshot consistency groups
   import_tasks: snapshot.yml
-  connection: local
+  when: eseries_remove_all_configuration == False | default(True)

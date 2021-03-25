@@ -25,12 +25,6 @@ class LookupModule(LookupBase):
                 len(inventory["eseries_storage_pool_configuration"]) == 0):
             return list()
 
-        defaults_state = "present"
-        if"eseries_remove_all_configuration_state" in inventory:
-            defaults_state = inventory["eseries_remove_all_configuration_state"]
-        elif "eseries_storage_pool_state" in inventory:
-            defaults_state = inventory["eseries_storage_pool_state"]
-
         sp_list = list()
         for sp_info in inventory["eseries_storage_pool_configuration"]:
 
@@ -38,7 +32,12 @@ class LookupModule(LookupBase):
                 raise AnsibleError("eseries_storage_pool_configuration must contain a list of dictionaries containing the necessary information.")
 
             for sp in patternize(sp_info["name"], inventory):
-                sp_options = {"state": defaults_state}
+                if (("eseries_remove_all_configuration_state" in inventory and inventory["eseries_remove_all_configuration_state"] == "absent") or
+                        ("state" in sp_info and sp_info["state"] == "absent") or
+                        ("state" not in sp_info and "eseries_storage_pool_state" in inventory and inventory["eseries_storage_pool_state"] == "absent")):
+                    sp_options = {"state": "absent"}
+                else:
+                    sp_options = {"state": "present"}
 
                 for option in sp_info.keys():
                     sp_options.update({option: sp_info[option]})

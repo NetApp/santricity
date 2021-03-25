@@ -26,6 +26,7 @@
         ntp_address: "{{ interface_a1['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
         ntp_address_backup: "{{ interface_a1['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
         ssh: "{{ interface_a1['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+      connection: local
       register: current_management_urls_a1
     - name: Update Web Services URL
       set_fact:
@@ -54,6 +55,7 @@
         ntp_address: "{{ interface_a2['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
         ntp_address_backup: "{{ interface_a2['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
         ssh: "{{ interface_a2['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+      connection: local
       register: current_management_urls_a2
     - name: Try backup Web Services REST API url.
       set_fact:
@@ -82,6 +84,7 @@
         ntp_address: "{{ interface_b1['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
         ntp_address_backup: "{{ interface_b1['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
         ssh: "{{ interface_b1['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+      connection: local
       register: current_management_urls_b1
     - name: Try backup Web Services REST API url.
       set_fact:
@@ -110,6 +113,7 @@
         ntp_address: "{{ interface_b2['ntp_address'] | default(eseries_management_interfaces['ntp_address'] | default(eseries_management_ntp_address | default(omit))) }}"
         ntp_address_backup: "{{ interface_b2['ntp_address_backup'] | default(eseries_management_interfaces['ntp_address_backup'] | default(eseries_management_ntp_address_backup | default(omit))) }}"
         ssh: "{{ interface_b2['ssh'] | default(eseries_management_interfaces['ssh'] | default(eseries_management_ssh | default(omit))) }}"
+      connection: local
       register: current_management_urls_b2
     - name: Try backup Web Services REST API url.
       set_fact:

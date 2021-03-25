@@ -7,6 +7,7 @@
         url_password: "{{ current_eseries_api_password }}"
         url_username: "{{ current_eseries_api_username }}"
         validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+      connection: local
       register: existing_consistency_groups
 
     - name: Retrieve all snapshot consistency group views
@@ -16,6 +17,7 @@
         url_password: "{{ current_eseries_api_password }}"
         url_username: "{{ current_eseries_api_username }}"
         validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+      connection: local
       register: existing_consistency_group_views
 
     - name: Ensure all unspecified snapshot consistency group views are removed.
@@ -29,6 +31,7 @@
         type: view
         group_name: "{{ item['group_name'] }}"
         view_name: "{{ item['view_name'] }}"
+      connection: local
       loop: "{{ unspecified_groups }}"
       vars:
         unspecified_groups: |-
@@ -43,16 +46,16 @@
             {%- endfor -%}
           {%- endfor -%}
           {{- unspecified_group_views -}}
-  when: eseries_snapshot_remove_unspecified == True
+  when: (eseries_remove_all_configuration | default(False)) == False and eseries_snapshot_remove_unspecified == True
 
-- name: Ensure all snapshot consistency views exist.
+- name: "Ensure all snapshot consistency views {{'exist' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'are removed' }}."
   na_santricity_snapshot:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
     api_password: "{{ current_eseries_api_password }}"
     validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
-    state: present
+    state: "{{ eseries_remove_all_configuration_state | default('present') }}"
     type: view
     view_name: "{{ item['name'] }}"
     group_name: "{{ item['group_name'] }}"
@@ -65,6 +68,7 @@
     view_host: "{{ item['host'] | default(omit) }}"
     view_writable: "{{ item['writable'] | default(omit) }}"
     view_validate: "{{ item['validate'] | default(omit) }}"
+  connection: local
   loop: "{{ consistency_group_views }}"
   vars:
     consistency_group_views: |-

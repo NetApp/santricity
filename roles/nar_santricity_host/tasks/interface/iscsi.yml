@@ -1,4 +1,4 @@
-- name: Configure controller A inventory-defined controller port definitions for iSCSI
+- name: "{{'Configure' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Unconfigure' }} controller A inventory-defined controller port definitions for iSCSI"
   na_santricity_iscsi_interface:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
@@ -18,7 +18,7 @@
     index_var: port
   when: eseries_controller_iscsi_port is defined and eseries_controller_iscsi_port['controller_a'] is defined
 
-- name: Configure controller B inventory-defined controller port definitions for iSCSI
+- name: "{{'Configure' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Unconfigure' }} controller B inventory-defined controller port definitions for iSCSI"
   na_santricity_iscsi_interface:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
@@ -38,7 +38,7 @@
     index_var: port
   when: eseries_controller_iscsi_port is defined and eseries_controller_iscsi_port['controller_b'] is defined
 
-- name: Configure iSCSI discovery parameters
+- name: "{{'Configure' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Unconfigure' }} iSCSI discovery parameters"
   na_santricity_iscsi_target:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"

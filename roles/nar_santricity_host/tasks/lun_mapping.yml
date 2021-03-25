@@ -5,8 +5,8 @@
     api_username: "{{ current_eseries_api_username }}"
     api_password: "{{ current_eseries_api_password }}"
     validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
-  register: storage_array_facts
   connection: local
+  register: storage_array_facts
 
 - name: Collect volume host and host group list
   set_fact:
@@ -122,7 +122,7 @@
         hosts: "{{ lookup('netapp_eseries.santricity.santricity_host_detail',
                            hosts, hosts_info=hosts_info['results'], host_interface_ports=host_interface, protocol=eseries_initiator_protocol) }}"
 
-    - name: Create all hosts objects on the storage array
+    - name: "{{'Create' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Delete' }} all hosts objects on the storage array"
       na_santricity_host:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
@@ -137,7 +137,7 @@
       connection: local
       loop: "{{ lookup('list', (hosts['expected_hosts'].keys()|list)) }}"
 
-    - name: Create all required host groups on the storage array
+    - name: "{{'Create' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Delete' }} all required host groups on the storage array"
       na_santricity_hostgroup:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
@@ -161,7 +161,7 @@
       register: storage_array_facts
       when: eseries_remove_all_configuration_state is not defined or eseries_remove_all_configuration_state == False
 
-    - name: Map hosts to there respective volume
+    - name: "{{'Map' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Unmap' }} hosts to there respective volume"
       na_santricity_lun_mapping:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"

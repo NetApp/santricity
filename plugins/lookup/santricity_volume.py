@@ -79,7 +79,9 @@ class LookupModule(LookupBase):
                             combined_volume_metadata.update(vol_info["volume_metadata"])
                             vol_options.update({"volume_metadata": combined_volume_metadata})
 
-                        if "state" in sp_info and sp_info["state"] == "absent":
+                        if (("eseries_remove_all_configuration_state" in inventory and inventory["eseries_remove_all_configuration_state"] == "absent") or
+                                ("state" in sp_info and sp_info["state"] == "absent") or
+                                ("state" not in sp_info and "eseries_volume_state" in inventory and inventory["eseries_volume_state"] == "absent")):
                             vol_options.update({"state": "absent"})
                         else:
                             vol_options.update({"state": "present"})

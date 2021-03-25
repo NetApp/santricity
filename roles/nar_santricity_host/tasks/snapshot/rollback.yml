@@ -12,6 +12,7 @@
     rollback_priority: "{{ item['rollback_priority'] | default(omit) }}"
     rollback_backup: "{{ item['rollback_backup'] | default(omit) }}"
     volumes: "{{ item['volumes'] | default(omit) }}"
+  connection: local
   loop: "{{ consistency_group_rollbacks }}"
   vars:
     consistency_group_rollbacks: |-

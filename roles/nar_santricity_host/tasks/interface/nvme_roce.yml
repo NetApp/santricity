@@ -1,4 +1,4 @@
-- name: Configure controller A inventory-defined controller port definitions for NVMe interface ports on RoCE
+- name: "{{'Configure' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Unconfigure' }} controller A inventory-defined controller port definitions for NVMe interface ports on RoCE"
   na_santricity_nvme_interface:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
@@ -19,7 +19,7 @@
     index_var: channel
   when: eseries_controller_nvme_roce_port is defined and eseries_controller_nvme_roce_port['controller_a'] is defined
 
-- name: Configure controller B inventory-defined controller port definitions for NVMe interface ports on RoCE
+- name: "{{'Configure' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Unconfigure' }} controller B inventory-defined controller port definitions for NVMe interface ports on RoCE"
   na_santricity_nvme_interface:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"

@@ -17,6 +17,7 @@
     maintenance_duration: "{{ eseries_maintenance_duration | default(omit) }}"
     maintenance_emails: "{{ eseries_maintenance_emails | default(omit) }}"
     validate: "{{ eseries_asup_validate | default(omit) }}"
+  connection: local
   when: eseries_asup_state is defined
   tags:
     - logging
@@ -35,6 +36,7 @@
     sender: "{{ eseries_alerts_sender| default(omit) }}"
     server: "{{ eseries_alerts_server | default(omit) }}"
     test: "{{ eseries_alerts_test | default(omit) }}"
+  connection: local
   when: eseries_alerts_state is defined
   tags:
     - logging
@@ -52,6 +54,7 @@
     log_level: "{{ eseries_auditlog_log_level | default(omit) }}"
     max_records: "{{ eseries_auditlog_max_records | default(omit) }}"
     threshold: "{{ eseries_auditlog_threshold | default(omit) }}"
+  connection: local
   when: eseries_auditlog_enforce_policy
   tags:
     - logging
@@ -70,6 +73,7 @@
     protocol: "{{ eseries_syslog_protocol | default(omit) }}"
     port: "{{ eseries_syslog_port | default(omit) }}"
     components: "{{ eseries_syslog_components | default(omit) }}"
+  connection: local
   when: eseries_syslog_state is defined and eseries_syslog_address is defined
   tags:
     - logging
@@ -84,6 +88,7 @@
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
     servers: "{{ eseries_alert_syslog_servers | default(omit) }}"
     test: "{{ eseries_alert_syslog_test | default(omit) }}"
+  connection: local
   when: eseries_syslog_state is defined and eseries_syslog_address is defined
   tags:
     - logging

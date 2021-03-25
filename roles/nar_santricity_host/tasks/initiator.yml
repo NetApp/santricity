@@ -8,6 +8,7 @@
     api_username: "{{ current_eseries_api_username }}"
     api_password: "{{ current_eseries_api_password }}"
     validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+  connection: local
   register: storage_array_facts
   when: eseries_host_object is defined
 
@@ -32,7 +33,7 @@
       {{ hostgroups }}
   when: eseries_host_object is defined
 
-- name: Configure inventory-defined hostgroup definitions
+- name: "{{'Configure' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Unconfigure' }} inventory-defined hostgroup definitions"
   na_santricity_hostgroup:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
@@ -42,10 +43,11 @@
     state: "{{ eseries_remove_all_configuration_state | default('present') }}"
     name: "{{ item }}"
     hosts: "{{ current_storage_array_hostgroups[item] | default(omit) }}"
+  connection: local
   loop: "{{ lookup('list', hostgroups) }}"
   when: eseries_host_object is defined and (hostgroups | length > 0)
 
-- name: Configure inventory-defined host definitions
+- name: "{{'Configure' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Unconfigure' }} inventory-defined host definitions"
   na_santricity_host:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
@@ -58,6 +60,7 @@
     force_port: "{{ item['force_port'] | default(eseries_host_force_port | default(omit)) }}"
     group: "{{ item['group'] | default(eseries_host_group | default(omit)) }}"
     host_type: "{{ item['host_type_index'] | default(item['host_type'] | default(eseries_host_type_index | default(omit))) }}"
+  connection: local
   loop: "{{ lookup('list', eseries_host_object) }}"
   when: eseries_host_object is defined
 
@@ -68,6 +71,7 @@
     api_username: "{{ current_eseries_api_username }}"
     api_password: "{{ current_eseries_api_password }}"
     validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
+  connection: local
   register: storage_array_facts
   when: eseries_host_object is defined
 
@@ -94,7 +98,7 @@
       {{ unused_hostgroup }}
   when: eseries_host_object is defined
 
-- name: Configure inventory-defined hostgroup definitions
+- name: "{{'Configure' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Unconfigure' }} inventory-defined hostgroup definitions"
   na_santricity_hostgroup:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
@@ -104,6 +108,7 @@
     state: absent
     name: "{{ item }}"
     hosts: "{{ current_storage_array_hostgroups[item] | default(omit) }}"
+  connection: local
   loop: "{{ lookup('list', unused_hostgroups) }}"
   when: "eseries_host_object is defined and (unused_hostgroups|length>0) and eseries_host_remove_unused_hostgroup is
          defined and eseries_host_remove_unused_hostgroup"
