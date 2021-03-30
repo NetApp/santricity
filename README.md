@@ -10,9 +10,10 @@ NetApp E-Series SANtricity Collection
     the management role will also ensure alerts, ASUP, logging, LDAP, and firmware are configured as expected; and the host role will setup host interfaces,
     provision and map storage, and if your servers are defined in the inventory, correctly populate E-Series hosts and host groups automatically.
 
+
     Roles:
         - nar_santricity_common: Discover NetApp E-Series storage systems and configures SANtricity Web Services Proxy.
-        - nar_santricity_host: Configure storage pools, volumes, hosts, host groups, and port interfaces.
+        - nar_santricity_host: Configure storage pools, volumes, hosts, host groups, port interfaces and snapshots.
         - nar_santricity_management: Manage storage system's name, management interfaces, alerts, syslog, auditlog, asup, ldap, certificates, drive firmware and controller firmware.
             
     Modules:
@@ -34,6 +35,7 @@ NetApp E-Series SANtricity Collection
         - na_santricity_ldap: Manage LDAP integration to use for authentication
         - na_santricity_lun_mapping: Manage lun mappings
         - na_santricity_mgmt_interface: Manage management interface configuration
+        - na_santricity_snapshot: Manage Snapshot groups, volumes, and rollbacks.
         - na_santricity_storage_system: Manage SANtricity web services proxy storage arrays
         - na_santricity_storagepool: Manage volume groups and disk pools
         - na_santricity_syslog: Manage syslog settings
@@ -80,9 +82,6 @@ Example Playbook
       collections:
         - netapp_eseries.santricity
       tasks:
-        - name: Ensure proxy has been configured and storage systems have been discovered.
-          import_role:
-            name: nar_santricity_common
         - name: Ensure all management related policies are enforced.
           import_role:
             name: nar_santricity_management
@@ -278,6 +277,11 @@ Storage System Credentials
     Direct:
         - Provide the storage system's serial number, password and the network subnet (eseries_system_serial, eseries_system_password, and eseries_subnet) to ensure that it will be discoverable; this information will also ensure the admin password has been set. The discovery process can be lengthy depending on the size and speed of the subnet. This can be mitigated by configuring static management interfaces (eseries_management_interfaces) otherwise each playbook execution will search for the DHCP assigned address.
         - If the storage system's Web Service Embedded API url (eseries_system_api_url) is known then it can be used in place of the system's serial number.
+
+Snapshots
+---------
+    - Automate snapshot consistency groups with one or more base volumes. Consistency groups allow snapshot images to be taken consistently across multiple base volumes at a single point in time. Then use these images to either create snapshot volumes or rollback the base volumes to previous states. Snapshot volumes allow you to interact with the volumes as they were in either a read-only or read-write mode.
+    - Since E-Series storage systems are block storage and are unaware of both file system and application, it important to prepare volumes for snapshots. This requires applications to complete anything necessary to place the data in a valid state and file systems to complete and sync data to storage. To help facilitate these actions, checkout the snapshot role in the netapp_eseries.host collection (https://galaxy.ansible.com/netapp_eseries/host). This snapshot role ensures mounted E-Series volumes across multiple hosts have files closed, synced cache, and are temporarily unmounted prior to taking snapshots. Want to take a point-in-time snapshot of a parallel file system? The snapshot role also ensures that volumes are also ready across multiple storage systems.
 
 Collection Variables
 --------------------
@@ -648,6 +652,7 @@ Collection Variables
                                                    #    controller to choose ownership. (Choices: A, B)
             read_ahead_enable:                     # Enables read ahead caching; this is good for sequential workloads to cache subsequent blocks.
             read_cache_enable:                     # Enables read caching which will cache all read requests.
+            cache_without_batteries:               # Enable caching even without batteries.
             size:                                  # Size of the volume or presented size of the thinly provisioned volume.
             size_unit:                             # Unit size for the size, thin_volume_repo_size, and thin_volume_max_repo_size
                                                    #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
@@ -794,6 +799,10 @@ Collection Variables
                       #     - Windows: Windows Server OS and Windows MPIO with a DSM driver
                       #     - Windows Clustered: Clustered Windows Server OS and Windows MPIO with a DSM driver
                       #     - Windows ATTO: Windows OS and the ATTO Technology, Inc. driver
+
+Remove Inventory Configuration
+------------------------------
+Whether its for a testing automation or a temporary project, its helpful to be able to undo all that you configured. Just set `eseries_remove_all_configuration: True` and nar_santricity_host will remove all it configured. Be aware that this feature does not know the previous state of anything; it simply removes anything specified in the inventory.
 
 License
 -------
