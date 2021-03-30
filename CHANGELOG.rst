@@ -1,9 +1,36 @@
-=======================================
-Netapp_Eseries.Santricity Release Notes
-=======================================
+===================================================
+Netapp E-Series SANtricity Collection Release Notes
+===================================================
 
 .. contents:: Topics
 
+
+v1.2.0
+======
+
+Release Summary
+---------------
+
+1.2.0 release of ``netapp_eseries.santricity`` collection on 2021-03-01.
+
+Minor Changes
+-------------
+
+- na_santricity_discover - Add support for discovering storage systems directly using devmgr/v2/storage-systems/1/about endpoint since its old method of discover is being deprecated.
+- na_santricity_facts - Add storage system information to facilitate ``netapp_eseries.host`` collection various protocol configuration.
+- na_santricity_server_certificate - New module to configure storage system's web server certificate configuration.
+- na_santricity_snapshot - New module to configure NetApp E-Series Snapshot consistency groups any number of base volumes.
+- na_santricity_volume - Add percentage size unit (pct) and which allows the creates volumes based on the total storage pool size.
+- nar_santricity_host - Add eseries_storage_pool_configuration list options, criteria_volume_count, criteria_reserve_free_capacity_pct, and common_volume_host to facilitate volumes based on percentages of storage pool or volume group.
+- nar_santricity_host - Add support for snapshot group creation.
+- nar_santricity_host - Improve host mapping information discovery.
+- nar_santricity_host - Improve storage system discovery related error messages.
+- nar_santricity_management - Add support for server certificate management.
+
+Bugfixes
+--------
+
+- nar_santricity_host - Fix README.md examples.
 
 v1.1.0
 ======

@@ -1,3 +1,0 @@
-minor_changes:
-  - na_santricity_snapshot - New module to configure NetApp E-Series Snapshot consistency groups any number of base volumes.
-  - nar_santricity_host - Add support for snapshot group creation.

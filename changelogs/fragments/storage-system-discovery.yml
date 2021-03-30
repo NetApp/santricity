@@ -1,2 +1,0 @@
-minor_changes:
-  - na_santricity_discover - Add support for discovering storage systems directly using devmgr/v2/storage-systems/1/about endpoint since its old method of discover is being deprecated.
