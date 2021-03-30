@@ -19,7 +19,7 @@ options:
       - When I(state==absent) ensures the I(type) has been removed.
       - When I(state==present) ensures the I(type) is available.
       - When I(state==rollback) the consistency group will be rolled back to the point-in-time snapshot images selected by I(pit_name or pit_timestamp).
-      - I(state==rollback) will always return changed since it is not possible to evaluate the current state of the base volume in relation to a snapshot image. 
+      - I(state==rollback) will always return changed since it is not possible to evaluate the current state of the base volume in relation to a snapshot image.
     type: str
     choices:
       - absent
@@ -37,6 +37,7 @@ options:
       - View indicates a consistency group snapshot volume of particular point-in-time image(s); snapshot volumes will be created for each base volume member.
       - Views are created from images from a single point-in-time so once created they cannot be modified.
     type: str
+    default: group
     choices:
       - group
       - pit
@@ -76,7 +77,6 @@ options:
           - Preferred storage pool or volume group for the reserve capacity volume.
           - The base volume's storage pool or volume group will be selected by default if not defined.
           - Used to specify storage pool or volume group for both snapshot consistency group volume members and snapshot volumes
-        default: None
         type: str
         required: false
       snapshot_volume_writable:
@@ -99,6 +99,7 @@ options:
   maximum_snapshots:
     description:
       - Total number of snapshot images to maintain.
+    type: int
     default: 32
     required: false
   reserve_capacity_pct:
@@ -113,7 +114,6 @@ options:
       - Default preferred storage pool or volume group for the reserve capacity volume.
       - The base volume's storage pool or volume group will be selected by default if not defined.
       - Used to specify storage pool or volume group for both snapshot consistency group volume members and snapshot volumes
-    default: None
     type: str
     required: false
   alert_threshold_pct:
@@ -167,13 +167,9 @@ options:
       - Define only as much time as necessary to distinguish the desired snapshot image from the others.
       - 24 hour time will be assumed if day-period indicator (AM, PM) is not specified.
       - The terms latest and oldest may be used to select newest and oldest consistency group images.
-      - Mutually exclusive with I(pit_name or pit_description) 
+      - Mutually exclusive with I(pit_name or pit_description)
     type: str
     required: false
-    examples:
-      - 2019-05-18 15:17:08
-      - newest
-      - oldest
   view_name:
     description:
       - Consistency group snapshot volume group.
@@ -189,11 +185,13 @@ options:
     description:
       - Default whether snapshot volumes should be writable.
     type: bool
-    required: true
+    default: true
+    required: false
   view_validate:
     description:
       - Default whether snapshop volumes should be validated.
     type: bool
+    default: false
     required: false
 notes:
   - Key-value pairs are used to keep track of snapshot names and descriptions since the snapshot point-in-time images do have metadata associated with their
@@ -309,10 +307,10 @@ changed:
   returned: always
 group_changes:
   description: All changes performed to the consistency group.
-  type: complex
+  type: dict
   returned: always
 deleted_metadata_keys:
-  description: Kseys that were purged from the key-value datastore.
+  description: Keys that were purged from the key-value datastore.
   type: list
   returned: always
 """
@@ -331,17 +329,16 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                                volumes=dict(type="list", required=False,
                                             suboptions=dict(volume=dict(type="str", required=True),
                                                             reserve_capacity_pct=dict(type="int", default=40, required=False),
-                                                            preferred_reserve_storage_pool=dict(type="str", default=None, required=False),
+                                                            preferred_reserve_storage_pool=dict(type="str", required=False),
                                                             snapshot_volume_writable=dict(type="bool", default=True, required=False),
                                                             snapshot_volume_validate=dict(type="bool", default=False, required=False),
                                                             snapshot_volume_host=dict(type="str", default=None, required=False),
                                                             snapshot_volume_lun=dict(type="int", default=None, required=False))),
                                maximum_snapshots=dict(type="int", default=32, required=False),
                                reserve_capacity_pct=dict(type="int", default=40, required=False),
-                               preferred_reserve_storage_pool=dict(type="str", default=None, required=False),
+                               preferred_reserve_storage_pool=dict(type="str", required=False),
                                alert_threshold_pct=dict(type="int", default=75, required=False),
                                reserve_capacity_full_policy=dict(type="str", default="purge", choices=["purge", "reject"], required=False),
-                               rollback=dict(type="bool", default=False, required=False),
                                rollback_priority=dict(type="str", default="medium", choices=["highest", "high", "medium", "low", "lowest"], required=False),
                                rollback_backup=dict(type="bool", default=True, required=False),
                                pit_name=dict(type="str", required=False),
@@ -535,7 +532,8 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
         if not self.cache["get_all_hosts_and_hostgroups_by_id"]:
             try:
                 rc, hostgroups = self.request("storage-systems/%s/host-groups" % self.ssid)
-                hostgroup_by_id = {hostgroup["id"]: hostgroup for hostgroup in hostgroups}
+                # hostgroup_by_id = {hostgroup["id"]: hostgroup for hostgroup in hostgroups}
+                hostgroup_by_id = dict((hostgroup["id"], hostgroup) for hostgroup in hostgroups)
 
                 rc, hosts = self.request("storage-systems/%s/hosts" % self.ssid)
                 for host in hosts:
@@ -781,7 +779,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                 for key_value in key_values:
                     key = key_value["key"]
                     value = key_value["value"]
-                    if re.match("ansible\|.*\|.*", value):
+                    if re.match("ansible\\|.*\\|.*", value):
                         for image in images:
                             if str(image["pitTimestamp"]) == value.split("|")[0]:
                                 break
@@ -881,7 +879,8 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
             changes["update_group"].update({"reserve_capacity_full_policy": self.reserve_capacity_full_policy})
 
         # Check if base volumes need to be added or removed from consistency group.
-        remaining_base_volumes = {base_volumes["name"]: base_volumes for base_volumes in group["base_volumes"]}
+        # remaining_base_volumes = {base_volumes["name"]: base_volumes for base_volumes in group["base_volumes"]}  # NOT python2.6 compatible
+        remaining_base_volumes = dict((base_volumes["name"], base_volumes) for base_volumes in group["base_volumes"])
         add_volumes = {}
         expand_volumes = {}
 
@@ -938,8 +937,8 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                     else:
                         initial_reserve_volume_info = existing_volumes_by_id[concat_volume_info["memberRefs"][0]]
                         minimum_capacity_pct = round(int(initial_reserve_volume_info["totalSizeInBytes"]) / base_volume_size_bytes * 100)
-                        self.module.fail_json(msg="Cannot delete initial reserve capacity volume! Minimum reserve capacity percent [%s]."
-                                                  " Base volume [%s]. Group [%s]. Array [%s]." % (minimum_capacity_pct, volume_name, self.group_name, self.ssid))
+                        self.module.fail_json(msg="Cannot delete initial reserve capacity volume! Minimum reserve capacity percent [%s]. Base volume [%s]. "
+                                                  "Group [%s]. Array [%s]." % (minimum_capacity_pct, volume_name, self.group_name, self.ssid))
 
                 remaining_base_volumes.pop(volume_name)
             else:
@@ -1041,7 +1040,8 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
 
                         # Check reserve capacity.
                         if volume_info["snapshot_volume_writable"] and snapshot_volume["accessMode"] == "readWrite":
-                            current_reserve_capacity_pct = int(round(float(snapshot_volume["repositoryCapacity"]) / float(snapshot_volume["baseVolumeCapacity"]) * 100))
+                            current_reserve_capacity_pct = int(round(float(snapshot_volume["repositoryCapacity"]) /
+                                                                     float(snapshot_volume["baseVolumeCapacity"]) * 100))
                             if volume_info["reserve_capacity_pct"] > current_reserve_capacity_pct:
                                 expand_reserve_capacity_pct = volume_info["reserve_capacity_pct"] - current_reserve_capacity_pct
                                 expand_volumes.update({volume_name: {"reserve_capacity_pct": expand_reserve_capacity_pct,
@@ -1075,9 +1075,10 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                                         # Expand after trim if needed.
                                         if total_trimmed_size_pct > trim_pct:
                                             expand_reserve_capacity_pct = total_trimmed_size_pct - trim_pct
-                                            expand_volumes.update({volume_name: {"reserve_capacity_pct": expand_reserve_capacity_pct,
-                                                                                 "preferred_reserve_storage_pool": volume_info["preferred_reserve_storage_pool"],
-                                                                                 "reserve_volume_id": snapshot_volume["repositoryVolume"]}})
+                                            expand_volumes.update({
+                                                volume_name: {"reserve_capacity_pct": expand_reserve_capacity_pct,
+                                                              "preferred_reserve_storage_pool": volume_info["preferred_reserve_storage_pool"],
+                                                              "reserve_volume_id": snapshot_volume["repositoryVolume"]}})
                                         break
                                 else:
                                     initial_reserve_volume_info = existing_volumes_by_id[concat_volume_info["memberRefs"][0]]
@@ -1389,7 +1390,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
             base_volume_storage_pool_name = existing_storage_pools_by_id[base_volume_storage_pool_id]["name"]
 
             # Check storage group information.
-            if volume_info["preferred_reserve_storage_pool"] is None:
+            if not volume_info["preferred_reserve_storage_pool"]:
                 volume_info["preferred_reserve_storage_pool"] = base_volume_storage_pool_name
             elif volume_info["preferred_reserve_storage_pool"] not in existing_storage_pools_by_name.keys():
                 self.module.fail_json(msg="Preferred storage pool or volume group does not exist! Storage pool [%s]. Group [%s]."

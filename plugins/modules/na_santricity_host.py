@@ -434,7 +434,8 @@ class NetAppESeriesHost(NetAppESeriesModule):
         self.post_body["hostType"] = dict(index=self.host_type_index)
         if not self.check_mode:
             try:
-                rc, self.host_obj = self.request("storage-systems/%s/hosts/%s" % (self.ssid, self.host_obj["id"]), method="POST", data=self.post_body, ignore_errors=True)
+                rc, self.host_obj = self.request("storage-systems/%s/hosts/%s" % (self.ssid, self.host_obj["id"]), method="POST",
+                                                 data=self.post_body, ignore_errors=True)
             except Exception as err:
                 self.module.fail_json(msg="Failed to update host. Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 

@@ -393,7 +393,8 @@ class NetAppESeriesVolume(NetAppESeriesModule):
                 if value:
                     for index, start in enumerate(range(0, len(value), self.MAXIMUM_VOLUME_METADATA_VALUE_SEGMENT_LENGTH)):
                         if len(value) > start + self.MAXIMUM_VOLUME_METADATA_VALUE_SEGMENT_LENGTH:
-                            self.volume_metadata.append({"key": "%s~%s" % (key, str(index)), "value": value[start:start + self.MAXIMUM_VOLUME_METADATA_VALUE_SEGMENT_LENGTH]})
+                            self.volume_metadata.append({"key": "%s~%s" % (key, str(index)),
+                                                         "value": value[start:start + self.MAXIMUM_VOLUME_METADATA_VALUE_SEGMENT_LENGTH]})
                         else:
                             self.volume_metadata.append({"key": "%s~%s" % (key, str(index)), "value": value[start:len(value)]})
                 else:

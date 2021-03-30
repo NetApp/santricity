@@ -75,18 +75,18 @@ systems_found:
     description: Success message
     returned: on success
     type: dict
-    sample: {"012341234123": {
+    sample: '{"012341234123": {
                 "addresses": ["192.168.1.184", "192.168.1.185"],
                 "api_urls": ["https://192.168.1.184:8443/devmgr/v2/", "https://192.168.1.185:8443/devmgr/v2/"],
                 "label": "ExampleArray01",
                 "proxy_ssid: "",
                 "proxy_required": false},
-             "012341234567": {
+              "012341234567": {
                 "addresses": ["192.168.1.23", "192.168.1.24"],
                 "api_urls": ["https://192.168.1.100:8443/devmgr/v2/"],
                 "label": "ExampleArray02",
                 "proxy_ssid": "array_ssid",
-                "proxy_required": true}}
+                "proxy_required": true}}'
 """
 
 import json
@@ -101,12 +101,20 @@ from ansible.module_utils._text import to_native
 try:
     from ansible.module_utils.compat.ipaddress import ipaddress
 except ImportError:
-    import ipaddress
+    try:
+        import ipaddress
+    except ImportError:
+        HAS_IPADDRESS = False
+    else:
+        HAS_IPADDRESS = True
+else:
+    HAS_IPADDRESS = True
 
 try:
     import urlparse
 except ImportError:
     import urllib.parse as urlparse
+
 
 class NetAppESeriesDiscover:
     """Discover E-Series storage systems."""
@@ -304,6 +312,13 @@ class NetAppESeriesDiscover:
 
     def discover(self):
         """Discover E-Series storage systems."""
+        missing_packages = []
+        if not HAS_IPADDRESS:
+            missing_packages.append("ipaddress")
+
+        if missing_packages:
+            self.module.fail_json(msg="Python packages are missing! Packages [%s]." % ", ".join(missing_packages))
+
         if self.proxy_url:
             self.proxy_discover()
             self.update_proxy_with_proxy_ssid()

@@ -160,7 +160,14 @@ from time import sleep
 try:
     from ansible.module_utils.compat.ipaddress import ipaddress
 except ImportError:
-    import ipaddress
+    try:
+        import ipaddress
+    except ImportError:
+        HAS_IPADDRESS = False
+    else:
+        HAS_IPADDRESS = True
+else:
+    HAS_IPADDRESS = True
 
 
 class NetAppESeriesProxySystems(NetAppESeriesModule):
@@ -480,6 +487,13 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
 
     def apply(self):
         """Determine whether changes are required and, if necessary, apply them."""
+        missing_packages = []
+        if not HAS_IPADDRESS:
+            missing_packages.append("ipaddress")
+
+        if missing_packages:
+            self.module.fail_json(msg="Python packages are missing! Packages [%s]." % ", ".join(missing_packages))
+
         if self.is_embedded():
             self.module.fail_json(msg="Cannot add/remove storage systems to SANtricity Web Services Embedded instance.")
 

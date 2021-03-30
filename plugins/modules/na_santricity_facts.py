@@ -205,17 +205,17 @@ RETURN = """
                 type: complex
                 sample:
                    - {"beegfs_host": [{"id": "02000000600A098000A4B9D1000015FD5C8F7F9E",
-                                       "meta_data": {"filetype": "ext4", "public": true},
-                                       "name": "some_volume",
-                                       "workload_name": "beegfs_metadata",
-                                       "workload_metadata: {"filetype": "ext4", "public": true},
-                                       "volume_metadata:  {"format_type": "ext4",
+                                      "meta_data": {"filetype": "ext4", "public": true},
+                                      "name": "some_volume",
+                                      "workload_name": "beegfs_metadata",
+                                      "workload_metadata": {"filetype": "ext4", "public": true},
+                                      "volume_metadata": '{"format_type": "ext4",
                                                            "format_options": "-i 2048 -I 512 -J size=400 -Odir_index,filetype",
                                                            "mount_options": "noatime,nodiratime,nobarrier,_netdev",
-                                                           "mount_directory": "/data/beegfs/"},
-                                       "host_types": ["nvmeof"],
-                                       "eui": "0000139A3885FA4500A0980000EAA272V",
-                                       "wwn": "600A098000A4B9D1000015FD5C8F7F9E"}]}
+                                                           "mount_directory": "/data/beegfs/"}',
+                                      "host_types": ["nvmeof"],
+                                      "eui": "0000139A3885FA4500A0980000EAA272V",
+                                      "wwn": "600A098000A4B9D1000015FD5C8F7F9E"}]}
             snapshot_images:
                 description: snapshot image list that contains identification, capacity, and status information for each
                              snapshot image
@@ -962,7 +962,7 @@ class Facts(NetAppESeriesModule):
                                 break
                         else:
                             facts['netapp_hostside_io_interfaces'].append(interface_info)
-                    except:
+                    except Exception as error:
                         pass
 
         # Create a dictionary of volume lists keyed by host names

@@ -56,7 +56,7 @@ class LookupModule(LookupBase):
             raise AnsibleError("Invalid argument: host_interface_ports must contain list of dictionaries containing 'stdout_lines' key"
                                " which is a list of iqns, nqns, or wwpns for each expected_hosts from the results of the santricity_host lookup plugin")
         if protocol not in ["iscsi", "sas", "fc", "ib_iser", "ib_srp", "nvme_ib", "nvme_fc", "nvme_roce"]:
-            raise AnsibleError("Invalid argument: protocol must be a protocol from the following: iscsi, sas, fc, ib_iser, ib_srp, nvme_ib, nvme_fc, nvme_roce.")
+            raise AnsibleError("Invalid argument: protocol must one of the following: iscsi, sas, fc, ib_iser, ib_srp, nvme_ib, nvme_fc, nvme_roce.")
 
         for host in hosts["expected_hosts"].keys():
             sanitized_hostname = re.sub("[.:-]", "_", host)[:20]

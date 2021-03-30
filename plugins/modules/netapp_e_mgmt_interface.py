@@ -185,7 +185,7 @@ EXAMPLES = """
 
     - name: Enable ssh access for ports one and two on controller A
       netapp_e_mgmt_interface:
-        channel: {{ item }}
+        channel: "{{ item }}"
         controller: "A"
         ssh: yes
         ssid: "{{ ssid }}"
@@ -210,7 +210,7 @@ EXAMPLES = """
 
     - name: Configure static NTP settings for ports one and two on controller B
       netapp_e_mgmt_interface:
-        channel: {{ item }}
+        channel: "{{ item }}"
         controller: "B"
         ntp_config_method: static
         ntp_address: "129.100.1.100"

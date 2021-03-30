@@ -37,8 +37,8 @@ options:
     type: str
     required: false
 notes:
-  - Set I(ssid=="0") or I(ssid=="proxy") to specifically reference SANtricity Web Services Proxy.
-  - Certificates can be the following filetypes: PEM (.pem, .crt, .cer, or .key) or DER (.der or .cer)
+  - Set I(ssid=='0') or I(ssid=='proxy') to specifically reference SANtricity Web Services Proxy.
+  - Certificates can be the following filetypes - PEM (.pem, .crt, .cer, or .key) or DER (.der or .cer)
   - When I(certificates) is not defined then a self-signed certificate will be expected.
 requirements:
   - cryptography
@@ -52,11 +52,11 @@ EXAMPLES = """
     api_password: adminpass
     controller: A
     certificates:
-      - "root_auth_cert.pem"
-      - "intermediate_auth1_cert.pem"
-      - "intermediate_auth2_cert.pem"
-      - "public_cert.pem"
-      - "private_key.pem"
+      - 'root_auth_cert.pem'
+      - 'intermediate_auth1_cert.pem'
+      - 'intermediate_auth2_cert.pem'
+      - 'public_cert.pem'
+      - 'private_key.pem'
     passphrase: keypass
 - name: Ensure signed certificate bundle is installed.
   na_santricity_server_certificate:
@@ -66,7 +66,7 @@ EXAMPLES = """
     api_password: adminpass
     controller: B
     certificates:
-      - "cert_bundle.pem"
+      - 'cert_bundle.pem'
     passphrase: keypass
 - name: Ensure storage system generated self-signed certificate is installed.
   na_santricity_server_certificate:
@@ -84,18 +84,19 @@ changed:
     sample: true
 signed_server_certificate:
     description: Whether the public server certificate is signed.
+    type: bool
     returned: always
     sample: true
 added_certificates:
     description: Any SSL certificates that were added.
     type: list
     returned: always
-    sample: ["added_cerificiate.crt"]
+    sample: ['added_certificiate.crt']
 removed_certificates:
     description: Any SSL certificates that were removed.
     type: list
     returned: always
-    sample: ["removed_cerificiate.crt"]
+    sample: ['removed_certificiate.crt']
 """
 
 import binascii
@@ -106,11 +107,17 @@ from ansible.module_utils import six
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 from time import sleep
-from OpenSSL import crypto
-from cryptography.hazmat.primitives import serialization
+
+try:
+    from OpenSSL import crypto
+except ImportError:
+    HAS_OPENSSL = False
+else:
+    HAS_OPENSSL = True
 try:
     from cryptography import x509
     from cryptography.hazmat.backends import default_backend
+    from cryptography.hazmat.primitives import serialization
 except ImportError:
     HAS_CRYPTOGRAPHY = False
 else:
@@ -156,8 +163,7 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
     RESET_SSL_CONFIG_TIMEOUT_SEC = 3 * 60
 
     def __init__(self):
-        ansible_options = dict(state=dict(type="str", default="present", choices=["present", "absent"], required=False),
-                               controller=dict(type="str", required=True, choices=["A", "B"]),
+        ansible_options = dict(controller=dict(type="str", required=True, choices=["A", "B"]),
                                certificates=dict(type="list", required=False),
                                passphrase=dict(type="str", required=False, no_log=True))
 
@@ -326,7 +332,7 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
             self.cache_get_current_certificates = {}
             for certificate in current_certificates:
                 certificate.update({"issuer": self.sanitize_distinguished_name(certificate["issuerDN"])})
-                self.cache_get_current_certificates.update({self.sanitize_distinguished_name(certificate["subjectDN"]): certificate })
+                self.cache_get_current_certificates.update({self.sanitize_distinguished_name(certificate["subjectDN"]): certificate})
 
         return self.cache_get_current_certificates
 
@@ -488,6 +494,15 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
 
     def apply(self):
         """Apply state changes to the storage array's truststore."""
+        missing_packages = []
+        if not HAS_CRYPTOGRAPHY:
+            missing_packages.append("cryptography")
+        if not HAS_OPENSSL:
+            missing_packages.append("OpenSSL")
+
+        if missing_packages:
+            self.module.fail_json(msg="Python packages are missing! Packages [%s]." % ", ".join(missing_packages))
+
         changes = self.determine_changes()
 
         if changes["change_required"] and not self.module.check_mode:
