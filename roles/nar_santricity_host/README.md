@@ -182,6 +182,7 @@ Role Variables
     eseries_storage_pool_criteria_size_unit: gb           # Default unit size for all storage pool related sizing.
                                                           #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
     eseries_storage_pool_criteria_drive_min_size:         # Default minimum drive size for storage pools.
+    eseries_storage_pool_criteria_drive_max_size:         # Default maximum drive size for storage pools.
     eseries_storage_pool_criteria_drive_require_da:       # Default for whether storage pools are required to have data assurance (DA) compatible drives.
                                                           #    Choices: true, false
     eseries_storage_pool_criteria_drive_require_fde:      # Default for whether storage pools are required to have drive security compatible drives.
@@ -244,6 +245,7 @@ Role Variables
         criteria_drive_type:                       # Default drive type for storage pools. Choices: hdd, ssd
         criteria_size_unit:                        # Default unit size for all storage pool related sizing. Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb, pct
         criteria_drive_min_size:                   # Default minimum drive size for storage pools.
+        criteria_drive_max_size:                   # Default maximum drive size for storage pools.
         criteria_drive_require_da:                 # Default for whether storage pools are required to have data assurance (DA) compatible drives. Choices: true, false
         criteria_drive_require_fde:                # Default for whether storage pools are required to have drive security compatible drives. Choices: true, false
         remove_volumes:                            # Default policy for deleting volumes prior to removing storage pools.

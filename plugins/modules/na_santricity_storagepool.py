@@ -62,6 +62,11 @@ options:
       - The minimum individual drive size (in size_unit) to consider when choosing drives for the storage pool.
     type: float
     required: false
+  criteria_drive_max_size:
+    description:
+      - The maximum individual drive size (in size_unit) to consider when choosing drives for the storage pool.
+    type: float
+    required: false
   criteria_drive_interface_type:
     description:
       - The interface type to use when selecting drives for the storage pool
@@ -199,6 +204,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
                                                type="str"),
             criteria_drive_type=dict(choices=["ssd", "hdd"], type="str", required=False),
             criteria_drive_min_size=dict(type="float"),
+            criteria_drive_max_size=dict(type="float"),
             criteria_drive_require_da=dict(type="bool", required=False),
             criteria_drive_require_fde=dict(type="bool", required=False),
             criteria_min_usable_capacity=dict(type="float"),
@@ -223,6 +229,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
         self.criteria_min_usable_capacity = args["criteria_min_usable_capacity"]
         self.criteria_size_unit = args["criteria_size_unit"]
         self.criteria_drive_min_size = args["criteria_drive_min_size"]
+        self.criteria_drive_max_size = args["criteria_drive_max_size"]
         self.criteria_drive_type = args["criteria_drive_type"]
         self.criteria_drive_interface_type = args["criteria_drive_interface_type"]
         self.criteria_drive_require_fde = args["criteria_drive_require_fde"]
@@ -236,11 +243,11 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
 
         # Change all sizes to be measured in bytes
         if self.criteria_min_usable_capacity:
-            self.criteria_min_usable_capacity = int(self.criteria_min_usable_capacity *
-                                                    self.SIZE_UNIT_MAP[self.criteria_size_unit])
+            self.criteria_min_usable_capacity = int(self.criteria_min_usable_capacity * self.SIZE_UNIT_MAP[self.criteria_size_unit])
         if self.criteria_drive_min_size:
-            self.criteria_drive_min_size = int(self.criteria_drive_min_size *
-                                               self.SIZE_UNIT_MAP[self.criteria_size_unit])
+            self.criteria_drive_min_size = int(self.criteria_drive_min_size * self.SIZE_UNIT_MAP[self.criteria_size_unit])
+        if self.criteria_drive_max_size:
+            self.criteria_drive_max_size = int(self.criteria_drive_max_size * self.SIZE_UNIT_MAP[self.criteria_size_unit])
         self.criteria_size_unit = "bytes"
 
         # Adjust unused raid level option to reflect documentation
@@ -519,6 +526,9 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
             if self.criteria_drive_min_size:
                 if self.criteria_drive_min_size > min(self.get_available_drive_capacities(candidate["driveRefList"]["driveRef"])):
                     continue
+            if self.criteria_drive_max_size:
+                if self.criteria_drive_max_size < min(self.get_available_drive_capacities(candidate["driveRefList"]["driveRef"])):
+                    continue
 
             return candidate
 
@@ -572,6 +582,9 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
 
                 if self.criteria_drive_min_size:
                     if self.criteria_drive_min_size > min(self.get_available_drive_capacities(candidate["drives"])):
+                        continue
+                if self.criteria_drive_max_size:
+                    if self.criteria_drive_max_size < min(self.get_available_drive_capacities(candidate["drives"])):
                         continue
 
                 if self.raid_level == "raidDiskPool":
