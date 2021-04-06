@@ -1,0 +1,2 @@
+minor_changes:
+  - Add resource-provisioned volumes option to globals and nar_santricity_management role.

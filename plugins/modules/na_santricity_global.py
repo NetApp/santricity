@@ -63,6 +63,14 @@ options:
             - enabled
             - disabled
         required: False
+    resource_provisioned_volume:
+        description:
+            - Enable resource-provisioned volumes to eliminate volume initialization and provide additional unmapped blocks that may increase SSD wear life.
+        type: str
+        choices:
+            - enabled
+            - disabled
+        required: False
 notes:
     - Check mode is supported.
     - This module requires Web Services API v1.3 or newer.
@@ -116,6 +124,11 @@ host_connectivity_reporting:
     returned: on success
     type: str
     sample: enabled
+resource_provisioned_volume:
+    description: Whether volumes will be skip initializing and provide unmapped volumes
+    returned: on success
+    type: str
+    sample: enabled
 cache_settings:
     description: Current cache block size and flushing threshold values
     returned: on success
@@ -139,6 +152,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                                default_host_type=dict(type="str", require=False),
                                automatic_load_balancing=dict(type="str", choices=["enabled", "disabled"], required=False),
                                host_connectivity_reporting=dict(type="str", choices=["enabled", "disabled"], required=False),
+                               resource_provisioned_volume=dict(type="str", choices=["enabled", "disabled"], required=False),
                                name=dict(type='str', required=False, aliases=['label']))
 
         super(NetAppESeriesGlobalSettings, self).__init__(ansible_options=ansible_options,
@@ -151,14 +165,19 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         self.host_type_index = args["default_host_type"]
 
         self.autoload_enabled = None
+        self.resource_provisioned_volume_enabled = None
+        self.host_connectivity_reporting_enabled = None
+
         if args["automatic_load_balancing"]:
             self.autoload_enabled = args["automatic_load_balancing"] == "enabled"
 
-        self.host_connectivity_reporting_enabled = None
         if args["host_connectivity_reporting"]:
             self.host_connectivity_reporting_enabled = args["host_connectivity_reporting"] == "enabled"
         elif self.autoload_enabled:
             self.host_connectivity_reporting_enabled = True
+
+        if args["resource_provisioned_volume"]:
+            self.resource_provisioned_volume_enabled = args["resource_provisioned_volume"] == "enabled"
 
         if self.autoload_enabled and not self.host_connectivity_reporting_enabled:
             self.module.fail_json(msg="Option automatic_load_balancing requires host_connectivity_reporting to be enabled. Array [%s]." % self.ssid)
@@ -174,6 +193,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             try:
                 rc, capabilities = self.request("storage-systems/%s/capabilities" % self.ssid)
                 self.current_configuration_cache["autoload_capable"] = "capabilityAutoLoadBalancing" in capabilities["productCapabilities"]
+                self.current_configuration_cache["resource_provisioned_volume_capable"] = "capabilityFastInitialization" in capabilities["productCapabilities"]
                 self.current_configuration_cache["cache_block_size_options"] = capabilities["featureParameters"]["cacheBlockSizes"]
             except Exception as error:
                 self.module.fail_json(msg="Failed to retrieve storage array capabilities. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
@@ -200,6 +220,12 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                 self.current_configuration_cache["autoload_enabled"] = array_info["autoLoadBalancingEnabled"]
                 self.current_configuration_cache["host_connectivity_reporting_enabled"] = array_info["hostConnectivityReportingEnabled"]
                 self.current_configuration_cache["name"] = array_info['name']
+            except Exception as error:
+                self.module.fail_json(msg="Failed to determine current configuration. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+            try:
+                rc, array_info = self.request("storage-systems/%s/resource-provisioned-volumes" % self.ssid)
+                self.current_configuration_cache["resource_provisioned_volume_enabled"] = array_info["enableResourceProvisionedVolumes"]
             except Exception as error:
                 self.module.fail_json(msg="Failed to determine current configuration. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
@@ -269,6 +295,13 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
 
         return self.host_connectivity_reporting_enabled != self.get_current_configuration()["host_connectivity_reporting_enabled"]
 
+    def change_resource_provisioned_volume_enabled_required(self):
+        """Determine whether resource provisioned volume state change is required."""
+        if self.resource_provisioned_volume_enabled is None:
+            return False
+
+        return self.resource_provisioned_volume_enabled != self.get_current_configuration()["resource_provisioned_volume_enabled"]
+
     def change_name_required(self):
         """Determine whether storage array name change is required."""
         if self.name is None:
@@ -314,12 +347,20 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             self.module.fail_json(msg="Failed to set automatic load balancing state. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
     def update_host_connectivity_reporting_enabled(self):
-        """Update automatic load balancing state."""
+        """Update host connectivity reporting state."""
         try:
             rc, host_connectivity_reporting = self.request("storage-systems/%s/symbol/setHostConnectivityReporting?verboseErrorResponse=true" % self.ssid,
                                                            method="POST", data={"enableHostConnectivityReporting": self.host_connectivity_reporting_enabled})
         except Exception as error:
             self.module.fail_json(msg="Failed to enable host connectivity reporting. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+    def update_resource_provisioned_volume_enabled(self):
+        """Update resource-provisioned volume state."""
+        try:
+            rc, resource_provisioned_volume = self.request("storage-systems/%s/resource-provisioned-volumes" % self.ssid, method="POST",
+                                                           data={"enableResourceProvisionedVolumes": self.resource_provisioned_volume_enabled})
+        except Exception as error:
+            self.module.fail_json(msg="Failed to enable resource-provision volumes. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
     def update_name(self):
         """Update storage array's name."""
@@ -334,7 +375,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         self.get_current_configuration()
 
         if (self.change_autoload_enabled_required() or self.change_cache_block_size_required() or self.change_cache_flush_threshold_required() or
-                self.change_host_type_required() or self.change_name_required() or self.change_host_connectivity_reporting_enabled_required()):
+                self.change_host_type_required() or self.change_name_required() or self.change_host_connectivity_reporting_enabled_required() or
+                self.change_resource_provisioned_volume_enabled_required()):
             change_required = True
 
         if change_required and not self.module.check_mode:
@@ -342,6 +384,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                 self.update_autoload()
             if self.change_host_connectivity_reporting_enabled_required():
                 self.update_host_connectivity_reporting_enabled()
+            if self.change_resource_provisioned_volume_enabled_required():
+                self.update_resource_provisioned_volume_enabled()
             if self.change_cache_block_size_required() or self.change_cache_flush_threshold_required():
                 self.update_cache_settings()
             if self.change_host_type_required():
@@ -355,6 +399,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                               default_host_type_index=self.get_current_configuration()["default_host_type_index"],
                               automatic_load_balancing="enabled" if self.get_current_configuration()["autoload_enabled"] else "disabled",
                               host_connectivity_reporting="enabled" if self.get_current_configuration()["host_connectivity_reporting_enabled"] else "disabled",
+                              resource_provisioned_volume="enabled" if self.get_current_configuration()["resource_provisioned_volume_enabled"] else "disabled",
                               array_name=self.get_current_configuration()["name"])
 
 

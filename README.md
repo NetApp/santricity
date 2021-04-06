@@ -349,6 +349,7 @@ Collection Variables
     eseries_system_cache_flush_threshold:          # Unwritten data will be flushed when exceeds this threshold
     eseries_system_autoload_balance:               # Whether automatic load balancing should be enabled. Choices: enabled, disabled
     eseries_system_host_connectivity_reporting:    # Whether host connectivity reporting should be enabled. Choices: enabled, disabled
+    eseries_system_resource_provisioned_volumes:   # Whether volumes should skip initializing and leave volumes unmapped. Choices: enabled, disabled
     eseries_system_default_host_type:              # Only required when using something other than Linux kernel 3.10 or later with DM-MP (Linux DM-MP),
                                                    #    non-clustered Windows (Windows), or the storage system default host type is incorrect.
                                                    # Common host type definitions:

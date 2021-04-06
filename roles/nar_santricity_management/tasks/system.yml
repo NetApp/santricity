@@ -10,6 +10,7 @@
     cache_flush_threshold: "{{ eseries_system_cache_flush_threshold | default(omit) }}"
     automatic_load_balancing: "{{ eseries_system_autoload_balance | default(omit) }}"
     host_connectivity_reporting: "{{ eseries_system_host_connectivity_reporting | default(omit) }}"
+    resource_provisioned_volume: "{{ eseries_system_resource_provisioned_volumes | default(omit) }}"
     default_host_type: "{{ eseries_system_default_host_type | default(omit)}}"
   connection: local
   when: "eseries_system_name is defined or
@@ -17,6 +18,7 @@
          eseries_system_cache_flush_threshold is defined or
          eseries_system_autoload_balance is defined or
          eseries_system_host_connectivity_reporting is defined or
+         eseries_system_resource_provisioned_volumes is defined or
          eseries_system_default_host_type is defined"
   tags:
     - system
