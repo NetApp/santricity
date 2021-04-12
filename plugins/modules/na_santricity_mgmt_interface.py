@@ -3,8 +3,8 @@
 # (c) 2020, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
-__metaclass__ = type
 
+__metaclass__ = type
 
 DOCUMENTATION = """
 ---
@@ -87,13 +87,12 @@ options:
         required: false
     dns_address:
         description:
-            - Primary IPv4 DNS server address
+            - Primary IPv4 or IPv6 DNS server address
         type: str
         required: false
     dns_address_backup:
         description:
-            - Backup IPv4 DNS server address
-            - Queried when primary DNS server fails
+            - Secondary IPv4 or IPv6 DNS server address
         type: str
         required: false
     ntp_config_method:
@@ -109,13 +108,12 @@ options:
         required: false
     ntp_address:
         description:
-            - Primary IPv4 NTP server address
+            - Primary IPv4, IPv6, or FQDN NTP server address
         type: str
         required: false
     ntp_address_backup:
         description:
-            - Backup IPv4 NTP server address
-            - Queried when primary NTP server fails
+            - Secondary IPv4, IPv6, or FQDN NTP server address
         type: str
         required: false
     ssh:
@@ -208,6 +206,31 @@ try:
 except ImportError:
     import urllib.parse as urlparse
 
+try:
+    import ipaddress
+except ImportError:
+    HAS_IPADDRESS = False
+else:
+    HAS_IPADDRESS = True
+
+
+def is_ipv4(address):
+    """Determine whether address is IPv4."""
+    try:
+        ipaddress.IPv4Address(address)
+        return True
+    except Exception as error:
+        return False
+
+
+def is_ipv6(address):
+    """Determine whether address is IPv6."""
+    try:
+        ipaddress.IPv6Address(address)
+        return True
+    except Exception as error:
+        return False
+
 
 class NetAppESeriesMgmtInterface(NetAppESeriesModule):
     MAXIMUM_VERIFICATION_TIMEOUT = 120
@@ -219,7 +242,7 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
                                address=dict(type="str", required=False),
                                subnet_mask=dict(type="str", required=False),
                                gateway=dict(type="str", required=False),
-                               config_method=dict(type="str", required=False, choices=["dhcp", "static"]),
+                               config_method=dict(type="str", required=False, choices=["dhcp", "static", ]),
                                dns_config_method=dict(type="str", required=False, choices=["dhcp", "static"]),
                                dns_address=dict(type="str", required=False),
                                dns_address_backup=dict(type="str", required=False),
@@ -383,19 +406,51 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
             self.body.update({"dnsAcquisitionDescriptor": {"dnsAcquisitionType": "dhcp"}})
 
         elif self.dns_config_method == "static":
-            dns_servers = [dict(addressType="ipv4", ipv4Address=self.dns_address)]
-            if self.dns_address_backup:
-                dns_servers.append(dict(addressType="ipv4", ipv4Address=self.dns_address_backup))
-
-            if (self.interface_info["dns_config_method"] != "stat" or
-                    len(self.interface_info["dns_servers"]) != len(dns_servers) or
-                    (len(self.interface_info["dns_servers"]) == 2 and
-                     (self.interface_info["dns_servers"][0]["ipv4Address"] != self.dns_address or
-                      self.interface_info["dns_servers"][1]["ipv4Address"] != self.dns_address_backup)) or
-                    (len(self.interface_info["dns_servers"]) == 1 and
-                     self.interface_info["dns_servers"][0]["ipv4Address"] != self.dns_address)):
+            dns_servers = []
+            if ((self.dns_address and self.dns_address_backup and (not self.interface_info["dns_servers"] or
+                                                                   len(self.interface_info["dns_servers"]) != 2)) or
+                    (self.dns_address and not self.dns_address_backup and (not self.interface_info["dns_servers"] or
+                                                                           len(self.interface_info["dns_servers"]) != 1))):
                 change_required = True
+
+            # Check primary DNS address
+            if self.dns_address:
+                if is_ipv4(self.dns_address):
+                    dns_servers.append({"addressType": "ipv4", "ipv4Address": self.dns_address})
+                    if (not self.interface_info["dns_servers"] or len(self.interface_info["dns_servers"]) < 1 or
+                            self.interface_info["dns_servers"][0]["addressType"] != "ipv4" or
+                            self.interface_info["dns_servers"][0]["ipv4Address"] != self.dns_address):
+                        change_required = True
+                elif is_ipv6(self.dns_address):
+                    dns_servers.append({"addressType": "ipv6", "ipv6Address": self.dns_address})
+                    if (not self.interface_info["dns_servers"] or len(self.interface_info["dns_servers"]) < 1 or
+                            self.interface_info["dns_servers"][0]["addressType"] != "ipv6" or
+                            self.interface_info["dns_servers"][0]["ipv6Address"].replace(":", "").lower() != self.dns_address.replace(":", "").lower()):
+                        change_required = True
+                else:
+                    self.module.fail_json(msg="Invalid IP address! DNS address must be either IPv4 or IPv6. Address [%s]."
+                                              " Array [%s]." % (self.dns_address, self.ssid))
+
+            # Check secondary DNS address
+            if self.dns_address_backup:
+                if is_ipv4(self.dns_address_backup):
+                    dns_servers.append({"addressType": "ipv4", "ipv4Address": self.dns_address_backup})
+                    if (not self.interface_info["dns_servers"] or len(self.interface_info["dns_servers"]) < 2 or
+                            self.interface_info["dns_servers"][1]["addressType"] != "ipv4" or
+                            self.interface_info["dns_servers"][1]["ipv4Address"] != self.dns_address_backup):
+                        change_required = True
+                elif is_ipv6(self.dns_address_backup):
+                    dns_servers.append({"addressType": "ipv6", "ipv6Address": self.dns_address_backup})
+                    if (not self.interface_info["dns_servers"] or len(self.interface_info["dns_servers"]) < 2 or
+                            self.interface_info["dns_servers"][1]["addressType"] != "ipv6" or
+                            self.interface_info["dns_servers"][1]["ipv6Address"].replace(":", "").lower() != self.dns_address_backup.replace(":", "").lower()):
+                        change_required = True
+                else:
+                    self.module.fail_json(msg="Invalid IP address! DNS address must be either IPv4 or IPv6. Address [%s]."
+                                              " Array [%s]." % (self.dns_address, self.ssid))
+
             self.body.update({"dnsAcquisitionDescriptor": {"dnsAcquisitionType": "stat", "dnsServers": dns_servers}})
+
         return change_required
 
     def update_body_ntp_server_settings(self):
@@ -412,22 +467,63 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
             self.body.update({"ntpAcquisitionDescriptor": {"ntpAcquisitionType": "dhcp"}})
 
         elif self.ntp_config_method == "static":
-            ntp_servers = [{"addrType": "ipvx", "ipvxAddress": {"addressType": "ipv4", "ipv4Address": self.ntp_address}}]
-            if self.ntp_address_backup:
-                ntp_servers.append({"addrType": "ipvx", "ipvxAddress": {"addressType": "ipv4", "ipv4Address": self.ntp_address_backup}})
-
-            if (self.interface_info["ntp_config_method"] != "stat" or
-                    len(self.interface_info["ntp_servers"]) != len(ntp_servers) or
-                    ((len(self.interface_info["ntp_servers"]) == 2 and
-                      (self.interface_info["ntp_servers"][0]["ipvxAddress"]["ipv4Address"] != self.ntp_address or
-                       self.interface_info["ntp_servers"][1]["ipvxAddress"]["ipv4Address"] != self.ntp_address_backup)) or
-                     (len(self.interface_info["ntp_servers"]) == 1 and
-                      ((self.interface_info["ntp_servers"][0]["addrType"] == "ipvx" and
-                        self.interface_info["ntp_servers"][0]["ipvxAddress"]["ipv4Address"] != self.ntp_address) or
-                       (self.interface_info["ntp_servers"][0]["addrType"] == "domainName" and
-                        self.interface_info["ntp_servers"][0]["domainName"] != self.ntp_address))))):
+            ntp_servers = []
+            if ((self.ntp_address and self.ntp_address_backup and (not self.interface_info["ntp_servers"] or
+                                                                   len(self.interface_info["ntp_servers"]) != 2)) or
+                    (self.ntp_address and not self.ntp_address_backup and (not self.interface_info["ntp_servers"] or
+                                                                           len(self.interface_info["ntp_servers"]) != 1))):
                 change_required = True
+
+            # Check primary NTP address
+            if self.ntp_address:
+                if is_ipv4(self.ntp_address):
+                    ntp_servers.append({"addrType": "ipvx", "ipvxAddress": {"addressType": "ipv4", "ipv4Address": self.ntp_address}})
+                    if (not self.interface_info["ntp_servers"] or len(self.interface_info["ntp_servers"]) < 1 or
+                            self.interface_info["ntp_servers"][0]["addrType"] != "ipvx" or
+                            self.interface_info["ntp_servers"][0]["ipvxAddress"]["addressType"] != "ipv4" or
+                            self.interface_info["ntp_servers"][0]["ipvxAddress"]["ipv4Address"] != self.ntp_address):
+                        change_required = True
+                elif is_ipv6(self.ntp_address):
+                    ntp_servers.append({"addrType": "ipvx", "ipvxAddress": {"addressType": "ipv6", "ipv6Address": self.ntp_address}})
+                    if (not self.interface_info["ntp_servers"] or len(self.interface_info["ntp_servers"]) < 1 or
+                            self.interface_info["ntp_servers"][0]["addrType"] != "ipvx" or
+                            self.interface_info["ntp_servers"][0]["ipvxAddress"]["addressType"] != "ipv6" or
+                            self.interface_info["ntp_servers"][0]["ipvxAddress"][
+                                "ipv6Address"].replace(":", "").lower() != self.ntp_address.replace(":", "").lower()):
+                        change_required = True
+                else:
+                    ntp_servers.append({"addrType": "domainName", "domainName": self.ntp_address})
+                    if (not self.interface_info["ntp_servers"] or len(self.interface_info["ntp_servers"]) < 1 or
+                            self.interface_info["ntp_servers"][0]["addrType"] != "domainName" or
+                            self.interface_info["ntp_servers"][0]["domainName"] != self.ntp_address):
+                        change_required = True
+
+            # Check secondary NTP address
+            if self.ntp_address_backup:
+                if is_ipv4(self.ntp_address_backup):
+                    ntp_servers.append({"addrType": "ipvx", "ipvxAddress": {"addressType": "ipv4", "ipv4Address": self.ntp_address_backup}})
+                    if (not self.interface_info["ntp_servers"] or len(self.interface_info["ntp_servers"]) < 2 or
+                            self.interface_info["ntp_servers"][1]["addrType"] != "ipvx" or
+                            self.interface_info["ntp_servers"][1]["ipvxAddress"]["addressType"] != "ipv4" or
+                            self.interface_info["ntp_servers"][1]["ipvxAddress"]["ipv4Address"] != self.ntp_address_backup):
+                        change_required = True
+                elif is_ipv6(self.ntp_address_backup):
+                    ntp_servers.append({"addrType": "ipvx", "ipvxAddress": {"addressType": "ipv6", "ipv6Address": self.ntp_address_backup}})
+                    if (not self.interface_info["ntp_servers"] or len(self.interface_info["ntp_servers"]) < 2 or
+                            self.interface_info["ntp_servers"][1]["addrType"] != "ipvx" or
+                            self.interface_info["ntp_servers"][1]["ipvxAddress"]["addressType"] != "ipv6" or
+                            self.interface_info["ntp_servers"][1]["ipvxAddress"][
+                                "ipv6Address"].replace(":", "").lower() != self.ntp_address_backup.replace(":", "").lower()):
+                        change_required = True
+                else:
+                    ntp_servers.append({"addrType": "domainName", "domainName": self.ntp_address_backup})
+                    if (not self.interface_info["ntp_servers"] or len(self.interface_info["ntp_servers"]) < 2 or
+                            self.interface_info["ntp_servers"][1]["addrType"] != "domainName" or
+                            self.interface_info["ntp_servers"][1]["domainName"].lower() != self.ntp_address_backup.lower()):
+                        change_required = True
+
             self.body.update({"ntpAcquisitionDescriptor": {"ntpAcquisitionType": "stat", "ntpServers": ntp_servers}})
+
         return change_required
 
     def update_body_ssh_setting(self):
