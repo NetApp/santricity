@@ -99,14 +99,9 @@ from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santrici
 from ansible.module_utils._text import to_native
 
 try:
-    from ansible.module_utils.compat.ipaddress import ipaddress
+    import ipaddress
 except ImportError:
-    try:
-        import ipaddress
-    except ImportError:
-        HAS_IPADDRESS = False
-    else:
-        HAS_IPADDRESS = True
+    HAS_IPADDRESS = False
 else:
     HAS_IPADDRESS = True
 
