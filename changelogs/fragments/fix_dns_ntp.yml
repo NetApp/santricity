@@ -1,3 +1,0 @@
-minor_changes:
-  - Add IPv6 support for DNS
-  - Add IPv6 and FQDN support for NTP

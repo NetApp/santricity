@@ -5,6 +5,17 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.2.1
+======
+
+Minor Changes
+-------------
+
+- Add IPv6 and FQDN support for NTP
+- Add IPv6 support for DNS
+- Add criteria_drive_max_size option to na_santricity_storagepool and nar_santricity_host role.
+- Add resource-provisioned volumes option to globals and nar_santricity_management role.
+
 v1.2.0
 ======
 
