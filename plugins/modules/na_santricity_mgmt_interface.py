@@ -242,7 +242,7 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
                                address=dict(type="str", required=False),
                                subnet_mask=dict(type="str", required=False),
                                gateway=dict(type="str", required=False),
-                               config_method=dict(type="str", required=False, choices=["dhcp", "static", ]),
+                               config_method=dict(type="str", required=False, choices=["dhcp", "static"]),
                                dns_config_method=dict(type="str", required=False, choices=["dhcp", "static"]),
                                dns_address=dict(type="str", required=False),
                                dns_address_backup=dict(type="str", required=False),
