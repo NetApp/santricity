@@ -97,8 +97,18 @@ releases:
         role.
       - Add resource-provisioned volumes option to globals and nar_santricity_management
         role.
+      - Remove resource-provisioned volumes setting from na_santicity_global module
+        and nar_santricity_management role."
+      release_summary: 'Release 1.2.2 simply removes resource-provisioned volumes
+        feature from collection.
+
+'
     fragments:
+    - 1.2.2.yml
     - criteria_drive_max_size.yml
     - fix_dns_ntp.yml
+    - remove_resource_provisioned_volumes.yml
     - resource_provisioned_volume.yml
     release_date: '2021-04-12'
+  1.2.2:
+    release_date: '2021-04-13'

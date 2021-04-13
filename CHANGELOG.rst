@@ -5,8 +5,17 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.2.2
+======
+
 v1.2.1
 ======
+
+Release Summary
+---------------
+
+Release 1.2.2 simply removes resource-provisioned volumes feature from collection.
+
 
 Minor Changes
 -------------
@@ -15,6 +24,7 @@ Minor Changes
 - Add IPv6 support for DNS
 - Add criteria_drive_max_size option to na_santricity_storagepool and nar_santricity_host role.
 - Add resource-provisioned volumes option to globals and nar_santricity_management role.
+- Remove resource-provisioned volumes setting from na_santicity_global module and nar_santricity_management role."
 
 v1.2.0
 ======
