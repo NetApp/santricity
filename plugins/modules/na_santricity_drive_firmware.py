@@ -129,7 +129,7 @@ class NetAppESeriesDriveFirmware(NetAppESeriesModule):
                                     if (drive_info["firmwareVersion"] != uploaded_firmware["firmwareVersion"] and
                                             uploaded_firmware["firmwareVersion"] in uploaded_firmware["supportedFirmwareVersions"]):
 
-                                        if self.ignore_inaccessible_drives or (not drive_info["offline"] and drive_info["available"]):
+                                        if self.ignore_inaccessible_drives or not drive_info["offline"]:
                                             drive_reference_list.append(drive["driveRef"])
 
                                         if not drive["onlineUpgradeCapable"] and self.upgrade_drives_online:
