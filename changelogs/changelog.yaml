@@ -114,6 +114,9 @@ releases:
     release_date: '2021-04-13'
   1.2.3:
     changes:
+      bugfixes:
+      - Fix drive firmware upgrade issue that prevented updating firware when drive
+        was in use.
       minor_changes:
       - Added nvme4k as a drive type interface to the na_santricity_storagepool module.
       - Added options for critical and warning threshold setting in na_santricity_storagepool
@@ -122,4 +125,7 @@ releases:
     fragments:
     - add_nvme_drive_interface.yml
     - fix_ddp_threshold_setting.yml
+    - fix_drive_firmware.yml
+    release_date: '2021-04-14'
+  1.2.4:
     release_date: '2021-04-14'

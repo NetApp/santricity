@@ -1,2 +1,0 @@
-bugfixes:
-  - Fix drive firmware upgrade issue that prevented updating firware when drive was in use.
