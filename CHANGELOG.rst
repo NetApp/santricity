@@ -5,6 +5,16 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.2.3
+======
+
+Minor Changes
+-------------
+
+- Added nvme4k as a drive type interface to the na_santricity_storagepool module.
+- Added options for critical and warning threshold setting in na_santricity_storagepool module and nar_santricity_host role.
+- Fix dynamic disk pool critical and warning threshold settings.
+
 v1.2.2
 ======
 

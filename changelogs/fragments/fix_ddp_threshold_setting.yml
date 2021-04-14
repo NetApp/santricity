@@ -1,3 +1,0 @@
-minor_changes:
-  - Fix dynamic disk pool critical and warning threshold settings.
-  - Added options for critical and warning threshold setting in na_santricity_storagepool module and nar_santricity_host role.

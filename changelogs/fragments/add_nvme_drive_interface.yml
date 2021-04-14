@@ -1,2 +1,0 @@
-minor_changes:
-  - Added nvme4k as a drive type interface to the na_santricity_storagepool module.

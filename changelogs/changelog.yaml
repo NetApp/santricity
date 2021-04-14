@@ -112,3 +112,14 @@ releases:
     release_date: '2021-04-12'
   1.2.2:
     release_date: '2021-04-13'
+  1.2.3:
+    changes:
+      minor_changes:
+      - Added nvme4k as a drive type interface to the na_santricity_storagepool module.
+      - Added options for critical and warning threshold setting in na_santricity_storagepool
+        module and nar_santricity_host role.
+      - Fix dynamic disk pool critical and warning threshold settings.
+    fragments:
+    - add_nvme_drive_interface.yml
+    - fix_ddp_threshold_setting.yml
+    release_date: '2021-04-14'
