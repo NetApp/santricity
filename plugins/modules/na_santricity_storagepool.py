@@ -72,7 +72,7 @@ options:
       - The interface type to use when selecting drives for the storage pool
       - If not provided then all interface types will be considered.
     type: str
-    choices: ["sas", "sas4k", "fibre", "fibre520b", "scsi", "sata", "pata"]
+    choices: ["scsi", "fibre", "sata", "pata", "fibre520b", "sas", "sas4k", "nvme4k"]
     required: false
   criteria_drive_require_da:
     description:
@@ -128,6 +128,22 @@ options:
       - If I(state=="present") then delete all available storage array drives that have security enabled.
     type: bool
     default: true
+    required: false
+  ddp_critical_threshold_pct:
+    description:
+      - Issues a critical alert when threshold of storage has been allocated.
+      - Only applicable when I(raid_level=="raidDiskPool").
+      - Set I(ddp_critical_threshold_pct==0) to disable alert.
+    type: int
+    default: 85
+    required: false
+  ddp_warning_threshold_pct:
+    description:
+      - Issues a warning alert when threshold of storage has been allocated.
+      - Only applicable when I(raid_level=="raidDiskPool").
+      - Set I(ddp_warning_threshold_pct==0) to disable alert.
+    type: int
+    default: 85
     required: false
 notes:
   - The expansion operations are non-blocking due to the time consuming nature of expanding volume groups
@@ -200,8 +216,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
             criteria_size_unit=dict(choices=["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb"],
                                     default="gb", type="str"),
             criteria_drive_count=dict(type="int"),
-            criteria_drive_interface_type=dict(choices=["sas", "sas4k", "fibre", "fibre520b", "scsi", "sata", "pata"],
-                                               type="str"),
+            criteria_drive_interface_type=dict(choices=["scsi", "fibre", "sata", "pata", "fibre520b", "sas", "sas4k", "nvme4k"], type="str"),
             criteria_drive_type=dict(choices=["ssd", "hdd"], type="str", required=False),
             criteria_drive_min_size=dict(type="float"),
             criteria_drive_max_size=dict(type="float"),
@@ -213,7 +228,9 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
             erase_secured_drives=dict(type="bool", default=True),
             secure_pool=dict(type="bool", default=False),
             reserve_drive_count=dict(type="int"),
-            remove_volumes=dict(type="bool", default=True))
+            remove_volumes=dict(type="bool", default=True),
+            ddp_critical_threshold_pct=dict(type="int", default=85, required=False),
+            ddp_warning_threshold_pct=dict(type="int", default=0, required=False))
 
         required_if = [["state", "present", ["raid_level"]]]
         super(NetAppESeriesStoragePool, self).__init__(ansible_options=ansible_options,
@@ -239,7 +256,14 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
         self.secure_pool = args["secure_pool"]
         self.reserve_drive_count = args["reserve_drive_count"]
         self.remove_volumes = args["remove_volumes"]
+        self.ddp_critical_threshold_pct = args["ddp_critical_threshold_pct"]
+        self.ddp_warning_threshold_pct = args["ddp_warning_threshold_pct"]
         self.pool_detail = None
+
+        if self.ddp_critical_threshold_pct < 0 or self.ddp_critical_threshold_pct > 100:
+            self.module.fail_json(msg="Invalid I(ddp_critical_threshold_pct) value! Must between or equal to 0 and 100. Array [%s]" % self.ssid)
+        if self.ddp_warning_threshold_pct < 0 or self.ddp_warning_threshold_pct > 100:
+            self.module.fail_json(msg="Invalid I(ddp_warning_threshold_pct) value! Must between or equal to 0 and 100. Array [%s]" % self.ssid)
 
         # Change all sizes to be measured in bytes
         if self.criteria_min_usable_capacity:
@@ -698,8 +722,8 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
                 dict(backgroundOperationPriority="useDefault",
                      criticalReconstructPriority="useDefault",
                      degradedReconstructPriority="useDefault",
-                     poolUtilizationCriticalThreshold=65535,
-                     poolUtilizationWarningThreshold=0))
+                     poolUtilizationCriticalThreshold=self.ddp_critical_threshold_pct,
+                     poolUtilizationWarningThreshold=self.ddp_warning_threshold_pct))
 
             if self.reserve_drive_count:
                 request_body.update(dict(volumeCandidateData=dict(
@@ -772,6 +796,36 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
 
         self.pool_detail = self.storage_pool
         return needs_migration
+
+    def update_ddp_settings(self, check_mode=False):
+        """Update dynamic disk pool settings."""
+        if self.raid_level != "raidDiskPool":
+            return False
+
+        needs_update = False
+        if (self.pool_detail["volumeGroupData"]["diskPoolData"]["poolUtilizationWarningThreshold"] != self.ddp_warning_threshold_pct or
+                self.pool_detail["volumeGroupData"]["diskPoolData"]["poolUtilizationCriticalThreshold"] != self.ddp_critical_threshold_pct):
+            needs_update = True
+
+        if needs_update and check_mode:
+            if self.pool_detail["volumeGroupData"]["diskPoolData"]["poolUtilizationWarningThreshold"] != self.ddp_warning_threshold_pct:
+                try:
+                    rc, update = self.request("storage-systems/%s/storage-pools/%s" % (self.ssid, self.pool_detail["id"]), method="POST",
+                                              data={"id": self.pool_detail["id"],
+                                                    "poolThreshold": {"thresholdType": "warning", "value": self.ddp_warning_threshold_pct}})
+                except Exception as error:
+                    self.module.fail_json(msg="Failed to update DDP warning alert threshold! Pool [%s]. Array [%s]."
+                                              " Error [%s]" % (self.name, self.ssid, to_native(error)))
+
+            if self.pool_detail["volumeGroupData"]["diskPoolData"]["poolUtilizationCriticalThreshold"] != self.ddp_critical_threshold_pct:
+                try:
+                    rc, update = self.request("storage-systems/%s/storage-pools/%s" % (self.ssid, self.pool_detail["id"]), method="POST",
+                                              data={"id": self.pool_detail["id"],
+                                                    "poolThreshold": {"thresholdType": "critical", "value": self.ddp_critical_threshold_pct}})
+                except Exception as error:
+                    self.module.fail_json(msg="Failed to update DDP critical alert threshold! Pool [%s]. Array [%s]."
+                                              " Error [%s]" % (self.name, self.ssid, to_native(error)))
+        return needs_update
 
     def expand_storage_pool(self, check_mode=False):
         """Add drives to existing storage pool.
@@ -880,6 +934,8 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
                     changed = True
                 if self.set_reserve_drive_count(check_mode=True):
                     changed = True
+                if self.update_ddp_settings(check_mode=True):
+                    changed = True
 
         elif self.state == "present":
             changed = True
@@ -904,6 +960,9 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
                         change_list.append("secured")
                     if self.set_reserve_drive_count():
                         change_list.append("adjusted reserve drive count")
+
+                    if self.update_ddp_settings():
+                        change_list.append("updated ddp settings")
 
                     if change_list:
                         msg = "Following changes have been applied to the storage pool [%s]: " + ", ".join(change_list)

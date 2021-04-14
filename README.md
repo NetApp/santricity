@@ -582,6 +582,8 @@ Collection Variables
     eseries_storage_pool_remove_volumes:                  # Default policy for deleting volumes prior to removing storage pools.
     eseries_storage_pool_erase_secured_drives:            # Default policy for erasing the content drives during create and delete storage pool operations.
                                                           #    Choices: true, false
+    eseries_storage_pool_ddp_critical_threshold_pct:      # Default policy for dynamic disk pool alert critical threshold.
+    eseries_storage_pool_ddp_warning_threshold_pct:       # Default policy for dynamic disk pool alert warning threshold.
 
     # Volume Default Policy Specifications
     eseries_volume_state: present                         # Default volume state. Choices: present, absent
