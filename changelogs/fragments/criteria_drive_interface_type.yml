@@ -1,0 +1,2 @@
+bugfixes:
+  - Add missing storage pool configuration parameter, criteria_drive_interface_type, to nar_santricity_host role.
