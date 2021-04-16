@@ -13,6 +13,7 @@
     reserve_drive_count: "{{ item['reserve_drive_count'] | default(eseries_storage_pool_reserve_drive_count | default(omit)) }}"
     criteria_min_usable_capacity: "{{ item['criteria_min_usable_capacity'] | default(eseries_storage_pool_criteria_min_usable_capacity | default(omit)) }}"
     criteria_drive_type: "{{ item['criteria_drive_type'] | default(eseries_storage_pool_criteria_drive_type | default(omit)) }}"
+    criteria_drive_interface_type: "{{ item['criteria_drive_interface_type'] | default(eseries_storage_pool_criteria_drive_interface_type | default(omit)) }}"
     criteria_size_unit: "{{ item['criteria_size_unit'] | default(eseries_storage_pool_criteria_size_unit | default(omit)) }}"
     criteria_drive_min_size: "{{ item['criteria_drive_min_size'] | default(eseries_storage_pool_criteria_drive_min_size | default(omit)) }}"
     criteria_drive_max_size: "{{ item['criteria_drive_max_size'] | default(eseries_storage_pool_criteria_drive_max_size | default(omit)) }}"

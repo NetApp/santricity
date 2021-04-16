@@ -571,6 +571,7 @@ Collection Variables
                                                           #    the raid level must be set for raidDiskPool.
     eseries_storage_pool_criteria_min_usable_capacity:    # Default minimum required capacity for storage pools.
     eseries_storage_pool_criteria_drive_type:             # Default drive type for storage pools. Choices: hdd, ssd
+    eseries_storage_pool_criteria_drive_interface_type:   # Default interface type to use when selecting drives for the storage pool.
     eseries_storage_pool_criteria_size_unit: gb           # Default unit size for all storage pool related sizing.
                                                           #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
     eseries_storage_pool_criteria_drive_min_size:         # Default minimum drive size for storage pools.
@@ -626,11 +627,17 @@ Collection Variables
         secure_pool:                               # Default for storage pool drive security. This flag will enable the security at rest feature. There must be
                                                    #    sufficient FDE or FIPS security capable drives. Choices: true, false
         criteria_drive_count:                      # Default storage pool drive count.
+        criteria_volume_count:                     # Number of equally sized volumes to create. All available storage pool space will be used. The option will
+                                                   #    be ignored if volumes is defined.
+        criteria_reserve_free_capacity_pct         # Percent of reserve free space capacity to leave when creating the criteria_volume_count volumes.
+        common_volume_host                         # Host or host group for the criteria_volume_count volumes should be mapped.
         reserve_drive_count:                       # Default reserve drive count for drive reconstruction for storage pools using dynamic disk pool and the raid
                                                    #    level must be set for raidDiskPool.
+        criteria_size_unit:                        # Default unit size for all storage pool related sizing. Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
         criteria_min_usable_capacity:              # Default minimum required capacity for storage pools.
         criteria_drive_type:                       # Default drive type for storage pools. Choices: hdd, ssd
-        criteria_size_unit:                        # Default unit size for all storage pool related sizing. Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
+        criteria_drive_interface_type              # Interface type to use when selecting drives for the storage pool.
+                                                   #    Choices: scsi, fibre, sata, pata, fibre520b, sas, sas4k, nvme4k
         criteria_drive_min_size:                   # Default minimum drive size for storage pools.
         criteria_drive_max_size:                   # Default maximum drive size for storage pools.
         criteria_drive_require_da:                 # Ensures storage pools have data assurance (DA) compatible drives. Choices: true, false
@@ -662,28 +669,29 @@ Collection Variables
                                                    #    - Windows ATTO: Windows OS and the ATTO Technology, Inc. driver
             owning_controller:                     # Specifies which controller will be the primary owner of the volume. Not specifying will allow the
                                                    #    controller to choose ownership. (Choices: A, B)
-            read_ahead_enable:                     # Enables read ahead caching; this is good for sequential workloads to cache subsequent blocks.
-            read_cache_enable:                     # Enables read caching which will cache all read requests.
-            cache_without_batteries:               # Enable caching even without batteries.
             size:                                  # Size of the volume or presented size of the thinly provisioned volume.
             size_unit:                             # Unit size for the size, thin_volume_repo_size, and thin_volume_max_repo_size
                                                    #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
             segment_size_kb:                       # Indicates the amount of data stored on a drive before moving on to the next drive in the volume group.
-            ssd_cache_enabled:                     # Enables ssd cache which will enable the volume to use an existing SSD cache on the storage array.
             thin_provision:                        # Whether volumes should be thinly provisioned.
             thin_volume_repo_size:                 # Actually allocated space for thinly provisioned volumes.
             thin_volume_max_repo_size:             # Maximum allocated space allowed for thinly provisioned volumes.
             thin_volume_expansion_policy:          # Thin volume expansion policy. Choices: automatic, manual
             thin_volume_growth_alert_threshold:    # Thin volume growth alert threshold; this is the threshold for when the thin volume expansion
                                                    #    policy will be enacted. Allowable values are between and including 10% and 99%
+            ssd_cache_enabled:                     # Enables ssd cache which will enable the volume to use an existing SSD cache on the storage array.
             data_assurance_enabled:                # Enables whether data assurance(DA) is required to be enabled.
+            read_cache_enable:                     # Enables read caching which will cache all read requests.
+            read_ahead_enable:                     # Enables read ahead caching; this is good for sequential workloads to cache subsequent blocks.
+            write_cache_enable:                    # Enables write caching which will cache all writes.
+            cache_without_batteries:               # Enable caching even without batteries.
+
             wait_for_initialization:               # Whether volume creation with wait for initialization to complete
             workload_name:                         # Name of the volume's workload
             workload_metadata:                     # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.
             volume_metadata                        # Dictionary containing arbitrary entries used to define information about the volume itself.
-                                                   #    Note: format_type, format_options, mount_dir, mount_options are used by netapp_eseries.host.mount role to format and mount volumes.
-            write_cache_enable:                    # Enables write caching which will cache all writes.
-                                                   #    created on the storage array.
+                                                   #    Note: format_type, format_options, mount_dir, mount_options are used by netapp_eseries.host.mount role
+                                                   #            to format and mount volumes.
 
 
     # Snapshot Consistency Group Default Policy Specifications
