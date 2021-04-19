@@ -53,18 +53,20 @@
 
       {#- Add common client certificates -#}
       {%- if eseries_client_certificate_common_certificates is defined -%}
-        {%- if eseries_client_certificate_common_certificates is string() -%}
+        {%- if eseries_client_certificate_common_certificates is string -%}
           {%- if certs.append(eseries_client_certificate_common_certificates) -%}{%- endif -%}
-        {%- elif eseries_client_certificate_common_certificates is iterable() -%}
+        {%- elif eseries_client_certificate_common_certificates is iterable -%}
           {%- if certs.extend(eseries_client_certificate_common_certificates) -%}{%- endif -%}
         {%- endif -%}
       {%- endif -%}
 
       {#- Add controller A client certificates -#}
       {%- if eseries_client_certificate_certificates is defined -%}
-        {%- if eseries_client_certificate_certificates is string() and eseries_client_certificate_certificates is not in certs -%}
-          {%- if certs.append(eseries_client_certificate_certificates) -%}{%- endif -%}
-        {%- elif eseries_client_certificate_certificates is iterable() -%}
+        {%- if eseries_client_certificate_certificates is string -%}
+          {%- if eseries_client_certificate_certificates not in certs -%}
+            {%- if certs.append(eseries_client_certificate_certificates) -%}{%- endif -%}
+          {%- endif -%}
+        {%- elif eseries_client_certificate_certificates is iterable -%}
           {%- for client_cert in eseries_client_certificate_certificates if client_cert not in certs -%}
             {%- if certs.append(client_cert) -%}{%- endif -%}
           {%- endfor -%}
@@ -93,18 +95,20 @@
 
       {#- Add common server certificates -#}
       {%- if eseries_server_certificate_common_certificates is defined -%}
-        {%- if eseries_server_certificate_common_certificates is string() -%}
+        {%- if eseries_server_certificate_common_certificates is string -%}
           {%- if certs.append(eseries_server_certificate_common_certificates) -%}{%- endif -%}
-        {%- elif eseries_server_certificate_common_certificates is iterable() -%}
+        {%- elif eseries_server_certificate_common_certificates is iterable -%}
           {%- if certs.extend(eseries_server_certificate_common_certificates) -%}{%- endif -%}
         {%- endif -%}
       {%- endif -%}
 
       {#- Add controller A certificates -#}
-      {%- if eseries_server_certificate is defined and eseries_server_certificate["controller_a"] is defined or eseries_server_certificate["controller_b"]["certificates"] is defined-%}
-        {%- if eseries_server_certificate["controller_a"]["certificates"] is string() and eseries_server_certificate["controller_a"]["certificates"] not in certs -%}
-          {%- if certs.append(eseries_server_certificate["controller_a"]["certificates"]) -%}{%- endif -%}
-        {%- elif eseries_server_certificate["controller_a"]["certificates"] is iterable() -%}
+      {%- if eseries_server_certificate is defined and eseries_server_certificate["controller_a"] is defined or eseries_server_certificate["controller_b"]["certificates"] is defined -%}
+        {%- if eseries_server_certificate["controller_a"]["certificates"] is string -%}
+          {%- if eseries_server_certificate["controller_a"]["certificates"] not in certs -%}
+            {%- if certs.append(eseries_server_certificate["controller_a"]["certificates"]) -%}{%- endif -%}
+          {%- endif -%}
+        {%- elif eseries_server_certificate["controller_a"]["certificates"] is iterable -%}
           {%- for server_cert in eseries_server_certificate["controller_a"]["certificates"] if server_cert not in certs -%}
             {%- if certs.append(server_cert) -%}{%- endif -%}
           {%- endfor -%}
@@ -133,18 +137,20 @@
 
       {#- Add common server certificates -#}
       {%- if eseries_server_certificate_common_certificates is defined -%}
-        {%- if eseries_server_certificate_common_certificates is string() -%}
+        {%- if eseries_server_certificate_common_certificates is string -%}
           {%- if certs.append(eseries_server_certificate_common_certificates) -%}{%- endif -%}
-        {%- elif eseries_server_certificate_common_certificates is iterable() -%}
+        {%- elif eseries_server_certificate_common_certificates is iterable -%}
           {%- if certs.extend(eseries_server_certificate_common_certificates) -%}{%- endif -%}
         {%- endif -%}
       {%- endif -%}
 
-      {#- Add controller A certificates -#}
+      {#- Add controller B certificates -#}
       {%- if eseries_server_certificate is defined and eseries_server_certificate["controller_b"] is defined or eseries_server_certificate["controller_b"]["certificates"] is defined -%}
-        {%- if eseries_server_certificate["controller_b"]["certificates"] is string() and eseries_server_certificate["controller_b"] not in certs -%}
-          {%- if certs.append(eseries_server_certificate["controller_b"]["certificates"]) -%}{%- endif -%}
-        {%- elif eseries_server_certificate["controller_b"]["certificates"] is iterable() -%}
+        {%- if eseries_server_certificate["controller_b"]["certificates"] is string -%}
+          {%- if eseries_server_certificate["controller_b"] not in certs -%}
+            {%- if certs.append(eseries_server_certificate["controller_b"]["certificates"]) -%}{%- endif -%}
+          {%- endif -%}
+        {%- elif eseries_server_certificate["controller_b"]["certificates"] is iterable -%}
           {%- for server_cert in eseries_server_certificate["controller_b"]["certificates"] if server_cert not in certs -%}
             {%- if certs.append(server_cert) -%}{%- endif -%}
           {%- endfor -%}
