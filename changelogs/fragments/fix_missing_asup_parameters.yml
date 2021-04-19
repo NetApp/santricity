@@ -1,0 +1,2 @@
+bugfixes:
+  - Add missing http(s) proxy username and password parameters from na_santricity_asup module and nar_santricity_management role."
