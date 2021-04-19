@@ -474,6 +474,8 @@ Collection Variables
     eseries_asup_proxy:              # ASUP proxy delivery method information.
       host:                          # ASUP proxy host IP address or FQDN. When eseries_asup_routing_type==proxy this must be specified.
       port:                          # ASUP proxy host port. When eseries_asup_routing_type==proxy this must be specified.
+      username:                      # ASUP proxy username.
+      password:                      # ASUP proxy password.
       script:                        # ASUP proxy host script.
     eseries_asup_email:              # ASUP email delivery configuration information
       server:                        # ASUP email server
