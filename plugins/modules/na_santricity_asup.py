@@ -112,12 +112,22 @@ options:
                 description:
                     - Proxy host port.
                     - Required when M(method==http or method==https) and M(routing_type==proxy).
-                type: str
+                type: int
                 required: false
             script:
                 description:
                     - Path to the AutoSupport routing script file.
                     - Required when M(method==http or method==https) and M(routing_type==script).
+                type: str
+                required: false
+            username:
+                description:
+                    - Username for the proxy.
+                type: str
+                required: false
+            password:
+                description:
+                    - Password for the proxy.
                 type: str
                 required: false
     email:
@@ -272,8 +282,10 @@ class NetAppESeriesAsup(NetAppESeriesModule):
             method=dict(type="str", required=False, choices=["https", "http", "email"], default="https"),
             routing_type=dict(type="str", required=False, choices=["direct", "proxy", "script"], default="direct"),
             proxy=dict(type="dict", required=False, options=dict(host=dict(type="str", required=False),
-                                                                 port=dict(type="str", required=False),
-                                                                 script=dict(type="str", required=False))),
+                                                                 port=dict(type="int", required=False),
+                                                                 script=dict(type="str", required=False),
+                                                                 username=dict(type="str", required=False),
+                                                                 password=dict(type="str", no_log=True, required=False))),
             email=dict(type="dict", required=False, options=dict(server=dict(type="str", required=False),
                                                                  sender=dict(type="str", required=False),
                                                                  test_recipient=dict(type="str", required=False))),
@@ -373,6 +385,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
         update = False
         body = dict()
 
+        # Build request body
         if self.state == "enabled":
             body = dict(asupEnabled=True)
             if not config["asupEnabled"]:
@@ -407,6 +420,11 @@ class NetAppESeriesAsup(NetAppESeriesModule):
                                             proxyHost=self.proxy["host"],
                                             proxyPort=self.proxy["port"],
                                             routingType="proxyServer")
+                    if "username" in self.proxy.keys():
+                        body["delivery"].update({"proxyUserName": self.proxy["username"]})
+                    if "password" in self.proxy.keys():
+                        body["delivery"].update({"proxyPassword": self.proxy["password"]})
+
                 elif self.routing_type == "script":
                     body["delivery"] = dict(method=self.method,
                                             proxyScript=self.proxy["script"],
@@ -418,17 +436,21 @@ class NetAppESeriesAsup(NetAppESeriesModule):
                                         mailSenderAddress=self.email["sender"],
                                         routingType="none")
 
+            # Check whether changes are required.
             if config["delivery"]["method"] != body["delivery"]["method"]:
                 update = True
             elif config["delivery"]["method"] in ["https", "http"]:
                 if config["delivery"]["routingType"] != body["delivery"]["routingType"]:
                     update = True
-                elif (config["delivery"]["routingType"] == "proxy" and
-                      config["delivery"]["proxyHost"] != body["delivery"]["proxyHost"] and
-                      config["delivery"]["proxyPort"] != body["delivery"]["proxyPort"]):
-                    update = True
-                elif config["delivery"]["routingType"] == "script" and config["delivery"]["proxyScript"] != body["delivery"]["proxyScript"]:
-                    update = True
+                elif config["delivery"]["routingType"] == "proxyServer":
+                    if (config["delivery"]["proxyHost"] != body["delivery"]["proxyHost"] or
+                            config["delivery"]["proxyPort"] != body["delivery"]["proxyPort"] or
+                            config["delivery"]["proxyUserName"] != body["delivery"]["proxyUserName"] or
+                            config["delivery"]["proxyPassword"] != body["delivery"]["proxyPassword"]):
+                        update = True
+                elif config["delivery"]["routingType"] == "proxyScript":
+                    if config["delivery"]["proxyScript"] != body["delivery"]["proxyScript"]:
+                        update = True
             elif (config["delivery"]["method"] == "smtp" and
                   config["delivery"]["mailRelayServer"] != body["delivery"]["mailRelayServer"] and
                   config["delivery"]["mailSenderAddress"] != body["delivery"]["mailSenderAddress"]):
@@ -449,6 +471,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
             if self.in_maintenance_mode() or self.state == "maintenance_enabled":
                 update = True
 
+        # Apply required changes.
         if update and not self.check_mode:
             if self.state == "maintenance_enabled":
                 try:
