@@ -140,3 +140,11 @@ releases:
     - criteria_drive_interface_type.yml
     - fix_missing_asup_parameters.yml
     release_date: '2021-04-19'
+  1.2.6:
+    changes:
+      bugfixes:
+      - Fix jinja issue with collecting certificates paths in nar_santricity_management
+        role.
+    fragments:
+    - fix_security_certificates.yml
+    release_date: '2021-04-19'

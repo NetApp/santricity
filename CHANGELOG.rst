@@ -5,6 +5,14 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.2.6
+======
+
+Bugfixes
+--------
+
+- Fix jinja issue with collecting certificates paths in nar_santricity_management role.
+
 v1.2.5
 ======
 

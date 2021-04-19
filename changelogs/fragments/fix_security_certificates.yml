@@ -1,2 +1,0 @@
-bugfixes:
-  - Fix jinja issue with collecting certificates paths in nar_santricity_management role.
