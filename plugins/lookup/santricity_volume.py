@@ -45,6 +45,13 @@ class LookupModule(LookupBase):
                     if "host" not in sp_info["common_volume_configuration"].keys() and "common_volume_host" in sp_info.keys():
                         sp_info["common_volume_configuration"].update({"host": sp_info["common_volume_host"]})
 
+                    if (("eseries_remove_all_configuration_state" in inventory and inventory["eseries_remove_all_configuration_state"] == "absent") or
+                            ("state" in sp_info and sp_info["state"] == "absent") or
+                            ("state" not in sp_info and "eseries_volume_state" in inventory and inventory["eseries_volume_state"] == "absent")):
+                        sp_info["common_volume_configuration"].update({"state": "absent"})
+                    else:
+                        sp_info["common_volume_configuration"].update({"state": "present"})
+
                     for count in range(sp_info["criteria_volume_count"]):
                         if "volumes" not in sp_info.keys():
                             sp_info.update({"volumes": []})
