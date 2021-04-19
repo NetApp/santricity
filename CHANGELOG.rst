@@ -5,6 +5,9 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.2.7
+======
+
 v1.2.6
 ======
 

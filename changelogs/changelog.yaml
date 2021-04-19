@@ -148,3 +148,8 @@ releases:
     fragments:
     - fix_security_certificates.yml
     release_date: '2021-04-19'
+  1.2.7:
+    changes: {}
+    fragments:
+    - proxy_asup_documentation.yml
+    release_date: '2021-04-19'
