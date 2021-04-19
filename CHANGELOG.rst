@@ -5,6 +5,15 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.2.5
+======
+
+Bugfixes
+--------
+
+- Add missing http(s) proxy username and password parameters from na_santricity_asup module and nar_santricity_management role."
+- Add missing storage pool configuration parameter, criteria_drive_interface_type, to nar_santricity_host role.
+
 v1.2.4
 ======
 

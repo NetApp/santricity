@@ -129,3 +129,14 @@ releases:
     release_date: '2021-04-14'
   1.2.4:
     release_date: '2021-04-14'
+  1.2.5:
+    changes:
+      bugfixes:
+      - Add missing http(s) proxy username and password parameters from na_santricity_asup
+        module and nar_santricity_management role."
+      - Add missing storage pool configuration parameter, criteria_drive_interface_type,
+        to nar_santricity_host role.
+    fragments:
+    - criteria_drive_interface_type.yml
+    - fix_missing_asup_parameters.yml
+    release_date: '2021-04-19'
