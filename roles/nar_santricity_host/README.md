@@ -198,6 +198,7 @@ Role Variables
     # Volume Default Policy Specifications
     eseries_volume_state: present                         # Default volume state. Choices: present, absent
     eseries_volume_size_unit: gb                          # Default unit size for all volume sizing options.
+                                                          #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb, pct
     eseries_volume_size:                                  # Default volume size or the presented size for thinly provisioned volumes.
     eseries_volume_data_assurance_enabled:                # Default for whether data assurance(DA) is required to be enabled.
     eseries_volume_segment_size_kb:                       # Default segment size measured in kib.

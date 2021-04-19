@@ -589,6 +589,7 @@ Collection Variables
     # Volume Default Policy Specifications
     eseries_volume_state: present                         # Default volume state. Choices: present, absent
     eseries_volume_size_unit: gb                          # Default unit size for all volume sizing options.
+                                                          #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb, pct
     eseries_volume_size:                                  # Default volume size or the presented size for thinly provisioned volumes.
     eseries_volume_data_assurance_enabled:                # Default for whether data assurance(DA) is required to be enabled.
     eseries_volume_segment_size_kb:                       # Default segment size measured in kib.
@@ -671,7 +672,7 @@ Collection Variables
                                                    #    controller to choose ownership. (Choices: A, B)
             size:                                  # Size of the volume or presented size of the thinly provisioned volume.
             size_unit:                             # Unit size for the size, thin_volume_repo_size, and thin_volume_max_repo_size
-                                                   #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
+                                                   #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb, pct
             segment_size_kb:                       # Indicates the amount of data stored on a drive before moving on to the next drive in the volume group.
             thin_provision:                        # Whether volumes should be thinly provisioned.
             thin_volume_repo_size:                 # Actually allocated space for thinly provisioned volumes.
