@@ -259,14 +259,18 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
                         key += line
                         if not six.PY2:
                             key = six.b(key)
+                            self.passphrase = six.b(self.passphrase)
 
                         # Check for PKCS8 PEM encoding.
                         if pkcs8 or pkcs8_encrypted:
                             try:
-                                crypto_key = crypto.load_privatekey(crypto.FILETYPE_PEM, key, passphrase=self.passphrase).to_cryptography_key()
+                                if pkcs8:
+                                    crypto_key = crypto.load_privatekey(crypto.FILETYPE_PEM, key).to_cryptography_key()
+                                else:
+                                    crypto_key = crypto.load_privatekey(crypto.FILETYPE_PEM, key, passphrase=self.passphrase).to_cryptography_key()
                             except crypto.Error as error:
-                                self.module.fail_json(msg="Failed to load %s PKCS8 encoded private key. %s"
-                                                          " Error [%s]." % ("encrypted" if pkcs8_encrypted else "",
+                                self.module.fail_json(msg="Failed to load%sPKCS8 encoded private key. %s"
+                                                          " Error [%s]." % (" encrypted " if pkcs8_encrypted else " ",
                                                                             "Check passphrase." if pkcs8_encrypted else "", error))
 
                             key = crypto_key.private_bytes(encoding=serialization.Encoding.PEM,
