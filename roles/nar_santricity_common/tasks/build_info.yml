@@ -2,9 +2,9 @@
   uri:
     url: |-
       {%- if eseries_prefer_embedded == True -%}
-        {{- eseries_system_api_url | default(eseries_proxy_api_url) | regex_replace('v2[\/]?$', 'utils/about') -}}
+        {{- eseries_system_api_url | default(eseries_proxy_api_url) | regex_replace('v2/?$', 'utils/about') -}}
       {%- else -%}
-        {{- eseries_proxy_api_url | default(eseries_system_api_url) | regex_replace('v2[\/]?$', 'utils/about') -}}
+        {{- eseries_proxy_api_url | default(eseries_system_api_url) | regex_replace('v2/?$', 'utils/about') -}}
       {%- endif -%}
     headers:
       Content-Type: "application/json"

@@ -58,7 +58,7 @@
   block:
     - name: Determine existing storage systems in Web Services Proxy.
       uri:
-        url: "{{ eseries_proxy_api_url | regex_replace('v2[\\/]?$', 'v2/storage-systems') }}"
+        url: "{{ eseries_proxy_api_url | regex_replace('v2/?$', 'v2/storage-systems') }}"
         headers:
           Content-Type: "application/json"
           Accept: "application/json"
