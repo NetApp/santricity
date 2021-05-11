@@ -291,6 +291,16 @@ class NetAppESeriesAuth(NetAppESeriesModule):
                     rc, proxy = self.request("local-users", method="POST", data=body)
                 except Exception as error:
                     self.module.fail_json(msg="Failed to set proxy password. Error [%s]." % to_native(error))
+
+            # Update embedded admin password via proxy passwords endpoint to include updating proxy/unified manager
+            elif self.user == "admin":
+                try:
+                    body = {"adminPassword": True, "currentAdminPassword": self.current_admin_password, "newPassword": self.password}
+                    rc, proxy = self.request("storage-systems/%s/passwords" % self.ssid, method="POST", data=body)
+                except Exception as error:
+                    self.module.fail_json(msg="Failed to set embedded user password. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+            # Update embedded non-admin passwords via proxy forward endpoint.
             elif self.is_embedded_available():
                 try:
                     body = {"currentAdminPassword": self.current_admin_password, "updates": {"userName": self.user, "newPassword": self.password}}
