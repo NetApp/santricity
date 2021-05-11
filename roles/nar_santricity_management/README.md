@@ -116,6 +116,8 @@ Role Variables
     eseries_system_api_url:            # Url for the storage system's for embedded web services rest api. Example: https://192.168.10.100/devmgr/v2
     eseries_system_username: admin     # Username for the storage system's for embedded web services rest api
     eseries_system_password:           # Password for the storage system's for embedded web services rest api and when the admin password has not been set eseries_system_password will be used to set it.
+    eseries_system_old_password:       # Previous admin password. This is used to change the current admin password by setting this variable to the current
+                                       #   password and eseries_system_password to the new password.
     eseries_proxy_ssid:                # Arbitrary string for the proxy to represent the storage system. eseries_system_serial will be used when not defined.
     eseries_template_api_url:          # Template for the web services api url. Default: https://0.0.0.0:8443/devmgr/v2/
     eseries_prefer_embedded: false     # Overrides the default behavior of using Web Services Proxy when eseries_proxy_api_url is defined. This will only effect storage systems that have Embedded Web Services.
