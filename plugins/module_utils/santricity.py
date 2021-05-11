@@ -119,6 +119,35 @@ class NetAppESeriesModule(object):
         self.is_embedded_available_cache = None
         self.is_web_services_valid_cache = None
 
+    def _check_ssid(self):
+        """Verify storage system identifier exist on the proxy and, if not, then update to match storage system name."""
+        try:
+            rc, data = self._request(url=self.url + self.DEFAULT_REST_API_ABOUT_PATH, **self.creds)
+
+            if data["runningAsProxy"]:
+                if self.ssid.lower() not in ["proxy", "0"]:
+                    try:
+                        rc, systems = self._request(url=self.url + self.DEFAULT_REST_API_PATH + "storage-systems", **self.creds)
+                        alternates = []
+                        for system in systems:
+                            if system["id"] == self.ssid:
+                                break
+                            elif system["name"] == self.ssid:
+                                alternates.append(system["id"])
+                        else:
+                            if len(alternates) == 1:
+                                self.module.warn("Array Id does not exist on Web Services Proxy Instance! However, there is a storage system with a"
+                                                 " matching name. Updating Identifier. Array Name: [%s], Array Id [%s]." % (self.ssid, alternates[0]))
+                                self.ssid = alternates[0]
+                            else:
+                                self.module.fail_json(msg="Array identifier does not exist on Web Services Proxy Instance! Array ID [%s]." % self.ssid)
+
+                    except Exception as error:
+                        self.module.fail_json(msg="Failed to determine Web Services Proxy storage systems! Array [%s]. Error [%s]" % (self.ssid, to_native(error)))
+        except Exception as error:
+            # Don't fail here, if the ssid is wrong the it will fail on the next request. Causes issues for na_santricity_auth module.
+            pass
+
     def _check_web_services_version(self):
         """Verify proxy or embedded web services meets minimum version required for module.
 
@@ -165,6 +194,7 @@ class NetAppESeriesModule(object):
             else:
                 self.module.warn("Web services rest api version unknown!")
 
+            self._check_ssid()
             self.is_web_services_valid_cache = True
 
     def is_web_services_version_met(self, version):
