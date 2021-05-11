@@ -149,7 +149,16 @@ releases:
     - fix_security_certificates.yml
     release_date: '2021-04-19'
   1.2.7:
-    changes: {}
     fragments:
     - proxy_asup_documentation.yml
     release_date: '2021-04-19'
+  1.2.8:
+    changes:
+      bugfixes:
+      - Fix pkcs8 private key passphrase issue.
+      - Fix storage system admin password change from web services proxy in na_santricity_auth
+        module.
+    fragments:
+    - fix_pkcs8_cert_issue.yml
+    - fix_proxy_admin_password_change.yml
+    release_date: '2021-05-11'

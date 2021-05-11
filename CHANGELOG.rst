@@ -5,6 +5,15 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.2.8
+======
+
+Bugfixes
+--------
+
+- Fix pkcs8 private key passphrase issue.
+- Fix storage system admin password change from web services proxy in na_santricity_auth module.
+
 v1.2.7
 ======
 
