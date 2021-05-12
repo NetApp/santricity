@@ -82,7 +82,114 @@
             "proxy_url_username": hostvars[array]["eseries_proxy_api_username"] | default('admin'),
             "proxy_url_password": hostvars[array]["eseries_proxy_api_password"],
             "proxy_username": 'support',
-            "proxy_password": hostvars[array]["eseries_proxy_support_password"]}}) %}
+            "proxy_password": hostvars[array]["eseries_proxy_support_password"],
+            "proxy_validate_certs": hostvars[array]["eseries_validate_certs"] | default(omit)}}) %}
+          {%- endif %}
+        {%- endif %}
+      {%- endfor %}
+      {{ systems }}
+
+- name: Ensure proxy client certificates are installed
+  na_santricity_client_certificate:
+    ssid: proxy
+    api_url: "{{ item['key'] }}"
+    api_username: "{{ item['value']['proxy_username'] }}"
+    api_password: "{{ item['value']['proxy_password'] }}"
+    validate_certs: "{{ item['value']['proxy_validate_certs'] }}"
+    certificates: "{{ item['value']['certificates'] }}"
+  connection: local
+  loop: "{{ lookup('dict', proxy_client_certificates, wantlist=True) }}"
+  when: item['value']['certificates'] | length > 0
+  no_log: true
+  vars:
+    proxy_client_certificates: |-
+      {#- Build a dictionary of all inventoried proxies keyed by their api url #}
+      {%- set systems = {} %}
+      {%- for array in ansible_play_hosts_all %}
+        {%- if "eseries_proxy_api_url" in hostvars[array] and "eseries_proxy_api_password" in hostvars[array] %}
+          {%- set certs = [] -%}
+
+          {#- Add common proxy client certificates -#}
+          {%- if "eseries_proxy_client_certificate_common_certificates" in (hostvars[array].keys() | list) -%}
+            {%- if hostvars[array]["eseries_proxy_client_certificate_common_certificates"] is string -%}
+              {%- if certs.append(hostvars[array]["eseries_proxy_client_certificate_common_certificates"]) -%}{%- endif -%}
+            {%- elif hostvars[array]["eseries_proxy_client_certificate_common_certificates"] is iterable -%}
+              {%- if certs.extend(hostvars[array]["eseries_proxy_client_certificate_common_certificates"]) -%}{%- endif -%}
+            {%- endif -%}
+          {%- endif -%}
+
+          {#- Add proxy specific client certificates -#}
+          {%- if eseries_proxy_client_certificate_certificates in (hostvars[array].keys() | list) -%}
+            {%- if hostvars[array]["eseries_proxy_client_certificate_certificates"] is string -%}
+              {%- if hostvars[array]["eseries_proxy_client_certificate_certificates"] not in certs -%}
+                {%- if certs.append(hostvars[array]["eseries_proxy_client_certificate_certificates"]) -%}{%- endif -%}
+              {%- endif -%}
+            {%- elif hostvars[array]["eseries_proxy_client_certificate_certificates"] is iterable -%}
+              {%- for client_cert in hostvars[array]["eseries_proxy_client_certificate_certificates"] if client_cert not in certs -%}
+                {%- if certs.append(client_cert) -%}{%- endif -%}
+              {%- endfor -%}
+            {%- endif -%}
+          {%- endif -%}
+
+          {%- if systems.update({hostvars[array]["eseries_proxy_api_url"]: {
+            "proxy_username": hostvars[array]["eseries_proxy_api_username"] | default('admin'),
+            "proxy_password": hostvars[array]["eseries_proxy_api_password"],
+            "proxy_validate_certs": hostvars[array]["eseries_validate_certs"] | default(omit),
+            "certificates": certs}}) %}
+          {%- endif %}
+        {%- endif %}
+      {%- endfor %}
+      {{ systems }}
+
+- name: Ensure proxy server certificates are installed
+  na_santricity_server_certificate:
+    ssid: proxy
+    api_url: "{{ item['key'] }}"
+    api_username: "{{ item['value']['proxy_username'] }}"
+    api_password: "{{ item['value']['proxy_password'] }}"
+    validate_certs: "{{ item['value']['proxy_validate_certs'] }}"
+    certificates: "{{ item['value']['certificates'] }}"
+    passphrase: "{{ item['value']['passphrase'] }}"
+  connection: local
+  loop: "{{ lookup('dict', proxy_server_certificates, wantlist=True) }}"
+  when: item['value']['certificates'] | length > 0
+  no_log: true
+  vars:
+    proxy_server_certificates: |-
+      {#- Build a dictionary of all inventoried proxies keyed by their api url #}
+      {%- set systems = {} %}
+      {%- for array in ansible_play_hosts_all %}
+        {%- if "eseries_proxy_api_url" in hostvars[array] and "eseries_proxy_api_password" in hostvars[array] %}
+          {%- set certs = [] -%}
+
+          {#- Add common proxy server certificates -#}
+          {%- if "eseries_proxy_server_certificate_common_certificates" in (hostvars[array].keys() | list) -%}
+            {%- if hostvars[array]["eseries_proxy_server_certificate_common_certificates"] is string -%}
+              {%- if certs.append(hostvars[array]["eseries_proxy_server_certificate_common_certificates"]) -%}{%- endif -%}
+            {%- elif hostvars[array]["eseries_proxy_server_certificate_common_certificates"] is iterable -%}
+              {%- if certs.extend(hostvars[array]["eseries_proxy_server_certificate_common_certificates"]) -%}{%- endif -%}
+            {%- endif -%}
+          {%- endif -%}
+
+          {#- Add proxy specific server certificates -#}
+          {%- if "eseries_proxy_server_certificate_certificates" in (hostvars[array].keys() | list) -%}
+            {%- if hostvars[array]["eseries_proxy_server_certificate_certificates"] is string -%}
+              {%- if hostvars[array]["eseries_proxy_server_certificate_certificates"] not in certs -%}
+                {%- if certs.append(hostvars[array]["eseries_proxy_server_certificate_certificates"]) -%}{%- endif -%}
+              {%- endif -%}
+            {%- elif hostvars[array]["eseries_proxy_server_certificate_certificates"] is iterable -%}
+              {%- for client_cert in hostvars[array]["eseries_proxy_server_certificate_certificates"] if client_cert not in certs -%}
+                {%- if certs.append(client_cert) -%}{%- endif -%}
+              {%- endfor -%}
+            {%- endif -%}
+          {%- endif -%}
+
+          {%- if systems.update({hostvars[array]["eseries_proxy_api_url"]: {
+            "proxy_username": hostvars[array]["eseries_proxy_api_username"] | default('admin'),
+            "proxy_password": hostvars[array]["eseries_proxy_api_password"],
+            "proxy_validate_certs": hostvars[array]["eseries_validate_certs"] | default(omit),
+            "certificates": certs,
+            "passphrase": hostvars[array]["eseries_proxy_server_certificate_passphrase"] | default(hostvars[array]["eseries_proxy_server_certificate_common_passphrase"] | default(omit))}}) %}
           {%- endif %}
         {%- endif %}
       {%- endfor %}
