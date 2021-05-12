@@ -355,7 +355,7 @@ class Facts(NetAppESeriesModule):
         key_value_url = "key-values"
         key_values = []
         if not self.is_embedded() and self.ssid.lower() not in ["0", "proxy"]:
-            key_value_url = "storage-systems/%s/forward/devmgr/v2/key-values"
+            key_value_url = "storage-systems/%s/forward/devmgr/v2/key-values" % self.ssid
         try:
             rc, key_values = self.request(key_value_url)
         except Exception as error:
