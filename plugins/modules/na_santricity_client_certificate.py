@@ -20,6 +20,12 @@ options:
       - Each item must include the path to the file
     type: list
     required: false
+  remove_unspecified_user_certificates:
+    description:
+      - Whether to remove user install client certificates that are not specified in I(certificates).
+    type: bool
+    default: false
+    required: false
 notes:
   - Set I(ssid=="0") or I(ssid=="proxy") to specifically reference SANtricity Web Services Proxy.
 requirements:
@@ -77,7 +83,8 @@ else:
 
 class NetAppESeriesClientCertificate(NetAppESeriesModule):
     def __init__(self):
-        ansible_options = dict(certificates=dict(type="list", required=False))
+        ansible_options = dict(certificates=dict(type="list", required=False),
+                               remove_unspecified_user_certificates=dict(type="bool", default=False, required=False))
 
         super(NetAppESeriesClientCertificate, self).__init__(ansible_options=ansible_options,
                                                              web_services_version="02.00.0000.0000",
@@ -166,7 +173,8 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
                         break
                 else:
                     self.add_certificates.append(path)
-            self.remove_certificates = [certificate for certificate in user_installed_certificates if certificate not in existing_certificates]
+            if self.remove_unspecified_user_certificates:
+                self.remove_certificates = [certificate for certificate in user_installed_certificates if certificate not in existing_certificates]
 
         elif rc > 299:
             self.module.fail_json(msg="Failed to retrieve remote server certificates. Array [%s]." % self.ssid)
@@ -182,7 +190,8 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
                         break
                 else:
                     self.add_certificates.append(path)
-            self.remove_certificates = [certificate for certificate in user_installed_certificates if certificate not in existing_certificates]
+            if self.remove_unspecified_user_certificates:
+                self.remove_certificates = [certificate for certificate in user_installed_certificates if certificate not in existing_certificates]
 
     def upload_certificate(self, path):
         """Add or update remote server certificate to the storage array."""
