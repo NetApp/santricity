@@ -85,10 +85,11 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
 
         args = self.module.params
         self.certificates = args["certificates"] if args["certificates"] else []
+        self.remove_unspecified_user_certificates = args["remove_unspecified_user_certificates"]
 
         # Check whether request needs to be forwarded on to the controller web services rest api.
         self.url_path_prefix = ""
-        if self.is_proxy() and self.ssid != "0" and self.ssid != "PROXY":
+        if self.is_proxy() and self.ssid != "0" and self.ssid.lower() != "proxy":
             self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid
 
         self.remove_certificates = list()

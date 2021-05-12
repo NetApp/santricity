@@ -461,7 +461,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
         # Check whether request needs to be forwarded on to the controller web services rest api.
         self.url_path_prefix = ""
         if not self.is_embedded():
-            if self.ssid == "0" or self.ssid == "proxy":
+            if self.ssid == "0" or self.ssid.lower() == "proxy":
                 self.module.fail_json(msg="Snapshot is not a valid operation for SANtricity Web Services Proxy! ssid cannot be '0' or 'proxy'."
                                           " Array [%s]" % self.ssid)
             self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid

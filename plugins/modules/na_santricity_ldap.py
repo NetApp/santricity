@@ -212,7 +212,7 @@ class NetAppESeriesLdap(NetAppESeriesModule):
         self.url_path_prefix = ""
         if self.is_embedded():
             self.url_path_prefix = "storage-systems/1/"
-        elif self.ssid != "0" and self.ssid != "proxy":
+        elif self.ssid != "0" and self.ssid.lower() != "proxy":
             self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/storage-systems/1/" % self.ssid
 
         self.existing_domain_ids = []
