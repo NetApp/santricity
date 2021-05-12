@@ -19,11 +19,12 @@ options:
       - The controller that owns the port you want to configure.
       - Controller names are represented alphabetically, with the first controller as A, the second as B, and so on.
       - Current hardware models have either 1 or 2 available controllers, but that is not a guaranteed hard limitation and could change in the future.
+      - I(controller) must be specified unless managing SANtricity Web Services Proxy (ie I(ssid="proxy"))
     choices:
         - A
         - B
     type: str
-    required: true
+    required: false
   certificates:
     description:
       - Unordered list of all server certificate files which include PEM and DER encoded certificates as well as private keys.
@@ -163,7 +164,7 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
     RESET_SSL_CONFIG_TIMEOUT_SEC = 3 * 60
 
     def __init__(self):
-        ansible_options = dict(controller=dict(type="str", required=True, choices=["A", "B"]),
+        ansible_options = dict(controller=dict(type="str", required=False, choices=["A", "B"]),
                                certificates=dict(type="list", required=False),
                                passphrase=dict(type="str", required=False, no_log=True))
 
@@ -177,8 +178,17 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
 
         # Check whether request needs to be forwarded on to the controller web services rest api.
         self.url_path_prefix = ""
-        if self.is_proxy() and self.ssid != "0" and self.ssid != "PROXY":
-            self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid
+        self.url_path_suffix = ""
+        if self.is_proxy():
+            if self.ssid.lower() in ["0", "proxy"]:
+                self.url_path_suffix = "?controller=auto"
+            elif self.controller is not None:
+                self.url_path_prefix = "storage-systems/%s/forward/devmgr/v2/" % self.ssid
+                self.url_path_suffix = "?controller=%s" % self.controller.lower()
+            else:
+                self.module.fail_json(msg="Invalid options! You must specify which controller's certificates to modify. Array [%s]." % self.ssid)
+        elif self.controller is None:
+            self.module.fail_json(msg="Invalid options! You must specify which controller's certificates to modify. Array [%s]." % self.ssid)
 
         self.cache_get_current_certificates = None
         self.cache_is_controller_alternate = None
@@ -200,17 +210,14 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
 
         return controllers_dict
 
-    def is_controller_alternate(self):
+    def check_controller(self):
         """Is the effected controller the alternate controller."""
-        if self.cache_is_controller_alternate is None:
-            controllers_info = self.get_controllers()
-            try:
-                rc, about = self.request("utils/about", rest_api_path=self.DEFAULT_BASE_PATH)
-                self.cache_is_controller_alternate = controllers_info[self.controller] != about["controllerPosition"]
-            except Exception as error:
-                self.module.fail_json(msg="Failed to retrieve accessing controller slot information. Array [%s]." % self.ssid)
-
-        return self.cache_is_controller_alternate
+        controllers_info = self.get_controllers()
+        try:
+            rc, about = self.request("utils/about", rest_api_path=self.DEFAULT_BASE_PATH)
+            self.url_path_suffix = "?alternate=%s" % ("true" if controllers_info[self.controller] != about["controllerPosition"] else "false")
+        except Exception as error:
+            self.module.fail_json(msg="Failed to retrieve accessing controller slot information. Array [%s]." % self.ssid)
 
     @staticmethod
     def sanitize_distinguished_name(dn):
@@ -329,7 +336,7 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
         if self.cache_get_current_certificates is None:
             current_certificates = []
             try:
-                rc, current_certificates = self.request("certificates/server?alternate=%s" % ("true" if self.is_controller_alternate() else "false"))
+                rc, current_certificates = self.request(self.url_path_prefix + "certificates/server%s" % self.url_path_suffix)
             except Exception as error:
                 self.module.fail_json(msg="Failed to retrieve server certificates. Array [%s]." % self.ssid)
 
@@ -394,6 +401,8 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
 
     def determine_changes(self):
         """Determine certificates that need to be added or removed from storage system's server certificates database."""
+        if not self.is_proxy():
+            self.check_controller()
         existing_certificates = self.get_current_certificates()
         expected = self.get_expected_certificates()
         certificates = expected["certificates"]
@@ -447,7 +456,7 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
     def apply_self_signed_certificate(self):
         """Install self-signed server certificate which is generated by the storage system itself."""
         try:
-            rc, resp = self.request("certificates/reset?alternate=%s" % ("true" if self.is_controller_alternate() else "false"), method="POST")
+            rc, resp = self.request(self.url_path_prefix + "certificates/reset%s" % self.url_path_suffix, method="POST")
         except Exception as error:
             self.module.fail_json(msg="Failed to reset SSL configuration back to a self-signed certificate! Array [%s]. Error [%s]." % (self.ssid, error))
 
@@ -460,8 +469,8 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
                                                        ("privateKey", "private_key", private_key)])
 
         try:
-            rc, resp = self.request("certificates/server?alternate=%s&replaceMainServerCertificate=true"
-                                    % ("true" if self.is_controller_alternate() else "false"), method="POST", headers=headers, data=data)
+            rc, resp = self.request(self.url_path_prefix + "certificates/server%s&replaceMainServerCertificate=true" % self.url_path_suffix,
+                                    method="POST", headers=headers, data=data)
         except Exception as error:
             self.module.fail_json(msg="Failed to upload signed server certificate! Array [%s]. Error [%s]." % (self.ssid, error))
 
@@ -470,25 +479,25 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
         headers, data = create_multipart_formdata([["file", certificate["alias"], certificate["certificate"]]])
 
         try:
-            rc, resp = self.request("certificates/server?alternate=%s&alias=%s" % (("true" if self.is_controller_alternate() else "false"),
-                                                                                   certificate["alias"]), method="POST", headers=headers, data=data)
+            rc, resp = self.request(self.url_path_prefix + "certificates/server%s&alias=%s" % (self.url_path_suffix, certificate["alias"]),
+                                    method="POST", headers=headers, data=data)
         except Exception as error:
             self.module.fail_json(msg="Failed to upload certificate authority! Array [%s]. Error [%s]." % (self.ssid, error))
 
     def remove_authoritative_certificates(self, alias):
         """Delete all authoritative certificates."""
         try:
-            rc, resp = self.request("certificates/server/%s?alternate=%s" % (alias, "true" if self.is_controller_alternate() else "false"), method="DELETE")
+            rc, resp = self.request(self.url_path_prefix + "certificates/server/%s%s" % (alias, self.url_path_suffix), method="DELETE")
         except Exception as error:
             self.module.fail_json(msg="Failed to delete certificate authority! Array [%s]. Error [%s]." % (self.ssid, error))
 
     def reload_ssl_configuration(self):
         """Asynchronously reloads the SSL configuration."""
-        self.request("certificates/reload?alternate=%s" % ("true" if self.is_controller_alternate() else "false"), method="POST", ignore_errors=True)
+        self.request(self.url_path_prefix + "certificates/reload%s" % self.url_path_suffix, method="POST", ignore_errors=True)
 
         for retry in range(int(self.RESET_SSL_CONFIG_TIMEOUT_SEC / 3)):
             try:
-                rc, current_certificates = self.request("certificates/server?alternate=%s" % ("true" if self.is_controller_alternate() else "false"))
+                rc, current_certificates = self.request(self.url_path_prefix + "certificates/server%s" % self.url_path_suffix)
             except Exception as error:
                 sleep(3)
                 continue
@@ -508,7 +517,6 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
             self.module.fail_json(msg="Python packages are missing! Packages [%s]." % ", ".join(missing_packages))
 
         changes = self.determine_changes()
-
         if changes["change_required"] and not self.module.check_mode:
 
             if changes["signed_cert"]:
@@ -523,8 +531,10 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
                 self.apply_self_signed_certificate()
                 self.reload_ssl_configuration()
 
-        self.module.exit_json(changed=changes["change_required"], signed_server_certificate=changes["signed_cert"],
-                              added_certificates=[cert["alias"] for cert in changes["add_certs"]], removed_certificates=changes["remove_certs"])
+        self.module.exit_json(changed=changes["change_required"],
+                              signed_server_certificate=changes["signed_cert"],
+                              added_certificates=[cert["alias"] for cert in changes["add_certs"]],
+                              removed_certificates=changes["remove_certs"])
 
 
 def main():
