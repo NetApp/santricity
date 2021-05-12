@@ -100,16 +100,25 @@ Role Variables
 
     # Web Services Proxy specific variable
         Note: eseries_proxy_* variables are required to discover storage systems prior to SANtricity OS version 11.60.2.
-    eseries_proxy_api_url:                  # Url for the storage system's for proxy web services rest api. Example: https://192.168.10.100/devmgr/v2
-    eseries_proxy_api_username:             # Username for the storage system's for proxy web services rest api.
-    eseries_proxy_api_password:             # Password for the storage system's for proxy web services rest api and when the admin password has not been set eseries_proxy_api_password will be used to set it.
-    eseries_proxy_monitor_password:         # Proxy password for the monitor username
-    eseries_proxy_security_password:        # Proxy password for the security username
-    eseries_proxy_storage_password:         # Proxy password for the monitor username
-    eseries_proxy_support_password:         # Proxy password for the support username
-    eseries_proxy_accept_certifications:    # Force automatic acceptance of all storage system's certificate
-    eseries_proxy_default_system_tags:      # Default meta tags to associate with all storage systems
-    eseries_proxy_default_password:         # Default password to associate with all storage systems. This is overridden by eseries_system_password.
+    eseries_proxy_api_url:                                  # Url for the storage system's for proxy web services rest api. Example: https://192.168.10.100/devmgr/v2
+    eseries_proxy_api_username:                             # Username for the storage system's for proxy web services rest api (Default: admin).
+    eseries_proxy_api_password:                             # Password for the storage system's for proxy web services rest api and when the admin password has
+                                                            #   not been set eseries_proxy_api_password will be used to set it.
+    eseries_proxy_api_old_password:                         # Previous proxy admin password. This is used to change the current admin password by setting this
+                                                            #   variable to the current proxy password and eseries_proxy_api_password to the new password.
+    eseries_proxy_monitor_password:                         # Proxy password for the monitor username
+    eseries_proxy_security_password:                        # Proxy password for the security username
+    eseries_proxy_storage_password:                         # Proxy password for the monitor username
+    eseries_proxy_support_password:                         # Proxy password for the support username
+    eseries_proxy_accept_certifications:                    # Force automatic acceptance of all storage system's certificate
+    eseries_proxy_default_system_tags:                      # Default meta tags to associate with all storage systems
+    eseries_proxy_default_password:                         # Default password to associate with all storage systems. This is overridden by eseries_system_password.
+    eseries_proxy_client_certificate_common_certificates:   # List of common proxy client certificate file paths. These files will be appended to each client certificate list.
+    eseries_proxy_client_certificate_certificates:          # List of proxy client certificate file paths
+    eseries_proxy_server_certificate_common_certificates:   # List of common proxy server certificates. These files will be appended to each controller's server certificate list.
+    eseries_proxy_server_certificate_common_passphrase:     # Common passphrase for decrypting PEM (PKCS8) private key.
+    eseries_proxy_server_certificate_certificates:          # List of proxy server certificates. Leave blank to use self-signed certificate.
+    eseries_proxy_server_certificate_passphrase:            # Passphrase for decrypting PEM (PKCS8) private key.
 
     # LDAP configuration defaults
     eseries_proxy_ldap_state:             # Whether LDAP should be configured for the proxy`

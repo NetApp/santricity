@@ -125,9 +125,10 @@ Role Variables
 
     # Web Services Proxy information
         Note: eseries_proxy_* variables are required to discover storage systems prior to SANtricity OS version 11.60.2.
-    eseries_proxy_api_url:         # Url for the storage system's for proxy web services rest api. Example: https://192.168.10.100/devmgr/v2
-    eseries_proxy_api_username:    # Username for the storage system's for proxy web services rest api.
-    eseries_proxy_api_password:    # Password for the storage system's for proxy web services rest api and when the admin password has not been set eseries_proxy_api_password will be used to set it.
+    eseries_proxy_api_url:        # Url for the storage system's for proxy web services rest api. Example: https://192.168.10.100/devmgr/v2
+    eseries_proxy_api_username:   # Username for the storage system's for proxy web services rest api.
+    eseries_proxy_api_password:   # Password for the storage system's for proxy web services rest api and when the admin password has not been set 
+                                  #   eseries_proxy_api_password will be used to set it.
 
     # Global storage system information
     eseries_system_name:                           # Name of the storage system.
