@@ -1,7 +1,0 @@
-minor_changes:
-  - Add remove_unspecified_user_certificates variable to the client certificates module.
-
-bugfixes:
-  - Fix server certificate module not forwarding certificate imports to the embedded web services.
-  - Fix missing proxy client and server certificate in management role.
-  - Fix missing proxy validate_certs and change current proxy password variables.

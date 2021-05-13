@@ -162,3 +162,19 @@ releases:
     - fix_pkcs8_cert_issue.yml
     - fix_proxy_admin_password_change.yml
     release_date: '2021-05-11'
+  1.2.9:
+    changes:
+      bugfixes:
+      - Fix missing proxy client and server certificate in management role.
+      - Fix missing proxy validate_certs and change current proxy password variables.
+      - Fix server certificate module not forwarding certificate imports to the embedded
+        web services.
+      minor_changes:
+      - Add eseries_system_old_password variable to faciliate changing the storage
+        system's admin password.
+      - Add remove_unspecified_user_certificates variable to the client certificates
+        module.
+    fragments:
+    - add_eseries_system_old_password_variable_to_change_admin.yml
+    - fix_certificates.yml
+    release_date: '2021-05-13'

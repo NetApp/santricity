@@ -5,6 +5,22 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.2.9
+======
+
+Minor Changes
+-------------
+
+- Add eseries_system_old_password variable to faciliate changing the storage system's admin password.
+- Add remove_unspecified_user_certificates variable to the client certificates module.
+
+Bugfixes
+--------
+
+- Fix missing proxy client and server certificate in management role.
+- Fix missing proxy validate_certs and change current proxy password variables.
+- Fix server certificate module not forwarding certificate imports to the embedded web services.
+
 v1.2.8
 ======
 
