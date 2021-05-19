@@ -40,6 +40,7 @@ options:
       - The minimum size of the storage pool (in size_unit).
       - When I(state=="present") then I(criteria_drive_count) or I(criteria_min_usable_capacity) must be specified.
       - The pool will be expanded if this value exceeds its current size. (See expansion note below)
+      - Do not use when the storage system contains mixed drives and I(usable_drives) is specified since usable capacities may not be accurate.
     type: float
     required: false
   criteria_drive_type:
@@ -83,9 +84,19 @@ options:
     required: false
   criteria_drive_require_fde:
     description:
-     - Whether full disk encryption ability is required for drives to be added to the storage pool
+       - Whether full disk encryption ability is required for drives to be added to the storage pool
     type: bool
     default: false
+    required: false
+  usable_drives:
+    description:
+      - Ordered comma-separated list of tray/drive slots to be selected for drive candidates (drives that are used will be skipped).
+      - Each drive entry is represented as <tray_number>:<drive_slot_number> (e.g. 99:0 is the base tray's drive slot 0).
+      - The base tray's default identifier is 99 and expansion trays are added in the order they are attached but these identifiers can be changed by the user.
+      - Be aware that trays with multiple drawers still have a dedicated drive slot for all drives and the slot number does not rely on the drawer; however,
+        if you're planing to have drawer protection you need to order accordingly.
+      - When I(usable_drives) are not provided then the drive candidates will be selected by the storage system.
+    type: str
     required: false
   raid_level:
     description:
@@ -223,6 +234,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
             criteria_drive_require_da=dict(type="bool", required=False),
             criteria_drive_require_fde=dict(type="bool", required=False),
             criteria_min_usable_capacity=dict(type="float"),
+            usable_drives=dict(type="str", required=False),
             raid_level=dict(choices=["raidAll", "raid0", "raid1", "raid3", "raid5", "raid6", "raidDiskPool"],
                             default="raidDiskPool"),
             erase_secured_drives=dict(type="bool", default=True),
@@ -279,6 +291,16 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
             self.raid_level = "raidDiskPool"
         if self.raid_level == "raid3":
             self.raid_level = "raid5"
+
+        # Parse usable drive string into tray:slot list
+        self.usable_drives = []
+        if args["usable_drives"]:
+            for usable_drive in args["usable_drives"].split(","):
+                location = [int(item) for item in usable_drive.split(":")]
+                if len(location) != 2:
+                    self.module.fail_json(msg="Invalid I(usable_drives) value! Must be a comma-separated list of <TRAY_NUMBER>:<DRIVE_SLOT_NUMBER> entries."
+                                              " Array [%s]." % self.ssid)
+                self.usable_drives.append([location[0], location[1] + 1])  # slot must be one-indexed instead of zero.
 
     @property
     @memoize
@@ -347,13 +369,39 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
 
     @property
     def drives(self):
-        """Retrieve list of drives found in storage pool."""
+        """Retrieve list of drives found in storage system."""
         drives = None
         try:
             rc, drives = self.request("storage-systems/%s/drives" % self.ssid)
         except Exception as error:
-            self.module.fail_json(msg="Failed to fetch disk drives. Array id [%s].  Error[%s]."
-                                      % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to fetch disk drives. Array id [%s].  Error[%s]." % (self.ssid, to_native(error)))
+
+        return drives
+
+    def tray_by_ids(self):
+        """Retrieve list of trays found in storage system and return dictionary of trays keyed by ids."""
+        tray_by_ids = {}
+        try:
+            rc, inventory = self.request("storage-systems/%s/hardware-inventory" % self.ssid)
+            for tray_id, tray_ref in [[tray["trayId"], tray["trayRef"]] for tray in inventory["trays"]]:
+                tray_by_ids.update({tray_ref: tray_id})
+        except Exception as error:
+            self.module.fail_json(msg="Failed to fetch trays. Array id [%s].  Error[%s]." % (self.ssid, to_native(error)))
+
+        return tray_by_ids
+
+    def convert_drives_list_into_drive_info_by_ids(self):
+        """Determine drive identifiers base on provided drive list. Provide usable_ids list to select subset."""
+        tray_by_ids = self.tray_by_ids()
+
+        drives = []
+        for usable_drive in self.usable_drives:
+            tray, slot = usable_drive
+            for drive in self.drives:
+                if slot == drive["physicalLocation"]["slot"] and tray == tray_by_ids[drive["physicalLocation"]["trayRef"]]:
+                    if drive["available"]:
+                        drives.append(drive["id"])
+                    break
 
         return drives
 
@@ -479,64 +527,68 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
 
         return available_stripe_count * 4294967296
 
+    def get_candidate_drive_request(self):
+        """Perform request for new volume creation."""
+
+        candidates_list = list()
+        drive_types = [self.criteria_drive_type] if self.criteria_drive_type else self.available_drive_types
+        interface_types = [self.criteria_drive_interface_type] \
+            if self.criteria_drive_interface_type else self.available_drive_interface_types
+
+        for interface_type in interface_types:
+            for drive_type in drive_types:
+                candidates = None
+                volume_candidate_request_data = dict(
+                    type="diskPool" if self.raid_level == "raidDiskPool" else "traditional",
+                    diskPoolVolumeCandidateRequestData=dict(
+                        reconstructionReservedDriveCount=65535))
+                candidate_selection_type = dict(
+                    candidateSelectionType="count",
+                    driveRefList=dict(driveRef=self.available_drives))
+                criteria = dict(raidLevel=self.raid_level,
+                                phyDriveType=interface_type,
+                                dssPreallocEnabled=False,
+                                securityType="capable" if self.criteria_drive_require_fde else "none",
+                                driveMediaType=drive_type,
+                                onlyProtectionInformationCapable=True if self.criteria_drive_require_da else False,
+                                volumeCandidateRequestData=volume_candidate_request_data,
+                                allocateReserveSpace=False,
+                                securityLevel="fde" if self.criteria_drive_require_fde else "none",
+                                candidateSelectionType=candidate_selection_type)
+
+                try:
+                    rc, candidates = self.request("storage-systems/%s/symbol/getVolumeCandidates?verboseError"
+                                                  "Response=true" % self.ssid, data=criteria, method="POST")
+                except Exception as error:
+                    self.module.fail_json(msg="Failed to retrieve volume candidates. Array [%s]. Error [%s]."
+                                              % (self.ssid, to_native(error)))
+
+                if candidates:
+                    candidates_list.extend(candidates["volumeCandidate"])
+
+        if candidates_list and not self.usable_drives:
+            def candidate_sort_function(entry):
+                """Orders candidates based on tray/drawer loss protection."""
+                preference = 3
+                if entry["drawerLossProtection"]:
+                    preference -= 1
+                if entry["trayLossProtection"]:
+                    preference -= 2
+                return preference
+            candidates_list.sort(key=candidate_sort_function)
+
+        # Replace drive selection with required usable drives
+        if self.usable_drives:
+            drives = self.convert_drives_list_into_drive_info_by_ids()
+            for candidates in candidates_list:
+                candidates["driveRefList"].update({"driveRef": drives[0:candidates["driveCount"]]})
+
+        return candidates_list
+
     @memoize
     def get_candidate_drives(self):
         """Retrieve set of drives candidates for creating a new storage pool."""
-
-        def get_candidate_drive_request():
-            """Perform request for new volume creation."""
-
-            candidates_list = list()
-            drive_types = [self.criteria_drive_type] if self.criteria_drive_type else self.available_drive_types
-            interface_types = [self.criteria_drive_interface_type] \
-                if self.criteria_drive_interface_type else self.available_drive_interface_types
-
-            for interface_type in interface_types:
-                for drive_type in drive_types:
-                    candidates = None
-                    volume_candidate_request_data = dict(
-                        type="diskPool" if self.raid_level == "raidDiskPool" else "traditional",
-                        diskPoolVolumeCandidateRequestData=dict(
-                            reconstructionReservedDriveCount=65535))
-                    candidate_selection_type = dict(
-                        candidateSelectionType="count",
-                        driveRefList=dict(driveRef=self.available_drives))
-                    criteria = dict(raidLevel=self.raid_level,
-                                    phyDriveType=interface_type,
-                                    dssPreallocEnabled=False,
-                                    securityType="capable" if self.criteria_drive_require_fde else "none",
-                                    driveMediaType=drive_type,
-                                    onlyProtectionInformationCapable=True if self.criteria_drive_require_da else False,
-                                    volumeCandidateRequestData=volume_candidate_request_data,
-                                    allocateReserveSpace=False,
-                                    securityLevel="fde" if self.criteria_drive_require_fde else "none",
-                                    candidateSelectionType=candidate_selection_type)
-
-                    try:
-                        rc, candidates = self.request("storage-systems/%s/symbol/getVolumeCandidates?verboseError"
-                                                      "Response=true" % self.ssid, data=criteria, method="POST")
-                    except Exception as error:
-                        self.module.fail_json(msg="Failed to retrieve volume candidates. Array [%s]. Error [%s]."
-                                                  % (self.ssid, to_native(error)))
-
-                    if candidates:
-                        candidates_list.extend(candidates["volumeCandidate"])
-
-            if candidates_list:
-                def candidate_sort_function(entry):
-                    """Orders candidates based on tray/drawer loss protection."""
-                    preference = 3
-                    if entry["drawerLossProtection"]:
-                        preference -= 1
-                    if entry["trayLossProtection"]:
-                        preference -= 2
-                    return preference
-                candidates_list.sort(key=candidate_sort_function)
-
-            return candidates_list
-
-        # Determine the appropriate candidate list
-        for candidate in get_candidate_drive_request():
+        for candidate in self.get_candidate_drive_request():
 
             # Evaluate candidates for required drive count, collective drive usable capacity and minimum drive size
             if self.criteria_drive_count:
