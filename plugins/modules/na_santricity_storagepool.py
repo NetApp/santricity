@@ -91,7 +91,7 @@ options:
   usable_drives:
     description:
       - Ordered comma-separated list of tray/drive slots to be selected for drive candidates (drives that are used will be skipped).
-      - Each drive entry is represented as <tray_number>:<drive_slot_number> (e.g. 99:0 is the base tray's drive slot 0).
+      - Each drive entry is represented as <tray_number>:<(optional) drawer_number>:<drive_slot_number> (e.g. 99:0 is the base tray's drive slot 0).
       - The base tray's default identifier is 99 and expansion trays are added in the order they are attached but these identifiers can be changed by the user.
       - Be aware that trays with multiple drawers still have a dedicated drive slot for all drives and the slot number does not rely on the drawer; however,
         if you're planing to have drawer protection you need to order accordingly.
@@ -297,10 +297,15 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
         if args["usable_drives"]:
             for usable_drive in args["usable_drives"].split(","):
                 location = [int(item) for item in usable_drive.split(":")]
-                if len(location) != 2:
+                if len(location) == 2:
+                    tray, slot = location
+                    self.usable_drives.append([tray, 0, slot + 1])  # slot must be one-indexed instead of zero.
+                elif len(location) == 3:
+                    tray, drawer, slot = location
+                    self.usable_drives.append([tray, drawer - 1, slot + 1])  # slot must be one-indexed instead of zero.
+                else:
                     self.module.fail_json(msg="Invalid I(usable_drives) value! Must be a comma-separated list of <TRAY_NUMBER>:<DRIVE_SLOT_NUMBER> entries."
                                               " Array [%s]." % self.ssid)
-                self.usable_drives.append([location[0], location[1] + 1])  # slot must be one-indexed instead of zero.
 
     @property
     @memoize
@@ -337,7 +342,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
         try:
             rc, capabilities = self.request("storage-systems/%s/capabilities" % self.ssid)
         except Exception as error:
-            self.module.fail_json(msg="Failed to fetch maximum expandable drive count. Array id [%s].  Error[%s]."
+            self.module.fail_json(msg="Failed to fetch maximum expandable drive count. Array id [%s]. Error [%s]."
                                       % (self.ssid, to_native(error)))
 
         return capabilities["featureParameters"]["maxDCEDrives"]
@@ -374,7 +379,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
         try:
             rc, drives = self.request("storage-systems/%s/drives" % self.ssid)
         except Exception as error:
-            self.module.fail_json(msg="Failed to fetch disk drives. Array id [%s].  Error[%s]." % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to fetch disk drives. Array id [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
         return drives
 
@@ -383,10 +388,11 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
         tray_by_ids = {}
         try:
             rc, inventory = self.request("storage-systems/%s/hardware-inventory" % self.ssid)
-            for tray_id, tray_ref in [[tray["trayId"], tray["trayRef"]] for tray in inventory["trays"]]:
-                tray_by_ids.update({tray_ref: tray_id})
+            for tray in inventory["trays"]:
+                tray_by_ids.update({tray["trayRef"]: {"tray_number": tray["trayId"],
+                                                      "drawer_count": tray["driveLayout"]["numRows"] * tray["driveLayout"]["numColumns"]}})
         except Exception as error:
-            self.module.fail_json(msg="Failed to fetch trays. Array id [%s].  Error[%s]." % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to fetch trays. Array id [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
         return tray_by_ids
 
@@ -396,9 +402,10 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
 
         drives = []
         for usable_drive in self.usable_drives:
-            tray, slot = usable_drive
+            tray, drawer, slot = usable_drive
             for drive in self.drives:
-                if slot == drive["physicalLocation"]["slot"] and tray == tray_by_ids[drive["physicalLocation"]["trayRef"]]:
+                drawer_slot = drawer * tray_by_ids[drive["physicalLocation"]["trayRef"]]["drawer_count"] + slot
+                if drawer_slot == drive["physicalLocation"]["slot"] and tray == tray_by_ids[drive["physicalLocation"]["trayRef"]]["tray_number"]:
                     if drive["available"]:
                         drives.append(drive["id"])
                     break
@@ -429,7 +436,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
         try:
             rc, storage_pools_resp = self.request("storage-systems/%s/storage-pools" % self.ssid)
         except Exception as err:
-            self.module.fail_json(msg="Failed to get storage pools. Array id [%s]. Error[%s]. State[%s]."
+            self.module.fail_json(msg="Failed to get storage pools. Array id [%s]. Error [%s]. State[%s]."
                                       % (self.ssid, to_native(err), self.state))
 
         pool_detail = [pool for pool in storage_pools_resp if pool["name"] == self.name]
@@ -442,7 +449,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
         try:
             rc, volumes_resp = self.request("storage-systems/%s/volumes" % self.ssid)
         except Exception as err:
-            self.module.fail_json(msg="Failed to get storage pools. Array id [%s]. Error[%s]. State[%s]."
+            self.module.fail_json(msg="Failed to get storage pools. Array id [%s]. Error [%s]. State[%s]."
                                       % (self.ssid, to_native(err), self.state))
 
         group_ref = self.storage_pool["volumeGroupRef"]
@@ -575,6 +582,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
                 if entry["trayLossProtection"]:
                     preference -= 2
                 return preference
+
             candidates_list.sort(key=candidate_sort_function)
 
         # Replace drive selection with required usable drives
@@ -784,7 +792,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
         try:
             rc, resp = self.request(url, method="POST", data=request_body)
         except Exception as error:
-            self.module.fail_json(msg="Failed to create storage pool. Array id [%s].  Error[%s]."
+            self.module.fail_json(msg="Failed to create storage pool. Array id [%s]. Error [%s]."
                                       % (self.ssid, to_native(error)))
 
         # Update drive and storage pool information
@@ -798,7 +806,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
             rc, resp = self.request("storage-systems/%s/storage-pools/%s%s"
                                     % (self.ssid, self.pool_detail["id"], delete_volumes_parameter), method="DELETE")
         except Exception as error:
-            self.module.fail_json(msg="Failed to delete storage pool. Pool id [%s]. Array id [%s].  Error[%s]."
+            self.module.fail_json(msg="Failed to delete storage pool. Pool id [%s]. Array id [%s]. Error [%s]."
                                       % (self.pool_detail["id"], self.ssid, to_native(error)))
 
         if storage_pool_drives and self.erase_secured_drives:
@@ -844,7 +852,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
                                         % (self.ssid, self.name), data=sp_raid_migrate_req, method="POST")
             except Exception as error:
                 self.module.fail_json(msg="Failed to change the raid level of storage pool. Array id [%s]."
-                                          "  Error[%s]." % (self.ssid, to_native(error)))
+                                          " Error [%s]." % (self.ssid, to_native(error)))
 
         self.pool_detail = self.storage_pool
         return needs_migration
@@ -913,12 +921,12 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
                         actions = [action["currentAction"] for action in actions_resp
                                    if action["volumeRef"] in self.storage_pool_volumes]
                         self.module.fail_json(msg="Failed to add drives to the storage pool possibly because of actions"
-                                                  " in progress. Actions [%s]. Pool id [%s]. Array id [%s]. Error[%s]."
+                                                  " in progress. Actions [%s]. Pool id [%s]. Array id [%s]. Error [%s]."
                                                   % (", ".join(actions), self.pool_detail["id"], self.ssid,
                                                      to_native(error)))
 
                     self.module.fail_json(msg="Failed to add drives to storage pool. Pool id [%s]. Array id [%s]."
-                                              "  Error[%s]." % (self.pool_detail["id"], self.ssid, to_native(error)))
+                                              " Error [%s]." % (self.pool_detail["id"], self.ssid, to_native(error)))
 
                 # Wait for expansion completion unless it is the last request in the candidate list
                 if required_expansion_candidate_list:
@@ -1020,8 +1028,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
                         msg = "Following changes have been applied to the storage pool [%s]: " + ", ".join(change_list)
 
                     if expanded:
-                        msg += "\nThe expansion operation will complete in an estimated %s minutes."\
-                               % estimated_completion_time
+                        msg += "\nThe expansion operation will complete in an estimated %s minutes." % estimated_completion_time
                 else:
                     self.create_storage_pool()
                     msg = "Storage pool [%s] was created."
