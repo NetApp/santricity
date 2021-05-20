@@ -320,7 +320,7 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
                         certificates_info.update({"private_key": key})
                 except Exception as error:
                     self.module.fail_json(msg="Invalid file type! File is neither PEM or DER encoded certificate/private key."
-                                              " Path [%s]. Array [%s]" % (path, self.ssid))
+                                              " Path [%s]. Array [%s]. Error [%s]." % (path, self.ssid, to_native(error)))
 
         return certificates_info
 
