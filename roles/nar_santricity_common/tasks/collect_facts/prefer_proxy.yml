@@ -87,6 +87,11 @@
           {{ info }}
       no_log: true
 
+    - name: Check whether storage system was discovered.
+      fail:
+        msg: "Storage system failed to be discovered! Serial [{{ eseries_system_serial }}]. Subnet [{{ eseries_subnet }}]."
+      when: current_eseries_api_info == {}
+
     - name: Set storage systems Web Services URL information
       set_fact:
         current_eseries_api_is_proxy: "{{ current_eseries_api_info['proxy_required'] }}"
