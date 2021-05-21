@@ -110,15 +110,10 @@ from ansible.module_utils._text import to_native
 from time import sleep
 
 try:
-    from OpenSSL import crypto
-except ImportError:
-    HAS_OPENSSL = False
-else:
-    HAS_OPENSSL = True
-try:
+    import cryptography
     from cryptography import x509
-    from cryptography.hazmat.backends import default_backend
     from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.backends import default_backend
 except ImportError:
     HAS_CRYPTOGRAPHY = False
 else:
@@ -266,16 +261,17 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
                         key += line
                         if not six.PY2:
                             key = six.b(key)
-                            self.passphrase = six.b(self.passphrase)
+                            if self.passphrase:
+                                self.passphrase = six.b(self.passphrase)
 
                         # Check for PKCS8 PEM encoding.
                         if pkcs8 or pkcs8_encrypted:
                             try:
                                 if pkcs8:
-                                    crypto_key = crypto.load_privatekey(crypto.FILETYPE_PEM, key).to_cryptography_key()
+                                    crypto_key = serialization.load_pem_private_key(key, password=None, backend=default_backend())
                                 else:
-                                    crypto_key = crypto.load_privatekey(crypto.FILETYPE_PEM, key, passphrase=self.passphrase).to_cryptography_key()
-                            except crypto.Error as error:
+                                    crypto_key = serialization.load_pem_private_key(key, password=self.passphrase, backend=default_backend())
+                            except ValueError as error:
                                 self.module.fail_json(msg="Failed to load%sPKCS8 encoded private key. %s"
                                                           " Error [%s]." % (" encrypted " if pkcs8_encrypted else " ",
                                                                             "Check passphrase." if pkcs8_encrypted else "", error))
@@ -300,9 +296,8 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
             # Treat file as DER encoded certificate
             try:
                 with open(path, "rb") as fh:
-                    cert = crypto.load_certificate(crypto.FILETYPE_ASN1, fh.read())
-                    cert_info = cert.to_cryptography()
-                    cert_data = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
+                    cert_info = x509.load_der_x509_certificate(fh.read(), default_backend())
+                    cert_data = cert_info.public_bytes(serialization.Encoding.PEM)
                     certificates_info.update(self.certificate_info(cert_info, cert_data, path))
 
                 # Throw exception when no DER encoded certificates have been discovered.
@@ -313,7 +308,7 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
                 # Treat file as DER encoded private key
                 try:
                     with open(path, "rb") as fh:
-                        crypto_key = crypto.load_privatekey(crypto.FILETYPE_ASN1, fh.read()).to_cryptography_key()
+                        crypto_key = serialization.load_der_public_key(fh.read(), backend=default_backend())
                         key = crypto_key.private_bytes(encoding=serialization.Encoding.PEM,
                                                        format=serialization.PrivateFormat.TraditionalOpenSSL,
                                                        encryption_algorithm=serialization.NoEncryption())
@@ -507,14 +502,12 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
 
     def apply(self):
         """Apply state changes to the storage array's truststore."""
-        missing_packages = []
         if not HAS_CRYPTOGRAPHY:
-            missing_packages.append("cryptography")
-        if not HAS_OPENSSL:
-            missing_packages.append("OpenSSL")
+            self.module.fail_json(msg="Python cryptography package are missing!")
 
-        if missing_packages:
-            self.module.fail_json(msg="Python packages are missing! Packages [%s]." % ", ".join(missing_packages))
+        major, minor, patch = [int(item) for item in str(cryptography.__version__).split(".")]
+        if major < 2 or (major == 2 and minor < 5):
+            self.module.fail_json(msg="Python cryptography package version must greater than version 2.5! Version [%s]." % cryptography.__version__)
 
         changes = self.determine_changes()
         if changes["change_required"] and not self.module.check_mode:

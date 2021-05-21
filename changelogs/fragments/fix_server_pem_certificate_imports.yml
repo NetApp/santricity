@@ -1,0 +1,2 @@
+bugfixes:
+  - Fix PEM certificate/key imports in the na_santricity_server_certificate module.
