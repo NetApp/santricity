@@ -5,7 +5,6 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-
 DOCUMENTATION = """
 ---
 module: na_santricity_global
@@ -62,6 +61,12 @@ options:
         choices:
             - enabled
             - disabled
+        required: False
+    login_banner_message:
+        description:
+            - Text message that appears prior to the login page.
+            - I(login_banner_message=="") will delete any existing banner message.
+        type: str
         required: False
 notes:
     - Check mode is supported.
@@ -126,12 +131,27 @@ default_host_type_index:
     returned: on success
     type: int
     sample: 28
+login_banner_message:
+    description: Current banner message
+    returned: on success
+    type: str
+    sample: "Banner message here!"
 """
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
+import random
+import sys
+
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata
+from ansible.module_utils import six
 from ansible.module_utils._text import to_native
+try:
+    from ansible.module_utils.ansible_release import __version__ as ansible_version
+except ImportError:
+    ansible_version = 'unknown'
 
 
 class NetAppESeriesGlobalSettings(NetAppESeriesModule):
+    MAXIMUM_LOGIN_BANNER_SIZE_BYTES = 5 * 1024
+
     def __init__(self):
         version = "02.00.0000.0000"
         ansible_options = dict(cache_block_size=dict(type="int", require=False),
@@ -139,7 +159,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                                default_host_type=dict(type="str", require=False),
                                automatic_load_balancing=dict(type="str", choices=["enabled", "disabled"], required=False),
                                host_connectivity_reporting=dict(type="str", choices=["enabled", "disabled"], required=False),
-                               name=dict(type='str', required=False, aliases=['label']))
+                               name=dict(type='str', required=False, aliases=['label']),
+                               login_banner_message=dict(type='str', required=False))
 
         super(NetAppESeriesGlobalSettings, self).__init__(ansible_options=ansible_options,
                                                           web_services_version=version,
@@ -149,6 +170,10 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         self.cache_block_size = args["cache_block_size"]
         self.cache_flush_threshold = args["cache_flush_threshold"]
         self.host_type_index = args["default_host_type"]
+
+        self.login_banner_message = None
+        if args["login_banner_message"] is not None:
+            self.login_banner_message = args["login_banner_message"].rstrip("\n")
 
         self.autoload_enabled = None
         if args["automatic_load_balancing"]:
@@ -202,6 +227,13 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                 self.current_configuration_cache["name"] = array_info['name']
             except Exception as error:
                 self.module.fail_json(msg="Failed to determine current configuration. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+            try:
+                rc, login_banner_message = self.request("storage-systems/%s/login-banner?asFile=false" % self.ssid, ignore_errors=True, json_response=False,
+                                                        headers={"Accept": "application/octet-stream", "netapp-client-type": "Ansible-%s" % ansible_version})
+                self.current_configuration_cache["login_banner_message"] = login_banner_message.rstrip("\n")
+            except Exception as error:
+                self.module.fail_json(msg="Failed to determine current login banner message. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
         return self.current_configuration_cache
 
@@ -279,6 +311,15 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
 
         return self.name != self.get_current_configuration()["name"]
 
+    def change_login_banner_message_required(self):
+        """Determine whether storage array name change is required."""
+        if self.login_banner_message is None:
+            return False
+
+        if self.login_banner_message and sys.getsizeof(self.login_banner_message) > self.MAXIMUM_LOGIN_BANNER_SIZE_BYTES:
+            self.module.fail_json(msg="The banner message is too long! It must be %s bytes. Array [%s]" % (self.MAXIMUM_LOGIN_BANNER_SIZE_BYTES, self.ssid))
+        return self.login_banner_message != self.get_current_configuration()["login_banner_message"]
+
     def update_cache_settings(self):
         """Update cache block size and/or flushing threshold."""
         block_size = self.cache_block_size if self.cache_block_size else self.get_current_configuration()["cache_settings"]["cache_block_size"]
@@ -328,13 +369,53 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         except Exception as err:
             self.module.fail_json(msg="Failed to set the storage array name! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
+    def update_login_banner_message(self):
+        """Update storage login banner message."""
+        if self.login_banner_message:
+            boundary = "---------------------------" + "".join([str(random.randint(0, 9)) for x in range(27)])
+            data_parts = list()
+            data = None
+
+            if six.PY2:  # Generate payload for Python 2
+                newline = "\r\n"
+                data_parts.extend(["--%s" % boundary,
+                                   'Content-Disposition: form-data; name="file"; filename="banner.txt"',
+                                   "Content-Type: text/plain",
+                                   "",
+                                   self.login_banner_message])
+                data_parts.extend(["--%s--" % boundary, ""])
+                data = newline.join(data_parts)
+
+            else:
+                newline = six.b("\r\n")
+                data_parts.extend([six.b("--%s" % boundary),
+                                   six.b('Content-Disposition: form-data; name="file"; filename="banner.txt"'),
+                                   six.b("Content-Type: text/plain"),
+                                   six.b(""),
+                                   self.login_banner_message])
+                data_parts.extend([six.b("--%s--" % boundary), b""])
+                data = newline.join(data_parts)
+
+            headers = {"Content-Type": "multipart/form-data; boundary=%s" % boundary, "Content-Length": str(len(data))}
+
+            try:
+                rc, result = self.request("storage-systems/%s/login-banner" % self.ssid, method="POST", headers=headers, data=data)
+            except Exception as err:
+                self.module.fail_json(msg="Failed to set the storage system login banner message! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+        else:
+            try:
+                rc, result = self.request("storage-systems/%s/login-banner" % self.ssid, method="DELETE")
+            except Exception as err:
+                self.module.fail_json(msg="Failed to clear the storage system login banner message! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+
     def update(self):
         """Ensure the storage array's global setting are correctly set."""
         change_required = False
         self.get_current_configuration()
 
         if (self.change_autoload_enabled_required() or self.change_cache_block_size_required() or self.change_cache_flush_threshold_required() or
-                self.change_host_type_required() or self.change_name_required() or self.change_host_connectivity_reporting_enabled_required()):
+                self.change_host_type_required() or self.change_name_required() or self.change_host_connectivity_reporting_enabled_required() or
+                self.change_login_banner_message_required()):
             change_required = True
 
         if change_required and not self.module.check_mode:
@@ -348,6 +429,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                 self.update_host_type()
             if self.change_name_required():
                 self.update_name()
+            if self.change_login_banner_message_required():
+                self.update_login_banner_message()
 
         self.get_current_configuration(update=True)
         self.module.exit_json(changed=change_required,
@@ -355,7 +438,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                               default_host_type_index=self.get_current_configuration()["default_host_type_index"],
                               automatic_load_balancing="enabled" if self.get_current_configuration()["autoload_enabled"] else "disabled",
                               host_connectivity_reporting="enabled" if self.get_current_configuration()["host_connectivity_reporting_enabled"] else "disabled",
-                              array_name=self.get_current_configuration()["name"])
+                              array_name=self.get_current_configuration()["name"],
+                              login_banner_message=self.get_current_configuration()["login_banner_message"])
 
 
 def main():
