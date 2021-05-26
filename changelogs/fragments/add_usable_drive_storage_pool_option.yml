@@ -1,2 +1,0 @@
-minor_changes:
-  - Add usable drive option for na_santricity_storagepool module and nar_santricity_host role which can be used to choose selected drives for storage pool/volumes or define a pattern drive selection.

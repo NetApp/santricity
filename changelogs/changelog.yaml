@@ -110,6 +110,23 @@ releases:
     - remove_resource_provisioned_volumes.yml
     - resource_provisioned_volume.yml
     release_date: '2021-04-12'
+  1.2.10:
+    changes:
+      bugfixes:
+      - Fix PEM certificate/key imports in the na_santricity_server_certificate module.
+      - Fix na_santricity_mgmt_interface IPv4 and IPv6 form validation.
+      minor_changes:
+      - Add login banner message to na_santricity_global module and nar_santricity_management
+        role.
+      - Add usable drive option for na_santricity_storagepool module and nar_santricity_host
+        role which can be used to choose selected drives for storage pool/volumes
+        or define a pattern drive selection.
+    fragments:
+    - add_login_banner_message.yml
+    - add_usable_drive_storage_pool_option.yml
+    - fix_mgmt_ip_address_form_validation.yml
+    - fix_server_pem_certificate_imports.yml
+    release_date: '2021-05-26'
   1.2.2:
     release_date: '2021-04-13'
   1.2.3:

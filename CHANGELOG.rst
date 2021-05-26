@@ -5,6 +5,21 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.2.10
+=======
+
+Minor Changes
+-------------
+
+- Add login banner message to na_santricity_global module and nar_santricity_management role.
+- Add usable drive option for na_santricity_storagepool module and nar_santricity_host role which can be used to choose selected drives for storage pool/volumes or define a pattern drive selection.
+
+Bugfixes
+--------
+
+- Fix PEM certificate/key imports in the na_santricity_server_certificate module.
+- Fix na_santricity_mgmt_interface IPv4 and IPv6 form validation.
+
 v1.2.9
 ======
 
