@@ -122,7 +122,7 @@
           {%- endif -%}
 
           {#- Add proxy specific client certificates -#}
-          {%- if eseries_proxy_client_certificate_certificates in (hostvars[array].keys() | list) -%}
+          {%- if "eseries_proxy_client_certificate_certificates" in (hostvars[array].keys() | list) -%}
             {%- if hostvars[array]["eseries_proxy_client_certificate_certificates"] is string -%}
               {%- if hostvars[array]["eseries_proxy_client_certificate_certificates"] not in certs -%}
                 {%- if certs.append(hostvars[array]["eseries_proxy_client_certificate_certificates"]) -%}{%- endif -%}

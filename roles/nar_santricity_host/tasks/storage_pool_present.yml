@@ -19,6 +19,7 @@
     criteria_drive_max_size: "{{ item['criteria_drive_max_size'] | default(eseries_storage_pool_criteria_drive_max_size | default(omit)) }}"
     criteria_drive_require_da: "{{ item['criteria_drive_require_da'] | default(eseries_storage_pool_criteria_drive_require_da | default(omit)) }}"
     criteria_drive_require_fde: "{{ item['criteria_drive_require_fde'] | default(eseries_storage_pool_criteria_drive_require_fde | default(omit)) }}"
+    usable_drives: "{{ item['usable_drives'] | default(eseries_storage_pool_usable_drives | default(omit)) }}"
     remove_volumes: "{{ item['remove_volumes'] | default(eseries_storage_pool_remove_volumes | default(omit)) }}"
     erase_secured_drives: "{{ item['erase_secured_drives'] | default(eseries_storage_pool_erase_secured_drives | default(omit)) }}"
     ddp_critical_threshold_pct: "{{ item['ddp_critical_threshold_pct'] | default(eseries_storage_pool_ddp_critical_threshold_pct | default(omit)) }}"

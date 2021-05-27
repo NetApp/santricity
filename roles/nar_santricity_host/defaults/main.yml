@@ -38,6 +38,8 @@ eseries_storage_pool_criteria_size_unit: gb              # Default unit size for
                                                          #    Type: boolean
 #eseries_storage_pool_criteria_drive_require_fde:        # Default for whether storage pools are required to have drive security compatible drives.
                                                          #    Type: boolean
+#eseries_storage_pool_usable_drives:                     # Ordered list of <tray_number>:<drive_slot> strings for drive candidates. This is useful to control
+                                                         #    drive selections.
 eseries_storage_pool_remove_volumes: True                # Default policy for deleting volumes prior to removing storage pools.
 #eseries_storage_pool_erase_secured_drives:              # Default policy for erasing the content drives during create and delete storage pool operations.
                                                          #    Type: boolean
@@ -214,6 +216,8 @@ eseries_host_remove_unused_hostgroup: True    # Forces any unused groups to be r
 #    criteria_drive_min_size:                 # Default minimum drive size for storage pools.
 #    criteria_drive_require_da:               # Default for whether storage pools are required to have data assurance (DA) compatible drives. Type: boolean
 #    criteria_drive_require_fde:              # Default for whether storage pools are required to have drive security compatible drives. Type: boolean
+#    usable_drives:                           # Ordered list of <tray_number>:<drive_slot> strings for drive candidates. This is useful to control
+                                              #    drive selections.
 #    remove_volumes:                          # Default policy for deleting volumes prior to removing storage pools.
 #    erase_secured_drives:                    # Default policy for erasing the content drives during create and delete storage pool operations. Type: boolean
 #    common_volume_configuration:             # Any option that can be specified at the volume level can be generalized here at the storage pool level. This is useful when

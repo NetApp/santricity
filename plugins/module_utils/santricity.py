@@ -283,7 +283,7 @@ class NetAppESeriesModule(object):
         return self.is_proxy_used_cache
 
     def request(self, path, rest_api_path=DEFAULT_REST_API_PATH, rest_api_url=None, data=None, method='GET', headers=None, ignore_errors=False, timeout=None,
-                force_basic_auth=True, log_request=None):
+                force_basic_auth=True, log_request=None, json_response=True):
         """Issue an HTTP request to a url, retrieving an optional JSON response.
 
         :param str path: web services rest api endpoint path (Example: storage-systems/1/graph). Note that when the
@@ -297,6 +297,7 @@ class NetAppESeriesModule(object):
         :param int timeout: duration of seconds before request finally times out.
         :param bool force_basic_auth: Ensure that basic authentication is being used.
         :param bool log_request: Log the request and response
+        :param bool json_response: Whether the response should be loaded as JSON, otherwise the response is return raw.
         """
         self._check_web_services_version()
 
@@ -319,8 +320,8 @@ class NetAppESeriesModule(object):
         if log_request:
             self.module.log(pformat(dict(url=request_url, data=data, method=method, headers=headers)))
 
-        response = self._request(url=request_url, data=data, method=method, headers=headers, last_mod_time=None, timeout=timeout,
-                                 http_agent=self.HTTP_AGENT, force_basic_auth=force_basic_auth, ignore_errors=ignore_errors, **self.creds)
+        response = self._request(url=request_url, data=data, method=method, headers=headers, last_mod_time=None, timeout=timeout, http_agent=self.HTTP_AGENT,
+                                 force_basic_auth=force_basic_auth, ignore_errors=ignore_errors, json_response=json_response, **self.creds)
         if log_request:
             self.module.log(pformat(response))
 
@@ -328,7 +329,7 @@ class NetAppESeriesModule(object):
 
     @staticmethod
     def _request(url, data=None, headers=None, method='GET', use_proxy=True, force=False, last_mod_time=None, timeout=10, validate_certs=True,
-                 url_username=None, url_password=None, http_agent=None, force_basic_auth=True, ignore_errors=False):
+                 url_username=None, url_password=None, http_agent=None, force_basic_auth=True, ignore_errors=False, json_response=True):
         """Issue an HTTP request to a url, retrieving an optional JSON response."""
 
         if headers is None:
@@ -344,14 +345,15 @@ class NetAppESeriesModule(object):
                          force_basic_auth=force_basic_auth)
             rc = r.getcode()
             response = r.read()
-            if response:
+            if json_response and response:
                 response = json.loads(response)
 
         except HTTPError as error:
             rc = error.code
             response = error.fp.read()
             try:
-                response = json.loads(response)
+                if json_response:
+                    response = json.loads(response)
             except Exception:
                 pass
 

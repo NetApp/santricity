@@ -80,7 +80,7 @@ Requirements
 ------------
     - Ansible 2.9 or later
     - NetApp E-Series E2800 platform or newer or NetApp E-Series SANtricity Web Services Proxy configured for older E-Series Storage arrays.
-    - Python OpenSSL package is required for na_santricity_server_certificate and nar_santricity_management role.
+    - Python cryptography >= 2.5 package is required for na_santricity_server_certificate and nar_santricity_management role.
     - Python ipaddress and netaddr packages are required for na_santricity_discover, na_santricity_ and nar_santricity_common role.
 
 Example Playbook
@@ -291,6 +291,11 @@ Snapshots
     - Automate snapshot consistency groups with one or more base volumes. Consistency groups allow snapshot images to be taken consistently across multiple base volumes at a single point in time. Then use these images to either create snapshot volumes or rollback the base volumes to previous states. Snapshot volumes allow you to interact with the volumes as they were in either a read-only or read-write mode.
     - Since E-Series storage systems are block storage and are unaware of both file system and application, it important to prepare volumes for snapshots. This requires applications to complete anything necessary to place the data in a valid state and file systems to complete and sync data to storage. To help facilitate these actions, checkout the snapshot role in the netapp_eseries.host collection (https://galaxy.ansible.com/netapp_eseries/host). This snapshot role ensures mounted E-Series volumes across multiple hosts have files closed, synced cache, and are temporarily unmounted prior to taking snapshots. Want to take a point-in-time snapshot of a parallel file system? The snapshot role also ensures that volumes are also ready across multiple storage systems.
 
+General Notes
+-------------
+    - The EF600/300 platforms currently do not distribute drives across their PCI bridges which can result in lower than expected performance when drives become saturated so be sure to use either eseries_storage_pool_usable_drives to specify the order the drives should be selected or the eseries_storage_pool_configuration usable_drives argument to specify which drives should be used. See details in the `Collection Variables` section. The example below will ensure the drive candidate selections for EF600/300 storage pools or volume groups are selected by alternating between the first and last twelve drives. You can also specify the tray drawers in the form <tray>:<drawer>:<slot>.
+        `eseries_storage_pool_usable_drives: "0:0, 0:23, 0:1, 0:22, 0:2, 0:21, 0:3, 0:20, 0:4, 0:19, 0:5, 0:18, 0:6, 0:17, 0:7, 0:16, 0:8, 0:15, 0:9, 0:14, 0:10, 0:13: 0:11, 0:12"`
+
 Collection Variables
 --------------------
 **Note that when values are specified below, they indicate the default value.**
@@ -359,6 +364,7 @@ Collection Variables
     eseries_system_cache_flush_threshold:          # Unwritten data will be flushed when exceeds this threshold
     eseries_system_autoload_balance:               # Whether automatic load balancing should be enabled. Choices: enabled, disabled
     eseries_system_host_connectivity_reporting:    # Whether host connectivity reporting should be enabled. Choices: enabled, disabled
+    eseries_system_login_banner_message:           # Message that appears prior to the login.
     eseries_system_default_host_type:              # Only required when using something other than Linux kernel 3.10 or later with DM-MP (Linux DM-MP),
                                                    #    non-clustered Windows (Windows), or the storage system default host type is incorrect.
                                                    # Common host type definitions:
@@ -849,6 +855,21 @@ Author Information
 =============
 Release Notes
 =============
+
+v1.2.10
+=======
+
+Minor Changes
+-------------
+
+- Add login banner message to na_santricity_global module and nar_santricity_management role.
+- Add usable drive option for na_santricity_storagepool module and nar_santricity_host role which can be used to choose selected drives for storage pool/volumes or define a pattern drive selection.
+
+Bugfixes
+--------
+
+- Fix PEM certificate/key imports in the na_santricity_server_certificate module.
+- Fix na_santricity_mgmt_interface IPv4 and IPv6 form validation.
 
 v1.2.9
 ======

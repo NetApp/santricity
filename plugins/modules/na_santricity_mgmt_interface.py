@@ -200,6 +200,7 @@ from time import sleep
 
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
+from ansible.module_utils import six
 
 try:
     import urlparse
@@ -217,6 +218,8 @@ else:
 def is_ipv4(address):
     """Determine whether address is IPv4."""
     try:
+        if six.PY2:
+            address = six.u(address)
         ipaddress.IPv4Address(address)
         return True
     except Exception as error:
@@ -226,6 +229,8 @@ def is_ipv4(address):
 def is_ipv6(address):
     """Determine whether address is IPv6."""
     try:
+        if six.PY2:
+            address = six.u(address)
         ipaddress.IPv6Address(address)
         return True
     except Exception as error:
