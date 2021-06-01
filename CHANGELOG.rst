@@ -5,6 +5,14 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.2.11
+=======
+
+Bugfixes
+--------
+
+- Fix login banner message option bytes error in na_santricity_global.
+
 v1.2.10
 =======
 
