@@ -231,7 +231,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             try:
                 rc, login_banner_message = self.request("storage-systems/%s/login-banner?asFile=false" % self.ssid, ignore_errors=True, json_response=False,
                                                         headers={"Accept": "application/octet-stream", "netapp-client-type": "Ansible-%s" % ansible_version})
-                self.current_configuration_cache["login_banner_message"] = login_banner_message.rstrip("\n")
+                self.current_configuration_cache["login_banner_message"] = login_banner_message.decode("utf-8").rstrip("\n")
             except Exception as error:
                 self.module.fail_json(msg="Failed to determine current login banner message. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
@@ -392,7 +392,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                                    six.b('Content-Disposition: form-data; name="file"; filename="banner.txt"'),
                                    six.b("Content-Type: text/plain"),
                                    six.b(""),
-                                   self.login_banner_message])
+                                   six.b(self.login_banner_message)])
                 data_parts.extend([six.b("--%s--" % boundary), b""])
                 data = newline.join(data_parts)
 

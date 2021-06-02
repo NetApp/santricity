@@ -127,6 +127,13 @@ releases:
     - fix_mgmt_ip_address_form_validation.yml
     - fix_server_pem_certificate_imports.yml
     release_date: '2021-05-26'
+  1.2.11:
+    changes:
+      bugfixes:
+      - Fix login banner message option bytes error in na_santricity_global.
+    fragments:
+    - fix_login_banner.yml
+    release_date: '2021-06-01'
   1.2.2:
     release_date: '2021-04-13'
   1.2.3:
