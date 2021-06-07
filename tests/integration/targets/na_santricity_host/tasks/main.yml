@@ -37,6 +37,24 @@
         label: fc_p2
         port: "01:23:45:67:89:1a:bc:de"
 
+- name: Attempt to change FC host port using different port case (no change)
+  na_santricity_host:
+    <<: *creds
+    name: linux_fc_host
+    host_type: Linux dm-mp
+    ports:
+      - type: FC
+        label: fc_p1
+        port: "0x1122334455667788"
+      - type: FC
+        label: fc_p2
+        port: "01:23:45:67:89:1A:BC:DE"
+  register: results
+- name: Verify no changes were made
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
 - name: (Repeat) Create iSCSI host (no change)
   na_santricity_host:
     <<: *creds
@@ -90,6 +108,42 @@
     that: "{{ results['changed'] }}"
     msg: "Unexpected results!"
 
+- name: (Repeat) Change FC host label to uppercase (change)
+  na_santricity_host:
+    <<: *creds
+    name: Linux_FC_Host
+    host_type: Linux dm-mp
+    ports:
+      - type: fc
+        label: fc_p1
+        port: "0x1122334455667788"
+      - type: fc
+        label: fc_p2
+        port: "01:23:45:67:89:1a:bc:de"
+  register: results
+- name: Verify changes were made
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Change FC host port labels to uppercase (change)
+  na_santricity_host:
+    <<: *creds
+    name: Linux_FC_Host
+    host_type: Linux dm-mp
+    ports:
+      - type: fc
+        label: FC_P1
+        port: "0x1122334455667788"
+      - type: fc
+        label: FC_P2
+        port: "01:23:45:67:89:1a:bc:de"
+  register: results
+- name: Verify changes were made
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
 - name: Create FC host with an used port (change)
   na_santricity_host:
     <<: *creds
@@ -137,7 +191,7 @@
   na_santricity_host:
     <<: *creds
     state: absent
-    name: linux_fc_host
+    name: Linux_FC_Host
   register: results
 - name: Verify changes were made
   assert:
@@ -170,7 +224,7 @@
   na_santricity_host:
     <<: *creds
     state: absent
-    name: linux_fc_host
+    name: Linux_FC_Host
   register: results
 - name: Verify no changes were made
   assert:

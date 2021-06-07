@@ -1,0 +1,2 @@
+bugfixes:
+  - Fix host and host port names from being changed to lower case.
