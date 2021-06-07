@@ -134,6 +134,13 @@ releases:
     fragments:
     - fix_login_banner.yml
     release_date: '2021-06-01'
+  1.2.12:
+    changes:
+      bugfixes:
+      - Fix host and host port names from being changed to lower case.
+    fragments:
+    - fix_host_object_naming_case.yml
+    release_date: '2021-06-07'
   1.2.2:
     release_date: '2021-04-13'
   1.2.3:
