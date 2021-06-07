@@ -5,6 +5,14 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.2.12
+=======
+
+Bugfixes
+--------
+
+- Fix host and host port names from being changed to lower case.
+
 v1.2.11
 =======
 

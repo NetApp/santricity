@@ -856,6 +856,22 @@ Author Information
 Release Notes
 =============
 
+v1.2.12
+=======
+
+Bugfixes
+--------
+
+- Fix host and host port names from being changed to lower case.
+
+v1.2.11
+=======
+
+Bugfixes
+--------
+
+- Fix login banner message option bytes error in na_santricity_global.
+
 v1.2.10
 =======
 
