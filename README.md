@@ -455,6 +455,7 @@ Collection Variables
                                     #                       well as the audit log configuration, adn certification management.
 
     # SSL/TLS certificate configurations - Note that both individual certificates or wildcard certificates are accepted.
+    eseries_client_certificate_remove_unspecified_user_certificates:    # Whether existing user certificates should be automatically removed. (Default: True)
     eseries_client_certificate_common_certificates:    # List of common client certificate file paths. These files will be appended to each client certificate list.
     eseries_client_certificate_certificates:           # List of client certificate file paths
     eseries_server_certificate_common_certificates:    # List of common server certificates. These files will be appended to each controller's server certificate list.

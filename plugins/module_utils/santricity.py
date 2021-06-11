@@ -359,6 +359,8 @@ class NetAppESeriesModule(object):
 
             if not ignore_errors:
                 raise Exception(rc, response)
+        except ValueError as error:
+            pass
 
         return rc, response
 
