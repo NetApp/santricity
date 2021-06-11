@@ -857,6 +857,14 @@ Author Information
 Release Notes
 =============
 
+v1.2.13
+=======
+
+Bugfixes
+--------
+
+- Fix availability of client certificate change.
+
 v1.2.12
 =======
 
