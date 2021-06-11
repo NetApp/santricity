@@ -141,6 +141,13 @@ releases:
     fragments:
     - fix_host_object_naming_case.yml
     release_date: '2021-06-07'
+  1.2.13:
+    changes:
+      bugfixes:
+      - Fix availability of client certificate change.
+    fragments:
+    - fix_client_certificate_availability.yml
+    release_date: '2021-06-11'
   1.2.2:
     release_date: '2021-04-13'
   1.2.3:

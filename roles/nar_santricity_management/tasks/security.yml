@@ -74,6 +74,7 @@
     api_password: "{{ current_eseries_api_password }}"
     validate_certs: "{{ current_eseries_validate_certs | default(omit) }}"
     certificates: "{{ certificates }}"
+    remove_unspecified_user_certificates: "{{ eseries_client_certificate_remove_unspecified_user_certificates | default(omit) }}"
   connection: local
   when: eseries_client_certificate_certificates is defined or eseries_client_certificate_common_certificates is defined
   tags:
