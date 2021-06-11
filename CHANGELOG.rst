@@ -5,6 +5,14 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.2.13
+=======
+
+Bugfixes
+--------
+
+- Fix availability of client certificate change.
+
 v1.2.12
 =======
 

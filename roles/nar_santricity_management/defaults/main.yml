@@ -70,8 +70,9 @@ eseries_system_username: admin                   # Storage system username. Defa
 
 # Storage system SSL certificates
 # -------------------------------
-#eseries_client_certificate_certificates                # Dictionary containing the SSL certificate file paths. The key will be used as the alias.
-#eseries_client_certificate_absent_certificates         # List of aliases to remove from the storage array's trust store.
+eseries_client_certificate_remove_unspecified_user_certificates: True    # Whether existing user certificates should be automatically removed.
+#eseries_client_certificate_certificates:                                # Dictionary containing the SSL certificate file paths. The key will be used as the alias.
+#eseries_client_certificate_absent_certificates:                         # List of aliases to remove from the storage array's trust store.
 
 # Storage management interface defaults
 # -------------------------------------
