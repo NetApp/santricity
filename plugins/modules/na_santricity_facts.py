@@ -526,7 +526,7 @@ class Facts(NetAppESeriesModule):
                 used_capacity=storage_pool['usedSpace']
             ) for storage_pool in array_facts['volumeGroup']]
 
-        all_volumes = list(array_facts['volume'])
+        all_volumes = list(array_facts['volume'] + array_facts['highLevelVolBundle']['thinVolume'])
 
         facts['netapp_volumes'] = [
             dict(
@@ -538,6 +538,16 @@ class Facts(NetAppESeriesModule):
                 workload=v['metadata'],
 
             ) for v in all_volumes]
+
+        # Add access volume information to volumes when enabled.
+        if array_facts['sa']['accessVolume']['enabled']:
+            facts['netapp_volumes'].append(dict(
+                id=array_facts['sa']['accessVolume']['id'],
+                name="access_volume",
+                parent_storage_pool_id="",
+                capacity=array_facts['sa']['accessVolume']['capacity'],
+                is_thin_provisioned=False,
+                workload=""))
 
         facts['netapp_snapshot_consistency_groups'] = []
         for group in array_facts["highLevelVolBundle"]["pitConsistencyGroup"]:
