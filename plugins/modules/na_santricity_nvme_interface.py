@@ -142,11 +142,11 @@ class NetAppESeriesNvmeInterface(NetAppESeriesModule):
 
         address_regex = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
         if self.address and not address_regex.match(self.address):
-            self.module.fail_json(msg="An invalid ip address was provided for address.")
+            self.module.fail_json(msg="An invalid ip address was provided for address. Address [%s]." % self.address)
         if self.subnet_mask and not address_regex.match(self.subnet_mask):
-            self.module.fail_json(msg="An invalid ip address was provided for subnet_mask.")
+            self.module.fail_json(msg="An invalid ip address was provided for subnet_mask. Subnet mask [%s]." % self.subnet_mask)
         if self.gateway and not address_regex.match(self.gateway):
-            self.module.fail_json(msg="An invalid ip address was provided for gateway.")
+            self.module.fail_json(msg="An invalid ip address was provided for gateway. Gateway [%s]." % self.gateway)
 
         self.get_target_interface_cache = None
 
