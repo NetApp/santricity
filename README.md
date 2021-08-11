@@ -294,7 +294,7 @@ Snapshots
 General Notes
 -------------
     - The EF600/300 platforms currently do not distribute drives across their PCI bridges which can result in lower than expected performance when drives become saturated so be sure to use either eseries_storage_pool_usable_drives to specify the order the drives should be selected or the eseries_storage_pool_configuration usable_drives argument to specify which drives should be used. See details in the `Collection Variables` section. The example below will ensure the drive candidate selections for EF600/300 storage pools or volume groups are selected by alternating between the first and last twelve drives. You can also specify the tray drawers in the form <tray>:<drawer>:<slot>.
-        `eseries_storage_pool_usable_drives: "0:0, 0:23, 0:1, 0:22, 0:2, 0:21, 0:3, 0:20, 0:4, 0:19, 0:5, 0:18, 0:6, 0:17, 0:7, 0:16, 0:8, 0:15, 0:9, 0:14, 0:10, 0:13: 0:11, 0:12"`
+        `eseries_storage_pool_usable_drives: "0:0,0:23,0:1,0:22,0:2,0:21,0:3,0:20,0:4,0:19,0:5,0:18,0:6,0:17,0:7,0:16,0:8,0:15,0:9,0:14,0:10,0:13,0:11,0:12"`
 
 Collection Variables
 --------------------
