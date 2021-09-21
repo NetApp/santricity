@@ -252,7 +252,7 @@ Example Storage System Inventory File
         - "address": 192.168.1.150
           "port": 514
     eseries_initiator_protocol: iscsi
-    
+
     # Controller port definitions
     eseries_controller_iscsi_port_config_method: static
     eseries_controller_iscsi_port_subnet_mask: 255.255.255.0
@@ -294,7 +294,7 @@ Snapshots
 General Notes
 -------------
     - The EF600/300 platforms currently do not distribute drives across their PCI bridges which can result in lower than expected performance when drives become saturated so be sure to use either eseries_storage_pool_usable_drives to specify the order the drives should be selected or the eseries_storage_pool_configuration usable_drives argument to specify which drives should be used. See details in the `Collection Variables` section. The example below will ensure the drive candidate selections for EF600/300 storage pools or volume groups are selected by alternating between the first and last twelve drives. You can also specify the tray drawers in the form <tray>:<drawer>:<slot>.
-        `eseries_storage_pool_usable_drives: "0:0,0:23,0:1,0:22,0:2,0:21,0:3,0:20,0:4,0:19,0:5,0:18,0:6,0:17,0:7,0:16,0:8,0:15,0:9,0:14,0:10,0:13,0:11,0:12"`
+        `eseries_storage_pool_usable_drives: "99:0,99:23,99:1,99:22,99:2,99:21,99:3,99:20,99:4,99:19,99:5,99:18,99:6,99:17,99:7,99:16,99:8,99:15,99:9,99:14,99:10,99:13,99:11,99:12"`
 
 Collection Variables
 --------------------
