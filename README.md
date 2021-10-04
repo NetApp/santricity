@@ -615,6 +615,7 @@ Collection Variables
     eseries_volume_read_cache_enable:                     # Default for read caching which will cache all read requests.
     eseries_volume_read_ahead_enable:                     # Default for read ahead caching; this is good for sequential workloads to cache subsequent blocks.
     eseries_volume_write_cache_enable:                    # Default for write caching which will cache all writes.
+    eseries_volume_write_cache_mirror_enable:             # Default for write cache mirroring which mirrors writes to both controller's cache.
     eseries_volume_cache_without_batteries:               # Default for allowing caching when batteries are not present.
     eseries_volume_thin_provision:                        # Default for whether volumes should be thinly provisioned.
     eseries_volume_thin_volume_repo_size:                 # Default for actually allocated space for thinly provisioned volumes.
@@ -704,6 +705,7 @@ Collection Variables
             read_cache_enable:                     # Enables read caching which will cache all read requests.
             read_ahead_enable:                     # Enables read ahead caching; this is good for sequential workloads to cache subsequent blocks.
             write_cache_enable:                    # Enables write caching which will cache all writes.
+            write_cache_mirror_enable:             # Enables write cache mirroring which mirrors writes to both controller's cache.
             cache_without_batteries:               # Enable caching even without batteries.
 
             wait_for_initialization:               # Whether volume creation with wait for initialization to complete
