@@ -22,6 +22,7 @@
     read_cache_enable: "{{ item['read_cache_enable'] | default(eseries_volume_read_cache_enable | default(omit)) }}"
     read_ahead_enable: "{{ item['read_ahead_enable'] | default(eseries_volume_read_ahead_enable | default(omit)) }}"
     write_cache_enable: "{{ item['write_cache_enable'] | default(eseries_volume_write_cache_enable | default(omit)) }}"
+    write_cache_mirror_enable: "{{ item['write_cache_mirror_enable'] | default(eseries_volume_write_cache_mirror_enable | default(omit)) }}"
     cache_without_batteries: "{{ item['cache_without_batteries'] | default(eseries_volume_cache_without_batteries | default(omit)) }}"
     wait_for_initialization: "{{ item['wait_for_initialization'] | default(eseries_volume_wait_for_initialization | default(omit)) }}"
     workload_name: "{{ item['workload_name'] | default(eseries_volume_workload_name | default(omit)) }}"

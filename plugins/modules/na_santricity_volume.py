@@ -153,6 +153,12 @@ options:
         type: bool
         default: true
         required: false
+    write_cache_mirror_enable:
+        description:
+            - Indicates whether write cache mirroring should be enabled.
+        type: bool
+        default: true
+        required: false
     cache_without_batteries:
         description:
             - Indicates whether caching should be used without battery backup.
@@ -312,6 +318,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             read_cache_enable=dict(type="bool", default=True),
             read_ahead_enable=dict(type="bool", default=True),
             write_cache_enable=dict(type="bool", default=True),
+            write_cache_mirror_enable=dict(type="bool", default=True),
             cache_without_batteries=dict(type="bool", default=False),
             workload_name=dict(type="str", required=False),
             workload_metadata=dict(type="dict", require=False, aliases=["metadata"]),
@@ -349,6 +356,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         self.read_cache_enable = args["read_cache_enable"]
         self.read_ahead_enable = args["read_ahead_enable"]
         self.write_cache_enable = args["write_cache_enable"]
+        self.write_cache_mirror_enable = args["write_cache_mirror_enable"]
         self.ssd_cache_enabled = args["ssd_cache_enabled"]
         self.cache_without_batteries = args["cache_without_batteries"]
         self.data_assurance_enabled = args["data_assurance_enabled"]
@@ -627,7 +635,8 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         change = False
         request_body = dict(flashCache=self.ssd_cache_enabled, metaTags=[],
                             cacheSettings=dict(readCacheEnable=self.read_cache_enable,
-                                               writeCacheEnable=self.write_cache_enable))
+                                               writeCacheEnable=self.write_cache_enable,
+                                               mirrorEnable=self.write_cache_mirror_enable))
 
         # check for invalid modifications
         if self.segment_size_kb * 1024 != int(self.volume_detail["segmentSize"]):
@@ -637,6 +646,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         # common thick/thin volume properties
         if (self.read_cache_enable != self.volume_detail["cacheSettings"]["readCacheEnable"] or
                 self.write_cache_enable != self.volume_detail["cacheSettings"]["writeCacheEnable"] or
+                self.write_cache_mirror_enable != self.volume_detail["cacheSettings"]["mirrorEnable"] or
                 self.ssd_cache_enabled != self.volume_detail["flashCached"]):
             change = True
 
