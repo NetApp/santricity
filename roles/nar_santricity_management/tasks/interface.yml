@@ -12,7 +12,8 @@
 
 - name: Ensure the management interface (controller A, port 1) have been configure.
   block:
-    - na_santricity_mgmt_interface:
+    - name: Ensure the management interface (controller A, port 1) have been configure.
+      netapp_eseries.santricity.na_santricity_mgmt_interface:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ current_eseries_api_username }}"
@@ -34,14 +35,14 @@
       connection: local
       register: current_management_urls_a1
     - name: Update Web Services URL
-      set_fact:
+      ansible.builtin.set_fact:
         current_eseries_api_url: "{{ current_management_urls_a1['available_embedded_api_urls'][0] | default(current_eseries_api_url) }}"
   when: interface_a1 is defined and interface_a1
 
 - name: Ensure the management interface (controller A, port 2) have been configure.
   block:
     - name: Ensure the management interface (controller A, port 2) have been configure.
-      na_santricity_mgmt_interface:
+      netapp_eseries.santricity.na_santricity_mgmt_interface:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ current_eseries_api_username }}"
@@ -63,14 +64,14 @@
       connection: local
       register: current_management_urls_a2
     - name: Try backup Web Services REST API url.
-      set_fact:
+      ansible.builtin.set_fact:
         current_eseries_api_url: "{{ current_management_urls_a2['available_embedded_api_urls'][0] | default(current_eseries_api_url) }}"
   when: interface_a2 is defined and interface_a2
 
 - name: Ensure the management interface (controller B, port 1) have been configure.
   block:
     - name: Ensure the management interface (controller B, port 1) have been configure.
-      na_santricity_mgmt_interface:
+      netapp_eseries.santricity.na_santricity_mgmt_interface:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ current_eseries_api_username }}"
@@ -92,14 +93,14 @@
       connection: local
       register: current_management_urls_b1
     - name: Try backup Web Services REST API url.
-      set_fact:
+      ansible.builtin.set_fact:
         current_eseries_api_url: "{{ current_management_urls_b1['available_embedded_api_urls'][0] | default(current_eseries_api_url) }}"
   when: interface_b1 is defined and interface_b1
 
 - name: Ensure the management interface (controller B, port 2) have been configure.
   block:
     - name: Ensure the management interface (controller B, port 2) have been configure.
-      na_santricity_mgmt_interface:
+      netapp_eseries.santricity.na_santricity_mgmt_interface:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ current_eseries_api_username }}"
@@ -121,6 +122,6 @@
       connection: local
       register: current_management_urls_b2
     - name: Try backup Web Services REST API url.
-      set_fact:
+      ansible.builtin.set_fact:
         current_eseries_api_url: "{{ current_management_urls_b2['available_embedded_api_urls'][0] | default(current_eseries_api_url) }}"
   when: interface_b2 is defined and interface_b2

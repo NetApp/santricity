@@ -1,12 +1,12 @@
 - name: Ensure ASUP configuration
-  na_santricity_asup:
+  netapp_eseries.santricity.na_santricity_asup:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
     api_password: "{{ current_eseries_api_password }}"
     validate_certs: "{{ eseries_validate_certs | default(omit) }}"
     state: "{{ eseries_asup_state }}"
-    active: "{{ eseries_asup_active | default(omit)}}"
+    active: "{{ eseries_asup_active | default(omit) }}"
     days: "{{ eseries_asup_days | default(omit) }}"
     start: "{{ eseries_asup_start | default(omit) }}"
     end: "{{ eseries_asup_end | default(omit) }}"
@@ -24,7 +24,7 @@
     - asup
 
 - name: Ensure alerts have been configured
-  na_santricity_alerts:
+  netapp_eseries.santricity.na_santricity_alerts:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
@@ -43,7 +43,7 @@
     - alerts
 
 - name: Ensure auditLog configuration
-  na_santricity_auditlog:
+  netapp_eseries.santricity.na_santricity_auditlog:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
@@ -61,7 +61,7 @@
     - auditlog
 
 - name: Ensure components are configured to be sent to the approriate syslog servers
-  na_santricity_syslog:
+  netapp_eseries.santricity.na_santricity_syslog:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
@@ -80,7 +80,7 @@
     - syslog
 
 - name: Ensure alerts are configured to be sent to the approriate syslog servers
-  na_santricity_alerts_syslog:
+  netapp_eseries.santricity.na_santricity_alerts_syslog:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
