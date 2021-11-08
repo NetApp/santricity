@@ -1,5 +1,5 @@
 - name: Ensure admin password is set and is correct
-  na_santricity_auth:
+  netapp_eseries.santricity.na_santricity_auth:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
@@ -27,7 +27,7 @@
 - name: Update current_eseries_api_password if storage system password changed.
   block:
     - name: Update current_eseries_api_password.
-      set_fact:
+      ansible.builtin.set_fact:
         current_eseries_api_password: |-
           {%- if current_eseries_api_is_proxy == True -%}
             {{- current_eseries_api_password -}}
@@ -36,12 +36,12 @@
           {%- endif -%}
       no_log: true
     - name: Wait for password to update
-      pause:
+      ansible.builtin.pause:
         seconds: 5
   when: admin_password['changed'] == True
 
 - name: Ensure non-admin passwords have been set
-  na_santricity_auth:
+  netapp_eseries.santricity.na_santricity_auth:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
@@ -67,7 +67,7 @@
       {{ non_admin_list }}
 
 - name: Ensure client certificates are installed
-  na_santricity_client_certificate:
+  netapp_eseries.santricity.na_santricity_client_certificate:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
@@ -108,7 +108,7 @@
       {{- certs -}}
 
 - name: Ensure controller A server certificates are installed
-  na_santricity_server_certificate:
+  netapp_eseries.santricity.na_santricity_server_certificate:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
@@ -150,7 +150,7 @@
       {{- certs -}}
 
 - name: Ensure controller B server certificates are installed
-  na_santricity_server_certificate:
+  netapp_eseries.santricity.na_santricity_server_certificate:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
@@ -192,7 +192,7 @@
       {{- certs -}}
 
 - name: Ensure LDAP has been configured
-  na_santricity_ldap:
+  netapp_eseries.santricity.na_santricity_ldap:
     ssid: "{{ current_eseries_ssid }}"
     api_url: "{{ current_eseries_api_url }}"
     api_username: "{{ current_eseries_api_username }}"
