@@ -10,7 +10,8 @@
   import_tasks: security.yml
 
 - name: Ensure management interfaces are configured
-  import_tasks: interface.yml
+  include_tasks: interface.yml
+  when: "eseries_management_interfaces['controller_a'] is defined or eseries_management_interfaces['controller_b'] is defined"
   tags:
     - interface
     - ntp

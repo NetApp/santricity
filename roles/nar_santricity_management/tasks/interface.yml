@@ -1,5 +1,10 @@
+- name: Check whether at least one management interface has been defined.
+  ansible.builtin.fail:
+    msg: "Missing management interface! At least one management interface must be defined."
+  when: eseries_management_interfaces['controller_a'][0] is not defined and eseries_management_interfaces['controller_b'][0] is not defined
+
 - name: Determine individual management interface information.
-  set_fact:
+  ansible.builtin.set_fact:
     interface_a1: "{{ eseries_management_interfaces['controller_a'][0] | default(omit) }}"
     interface_a2: "{{ eseries_management_interfaces['controller_a'][1] | default(omit) }}"
     interface_b1: "{{ eseries_management_interfaces['controller_b'][0] | default(omit) }}"
