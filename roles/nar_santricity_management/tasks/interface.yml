@@ -10,9 +10,9 @@
     interface_b1: "{{ eseries_management_interfaces['controller_b'][0] | default(omit) }}"
     interface_b2: "{{ eseries_management_interfaces['controller_b'][1] | default(omit) }}"
 
-- name: Ensure the management interface (controller A, port 1) have been configure.
+- name: Ensure the management interface (controller A, port 1) has been configured.
   block:
-    - name: Ensure the management interface (controller A, port 1) have been configure.
+    - name: Ensure the management interface (controller A, port 1) has been configured.
       netapp_eseries.santricity.na_santricity_mgmt_interface:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
@@ -39,9 +39,9 @@
         current_eseries_api_url: "{{ current_management_urls_a1['available_embedded_api_urls'][0] | default(current_eseries_api_url) }}"
   when: interface_a1 is defined and interface_a1
 
-- name: Ensure the management interface (controller A, port 2) have been configure.
+- name: Ensure the management interface (controller A, port 2) has been configured.
   block:
-    - name: Ensure the management interface (controller A, port 2) have been configure.
+    - name: Ensure the management interface (controller A, port 2) has been configured.
       netapp_eseries.santricity.na_santricity_mgmt_interface:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
@@ -68,9 +68,9 @@
         current_eseries_api_url: "{{ current_management_urls_a2['available_embedded_api_urls'][0] | default(current_eseries_api_url) }}"
   when: interface_a2 is defined and interface_a2
 
-- name: Ensure the management interface (controller B, port 1) have been configure.
+- name: Ensure the management interface (controller B, port 1) has been configured.
   block:
-    - name: Ensure the management interface (controller B, port 1) have been configure.
+    - name: Ensure the management interface (controller B, port 1) has been configured.
       netapp_eseries.santricity.na_santricity_mgmt_interface:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
@@ -97,9 +97,9 @@
         current_eseries_api_url: "{{ current_management_urls_b1['available_embedded_api_urls'][0] | default(current_eseries_api_url) }}"
   when: interface_b1 is defined and interface_b1
 
-- name: Ensure the management interface (controller B, port 2) have been configure.
+- name: Ensure the management interface (controller B, port 2) has been configured.
   block:
-    - name: Ensure the management interface (controller B, port 2) have been configure.
+    - name: Ensure the management interface (controller B, port 2) has been configured.
       netapp_eseries.santricity.na_santricity_mgmt_interface:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
