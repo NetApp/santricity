@@ -228,7 +228,7 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
         if not compatible["fileCompatible"]:
             self.module.fail_json(msg="Incompatible NVSRAM file. File [%s]." % self.nvsram)
 
-        # Determine whether nvsram is required
+        # Determine whether nvsram upgrade is required
         for module in compatible["versionContents"]:
             if module["bundledVersion"] != module["onboardVersion"]:
                 self.upgrade_required = True
@@ -252,7 +252,7 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
         if not compatible["fileCompatible"]:
             self.module.fail_json(msg="Incompatible firmware bundle file. File [%s]." % self.firmware)
 
-        # Determine whether upgrade is required
+        # Determine whether bundle upgrade is required
         for module in compatible["versionContents"]:
             bundle_module_version = module["bundledVersion"].split(".")
             onboard_module_version = module["onboardVersion"].split(".")
@@ -261,14 +261,7 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
             if bundle_module_version[:version_minimum_length] != onboard_module_version[:version_minimum_length]:
                 self.upgrade_required = True
 
-                # Check whether downgrade is being attempted
-                bundle_version = module["bundledVersion"].split(".")[:2]
-                onboard_version = module["onboardVersion"].split(".")[:2]
-                if bundle_version[0] < onboard_version[0] or (bundle_version[0] == onboard_version[0] and bundle_version[1] < onboard_version[1]):
-                    self.module.fail_json(msg="Downgrades are not permitted. onboard [%s] > bundled[%s]."
-                                              % (module["onboardVersion"], module["bundledVersion"]))
-
-            # Update bundle info
+            # Build the modules information for logging purposes
             self.module_info.update({module["module"]: {"onboard_version": module["onboardVersion"], "bundled_version": module["bundledVersion"]}})
 
     def embedded_firmware_activate(self):
@@ -454,16 +447,16 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
         self.module.fail_json(msg="Failed to retrieve firmware status update from proxy. Array [%s]." % self.ssid)
 
     def proxy_upload_and_check_compatibility(self):
-        """Ensure firmware is uploaded and verify compatibility."""
-        cfw_files = []
+        """Ensure firmware/nvsram file is uploaded and verify compatibility."""
+        uploaded_files = []
         try:
-            rc, cfw_files = self.request("firmware/cfw-files")
+            rc, uploaded_files = self.request("firmware/cfw-files")
         except Exception as error:
-            self.module.fail_json(msg="Failed to retrieve existing firmware files. Error [%s]" % to_native(error))
+            self.module.fail_json(msg="Failed to retrieve uploaded firmware and nvsram files. Error [%s]" % to_native(error))
 
         if self.firmware:
-            for cfw_file in cfw_files:
-                if cfw_file["filename"] == self.firmware_name:
+            for uploaded_file in uploaded_files:
+                if uploaded_file["filename"] == self.firmware_name:
                     break
             else:
                 fields = [("validate", "true")]
@@ -477,8 +470,8 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
             self.proxy_check_firmware_compatibility()
 
         if self.nvsram:
-            for cfw_file in cfw_files:
-                if cfw_file["filename"] == self.nvsram_name:
+            for uploaded_file in uploaded_files:
+                if uploaded_file["filename"] == self.nvsram_name:
                     break
             else:
                 fields = [("validate", "true")]
@@ -492,7 +485,7 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
             self.proxy_check_nvsram_compatibility()
 
     def proxy_check_upgrade_required(self):
-        """Staging is required to collect firmware information from the web services proxy."""
+        """Determine whether the onboard firmware/nvsram version is the same as the file"""
         # Verify controller consistency and get firmware versions
         if self.firmware:
             current_firmware_version = b""
@@ -507,15 +500,13 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
             except Exception as error:
                 self.module.fail_json(msg="Failed to retrieve controller firmware information. Array [%s]. Error [%s]" % (self.ssid, to_native(error)))
 
-            # Determine whether upgrade is required
-            if current_firmware_version != self.firmware_version():
-
-                current = current_firmware_version.split(b".")[:2]
-                upgrade = self.firmware_version().split(b".")[:2]
-                if current[0] < upgrade[0] or (current[0] == upgrade[0] and current[1] <= upgrade[1]):
-                    self.upgrade_required = True
-                else:
-                    self.module.fail_json(msg="Downgrades are not permitted. Firmware [%s]. Array [%s]." % (self.firmware, self.ssid))
+            # Determine whether the current firmware version is the same as the file
+            new_firmware_version = self.firmware_version()
+            if current_firmware_version != new_firmware_version:
+                self.upgrade_required = True
+                
+            # Build the modules information for logging purposes
+            self.module_info.update({"bundleDisplay": {"onboard_version": current_firmware_version, "bundled_version": new_firmware_version}})
 
         # Determine current NVSRAM version and whether change is required
         if self.nvsram:
@@ -601,7 +592,7 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
             else:
                 self.proxy_upgrade()
 
-        self.module.exit_json(changed=self.upgrade_required, upgrade_in_process=self.upgrade_in_progress)
+        self.module.exit_json(changed=self.upgrade_required, upgrade_in_process=self.upgrade_in_progress, modules_info=self.module_info)
 
 
 def main():
