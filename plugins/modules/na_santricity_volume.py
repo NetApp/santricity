@@ -196,6 +196,13 @@ options:
             - Dictionary values cannot be longer than 240 characters
         type: dict
         required: false
+    allow_expansion:
+        description:
+            - Allows volume size to expand to meet the required specification.
+            - Warning, when I(allows_expansion==false) and the existing volume needs to be expanded the module will continue with a warning.
+        type: bool
+        default: false
+        required: false
     wait_for_initialization:
         description:
             - Forces the module to wait for expansion operations to complete before continuing.
@@ -323,6 +330,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             workload_name=dict(type="str", required=False),
             workload_metadata=dict(type="dict", require=False, aliases=["metadata"]),
             volume_metadata=dict(type="dict", require=False),
+            allow_expansion=dict(type="bool", default=False),
             wait_for_initialization=dict(type="bool", default=False))
 
         required_if = [
@@ -373,6 +381,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             self.thin_volume_max_repo_size_b = self.convert_to_aligned_bytes(args["thin_volume_max_repo_size"])
 
         self.workload_name = args["workload_name"]
+        self.allow_expansion = args["allow_expansion"]
         self.wait_for_initialization = args["wait_for_initialization"]
 
         # convert metadata to a list of dictionaries containing the keys "key" and "value" corresponding to
@@ -726,6 +735,10 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         elif self.size_b > int(self.volume_detail["capacity"]):
             request_body.update(dict(sizeUnit="bytes", expansionSize=self.size_b))
             self.module.log("Volume storage capacities have been expanded.")
+
+        if request_body and not self.allow_expansion:
+            self.module.warn("Expansion not allowed! Change allow_expansion flag to true to allow volume expansions. Array Id [%s]." % self.ssid)
+            return dict()
 
         return request_body
 
