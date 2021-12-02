@@ -1,0 +1,2 @@
+minor_changes:
+  - na_santricity_volume - Add flag to control whether volume expansion operations are allowed.
