@@ -221,6 +221,7 @@ Role Variables
     eseries_volume_workload_metadata:                     # Default workload metadata
     eseries_volume_volume_metadata:                       # Default volume_metadata
     eseries_volume_owning_controller                      # Default preferred owning controller
+    eseries_volume_allow_expansion: false                 # Default for whether volume expansions are permitted
     eseries_volume_wait_for_initialization: false         # Default for whether volume creation with wait for initialization to complete
 
     # Storage Pool-Volume Mapping Default Policy Specifications
@@ -301,6 +302,7 @@ Role Variables
             workload_metadata:                     # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.
             volume_metadata                        # Dictionary containing arbitrary entries used to define information about the volume itself.
                                                    #    Note: format_type, format_options[0-9]?, mount_directory, mount_options[0-9]? are used by netapp_eseries.host.mount role to format and mount volumes.
+            allow_expansion:                       # Whether volume expansions are permitted
             wait_for_initialization:               # Whether volume creation with wait for initialization to complete
 
     # Snapshot Consistency Group Default Policy Specifications
