@@ -68,6 +68,12 @@ options:
             - I(login_banner_message=="") will delete any existing banner message.
         type: str
         required: False
+    controller_shelf_id:
+        description:
+            - This is the identifier for the drive enclosure containing the controllers.
+        type: int
+        required: false
+        default: 0
 notes:
     - Check mode is supported.
     - This module requires Web Services API v1.3 or newer.
@@ -136,6 +142,11 @@ login_banner_message:
     returned: on success
     type: str
     sample: "Banner message here!"
+controller_shelf_id:
+    description: Identifier for the drive enclosure containing the controllers.
+    returned: on success
+    type: int
+    sample: 99
 """
 import random
 import sys
@@ -151,6 +162,7 @@ except ImportError:
 
 class NetAppESeriesGlobalSettings(NetAppESeriesModule):
     MAXIMUM_LOGIN_BANNER_SIZE_BYTES = 5 * 1024
+    LAST_AVAILABLE_CONTROLLER_SHELF_ID = 99
 
     def __init__(self):
         version = "02.00.0000.0000"
@@ -160,7 +172,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                                automatic_load_balancing=dict(type="str", choices=["enabled", "disabled"], required=False),
                                host_connectivity_reporting=dict(type="str", choices=["enabled", "disabled"], required=False),
                                name=dict(type='str', required=False, aliases=['label']),
-                               login_banner_message=dict(type='str', required=False))
+                               login_banner_message=dict(type='str', required=False),
+                               controller_shelf_id=dict(type="int", required=False, default=0))
 
         super(NetAppESeriesGlobalSettings, self).__init__(ansible_options=ansible_options,
                                                           web_services_version=version,
@@ -170,6 +183,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         self.cache_block_size = args["cache_block_size"]
         self.cache_flush_threshold = args["cache_flush_threshold"]
         self.host_type_index = args["default_host_type"]
+        self.controller_shelf_id = args["controller_shelf_id"]
 
         self.login_banner_message = None
         if args["login_banner_message"] is not None:
@@ -189,6 +203,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             self.module.fail_json(msg="Option automatic_load_balancing requires host_connectivity_reporting to be enabled. Array [%s]." % self.ssid)
 
         self.current_configuration_cache = None
+        self.change_controller_shelf_id_required_cache = None
 
     def get_current_configuration(self, update=False):
         """Retrieve the current storage array's global configuration."""
@@ -234,6 +249,14 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                 self.current_configuration_cache["login_banner_message"] = login_banner_message.decode("utf-8").rstrip("\n")
             except Exception as error:
                 self.module.fail_json(msg="Failed to determine current login banner message. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
+            try:
+                rc, hardware_inventory = self.request("storage-systems/%s/hardware-inventory" % self.ssid)
+                self.current_configuration_cache["controller_reference"] = hardware_inventory["trays"][0]["trayRef"]
+                self.current_configuration_cache["controller_shelf_id"] = hardware_inventory["trays"][0]["trayId"]
+                self.current_configuration_cache["used_shelf_ids"] = [tray["trayId"] for tray in hardware_inventory["trays"]]
+            except Exception as error:
+                self.module.fail_json(msg="Failed to retrieve cache settings. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
         return self.current_configuration_cache
 
@@ -319,6 +342,19 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         if self.login_banner_message and sys.getsizeof(self.login_banner_message) > self.MAXIMUM_LOGIN_BANNER_SIZE_BYTES:
             self.module.fail_json(msg="The banner message is too long! It must be %s bytes. Array [%s]" % (self.MAXIMUM_LOGIN_BANNER_SIZE_BYTES, self.ssid))
         return self.login_banner_message != self.get_current_configuration()["login_banner_message"]
+
+    def change_controller_shelf_id_required(self):
+        """Determine whether storage array tray identifier change is required."""
+        if self.controller_shelf_id is not None and self.controller_shelf_id != self.get_current_configuration()["controller_shelf_id"]:
+
+            if self.controller_shelf_id in self.get_current_configuration()["used_shelf_ids"]:
+                self.module.fail_json(msg="The controller_shelf_id is currently being used by another shelf. Used Identifiers: [%s]. Array [%s]." % (", ".join([str(id) for id in self.get_current_configuration()["used_shelf_ids"]]), self.ssid))
+
+            if self.controller_shelf_id < 0 or self.controller_shelf_id > self.LAST_AVAILABLE_CONTROLLER_SHELF_ID:
+                self.module.fail_json(msg="The controller_shelf_id must be 0-99 and not already used by another shelf. Used Identifiers: [%s]. Array [%s]." % (", ".join([str(id) for id in self.get_current_configuration()["used_shelf_ids"]]), self.ssid))
+
+            return True
+        return False
 
     def update_cache_settings(self):
         """Update cache block size and/or flushing threshold."""
@@ -408,6 +444,14 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             except Exception as err:
                 self.module.fail_json(msg="Failed to clear the storage system login banner message! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
+    def update_controller_shelf_id(self):
+        """Update controller shelf tray identifier."""
+        try:
+            rc, tray = self.request("storage-systems/%s/symbol/updateTray?verboseErrorResponse=true" % self.ssid, method="POST",
+                                    data={"ref": self.get_current_configuration()["controller_reference"], "trayID": self.controller_shelf_id})
+        except Exception as error:
+            self.module.fail_json(msg="Failed to update controller shelf identifier. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+
     def update(self):
         """Ensure the storage array's global setting are correctly set."""
         change_required = False
@@ -415,7 +459,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
 
         if (self.change_autoload_enabled_required() or self.change_cache_block_size_required() or self.change_cache_flush_threshold_required() or
                 self.change_host_type_required() or self.change_name_required() or self.change_host_connectivity_reporting_enabled_required() or
-                self.change_login_banner_message_required()):
+                self.change_login_banner_message_required() or self.change_controller_shelf_id_required()):
             change_required = True
 
         if change_required and not self.module.check_mode:
@@ -431,6 +475,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                 self.update_name()
             if self.change_login_banner_message_required():
                 self.update_login_banner_message()
+            if self.change_controller_shelf_id_required():
+                self.update_controller_shelf_id()
 
         self.get_current_configuration(update=True)
         self.module.exit_json(changed=change_required,
@@ -439,7 +485,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                               automatic_load_balancing="enabled" if self.get_current_configuration()["autoload_enabled"] else "disabled",
                               host_connectivity_reporting="enabled" if self.get_current_configuration()["host_connectivity_reporting_enabled"] else "disabled",
                               array_name=self.get_current_configuration()["name"],
-                              login_banner_message=self.get_current_configuration()["login_banner_message"])
+                              login_banner_message=self.get_current_configuration()["login_banner_message"],
+                              controller_shelf_id=self.get_current_configuration()["controller_shelf_id"])
 
 
 def main():
