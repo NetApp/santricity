@@ -203,7 +203,6 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             self.module.fail_json(msg="Option automatic_load_balancing requires host_connectivity_reporting to be enabled. Array [%s]." % self.ssid)
 
         self.current_configuration_cache = None
-        self.change_controller_shelf_id_required_cache = None
 
     def get_current_configuration(self, update=False):
         """Retrieve the current storage array's global configuration."""
@@ -252,7 +251,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
 
             try:
                 rc, hardware_inventory = self.request("storage-systems/%s/hardware-inventory" % self.ssid)
-                self.current_configuration_cache["controller_reference"] = hardware_inventory["trays"][0]["trayRef"]
+                self.current_configuration_cache["controller_shelf_reference"] = hardware_inventory["trays"][0]["trayRef"]
                 self.current_configuration_cache["controller_shelf_id"] = hardware_inventory["trays"][0]["trayId"]
                 self.current_configuration_cache["used_shelf_ids"] = [tray["trayId"] for tray in hardware_inventory["trays"]]
             except Exception as error:
@@ -448,7 +447,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         """Update controller shelf tray identifier."""
         try:
             rc, tray = self.request("storage-systems/%s/symbol/updateTray?verboseErrorResponse=true" % self.ssid, method="POST",
-                                    data={"ref": self.get_current_configuration()["controller_reference"], "trayID": self.controller_shelf_id})
+                                    data={"ref": self.get_current_configuration()["controller_shelf_reference"], "trayID": self.controller_shelf_id})
         except Exception as error:
             self.module.fail_json(msg="Failed to update controller shelf identifier. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
