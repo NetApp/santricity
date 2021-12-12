@@ -255,7 +255,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                 self.current_configuration_cache["controller_shelf_id"] = hardware_inventory["trays"][0]["trayId"]
                 self.current_configuration_cache["used_shelf_ids"] = [tray["trayId"] for tray in hardware_inventory["trays"]]
             except Exception as error:
-                self.module.fail_json(msg="Failed to retrieve cache settings. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to retrieve controller shelf identifier. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
         return self.current_configuration_cache
 
