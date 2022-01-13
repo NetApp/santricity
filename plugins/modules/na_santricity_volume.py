@@ -874,7 +874,10 @@ class NetAppESeriesVolume(NetAppESeriesModule):
                 change = True
 
             elif self.state == 'present':
-                if self.get_expand_volume_changes() or self.get_volume_property_changes():
+                # Must check the property changes first as it makes sure the segment size has no change before
+                # using the size to determine if the volume expansion is needed which will cause an irrelevant 
+                # error message to show up.
+                if self.get_volume_property_changes() or self.get_expand_volume_changes():
                     change = True
 
         elif self.state == 'present':
