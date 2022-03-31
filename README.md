@@ -850,10 +850,11 @@ License
 -------
     BSD-3-Clause
 
-Author Information
+Maintainer Information
 ------------------
-    Nathan Swartz (@ndswartz)
-
+    - Nathan Swartz (@ndswartz)
+    - Joe McCormick (@iamjoemccormick)
+    - Tracy Cummins (@tracycummins)
 
 =============
 Release Notes
