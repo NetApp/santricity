@@ -1,3 +1,0 @@
-minor_changes:
-  - na_santricity_volume - Add volume write cache mirroring option.
-  - nar_santricity_host - Add volume write cache mirroring options.
