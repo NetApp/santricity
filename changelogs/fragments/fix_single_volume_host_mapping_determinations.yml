@@ -1,2 +1,0 @@
-bugfixes:
-  - santricity_host - Ensure a list of volumes are provided to prevent netapp_eseries.santricity.santricity_host (lookup) index is string not integer exception.

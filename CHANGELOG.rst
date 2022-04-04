@@ -5,6 +5,22 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.3.0
+======
+
+Minor Changes
+-------------
+
+- na_santricity_global - Add controller_shelf_id argument to set controller shelf identifier.
+- na_santricity_volume - Add flag to control whether volume expansion operations are allowed.
+- na_santricity_volume - Add volume write cache mirroring option.
+- nar_santricity_host - Add volume write cache mirroring options.
+
+Bugfixes
+--------
+
+- santricity_host - Ensure a list of volumes are provided to prevent netapp_eseries.santricity.santricity_host (lookup) index is string not integer exception.
+
 v1.2.13
 =======
 
@@ -117,7 +133,6 @@ Release Summary
 ---------------
 
 Release 1.2.2 simply removes resource-provisioned volumes feature from collection.
-
 
 Minor Changes
 -------------
