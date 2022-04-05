@@ -252,7 +252,7 @@ Example Storage System Inventory File
         - "address": 192.168.1.150
           "port": 514
     eseries_initiator_protocol: iscsi
-    
+
     # Controller port definitions
     eseries_controller_iscsi_port_config_method: static
     eseries_controller_iscsi_port_subnet_mask: 255.255.255.0
@@ -294,7 +294,7 @@ Snapshots
 General Notes
 -------------
     - The EF600/300 platforms currently do not distribute drives across their PCI bridges which can result in lower than expected performance when drives become saturated so be sure to use either eseries_storage_pool_usable_drives to specify the order the drives should be selected or the eseries_storage_pool_configuration usable_drives argument to specify which drives should be used. See details in the `Collection Variables` section. The example below will ensure the drive candidate selections for EF600/300 storage pools or volume groups are selected by alternating between the first and last twelve drives. You can also specify the tray drawers in the form <tray>:<drawer>:<slot>.
-        `eseries_storage_pool_usable_drives: "0:0, 0:23, 0:1, 0:22, 0:2, 0:21, 0:3, 0:20, 0:4, 0:19, 0:5, 0:18, 0:6, 0:17, 0:7, 0:16, 0:8, 0:15, 0:9, 0:14, 0:10, 0:13: 0:11, 0:12"`
+        `eseries_storage_pool_usable_drives: "99:0,99:23,99:1,99:22,99:2,99:21,99:3,99:20,99:4,99:19,99:5,99:18,99:6,99:17,99:7,99:16,99:8,99:15,99:9,99:14,99:10,99:13,99:11,99:12"`
 
 Collection Variables
 --------------------
@@ -394,7 +394,7 @@ Collection Variables
         Note:  eseries_management_* variables have the lowest priority and will be overwritten by those found in eseries_management_interfaces
     eseries_management_config_method:         # Default config method for all management interfaces. Choices: static, dhcp
     eseries_management_subnet_mask:           # Default subnet mask for all management interfaces
-    eseries_management_gateway_mask:          # Default gateway for all management interfaces
+    eseries_management_gateway:          # Default gateway for all management interfaces
     eseries_management_dns_config_method:     # Default DNS config method for all management interfaces
     eseries_management_dns_address:           # Default primary DNS address for all management interfaces
     eseries_management_dns_address_backup:    # Default backup DNS address for all management interfaces
@@ -615,6 +615,7 @@ Collection Variables
     eseries_volume_read_cache_enable:                     # Default for read caching which will cache all read requests.
     eseries_volume_read_ahead_enable:                     # Default for read ahead caching; this is good for sequential workloads to cache subsequent blocks.
     eseries_volume_write_cache_enable:                    # Default for write caching which will cache all writes.
+    eseries_volume_write_cache_mirror_enable:             # Default for write cache mirroring which mirrors writes to both controller's cache.
     eseries_volume_cache_without_batteries:               # Default for allowing caching when batteries are not present.
     eseries_volume_thin_provision:                        # Default for whether volumes should be thinly provisioned.
     eseries_volume_thin_volume_repo_size:                 # Default for actually allocated space for thinly provisioned volumes.
@@ -704,6 +705,7 @@ Collection Variables
             read_cache_enable:                     # Enables read caching which will cache all read requests.
             read_ahead_enable:                     # Enables read ahead caching; this is good for sequential workloads to cache subsequent blocks.
             write_cache_enable:                    # Enables write caching which will cache all writes.
+            write_cache_mirror_enable:             # Enables write cache mirroring which mirrors writes to both controller's cache.
             cache_without_batteries:               # Enable caching even without batteries.
 
             wait_for_initialization:               # Whether volume creation with wait for initialization to complete
@@ -848,10 +850,11 @@ License
 -------
     BSD-3-Clause
 
-Author Information
+Maintainer Information
 ------------------
-    Nathan Swartz (@ndswartz)
-
+    - Nathan Swartz (@ndswartz)
+    - Joe McCormick (@iamjoemccormick)
+    - Tracy Cummins (@tracycummins)
 
 =============
 Release Notes

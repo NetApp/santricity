@@ -205,6 +205,7 @@ Role Variables
     eseries_volume_read_cache_enable:                     # Default for read caching which will cache all read requests.
     eseries_volume_read_ahead_enable:                     # Default for read ahead caching; this is good for sequential workloads to cache subsequent blocks.
     eseries_volume_write_cache_enable:                    # Default for write caching which will cache all writes.
+    eseries_volume_write_cache_mirror_enable:             # Default for write cache mirroring which mirrors writes to both controller's cache.
     eseries_volume_cache_without_batteries:               # Default for allowing caching when batteries are not present.
     eseries_volume_thin_provision:                        # Default for whether volumes should be thinly provisioned.
     eseries_volume_thin_volume_repo_size:                 # Default for actually allocated space for thinly provisioned volumes.
@@ -220,6 +221,7 @@ Role Variables
     eseries_volume_workload_metadata:                     # Default workload metadata
     eseries_volume_volume_metadata:                       # Default volume_metadata
     eseries_volume_owning_controller                      # Default preferred owning controller
+    eseries_volume_allow_expansion: false                 # Default for whether volume expansions are permitted
     eseries_volume_wait_for_initialization: false         # Default for whether volume creation with wait for initialization to complete
 
     # Storage Pool-Volume Mapping Default Policy Specifications
@@ -294,11 +296,13 @@ Role Variables
             read_cache_enable:                     # Enables read caching which will cache all read requests.
             read_ahead_enable:                     # Enables read ahead caching; this is good for sequential workloads to cache subsequent blocks.
             write_cache_enable:                    # Enables write caching which will cache all writes.
+            write_cache_mirror_enable:             # Enables write cache mirroring which mirrors writes to both controller's cache.
             workload_name:                         # Name of the volume's workload. This can be defined using the metadata option or, if already defined, specify one already
                                                    #    created on the storage array.
             workload_metadata:                     # Dictionary containing arbitrary entries normally used for defining the volume(s) workload.
             volume_metadata                        # Dictionary containing arbitrary entries used to define information about the volume itself.
                                                    #    Note: format_type, format_options[0-9]?, mount_directory, mount_options[0-9]? are used by netapp_eseries.host.mount role to format and mount volumes.
+            allow_expansion:                       # Whether volume expansions are permitted
             wait_for_initialization:               # Whether volume creation with wait for initialization to complete
 
     # Snapshot Consistency Group Default Policy Specifications

@@ -78,7 +78,7 @@ eseries_client_certificate_remove_unspecified_user_certificates: True    # Wheth
 # -------------------------------------
 #eseries_management_config_method:
 #eseries_management_subnet_mask:
-#eseries_management_gateway_mask:
+#eseries_management_gateway:
 #eseries_management_dns_config_method:
 #eseries_management_dns_address:
 #eseries_management_dns_address_backup:

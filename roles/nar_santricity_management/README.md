@@ -136,6 +136,8 @@ Role Variables
     eseries_system_cache_flush_threshold:          # Unwritten data will be flushed when exceeds this threshold
     eseries_system_autoload_balance:               # Whether automatic load balancing should be enabled. Choices: enabled, disabled
     eseries_system_host_connectivity_reporting:    # Whether host connectivity reporting should be enabled. Choices: enabled, disabled
+    eseries_system_login_banner_message:           # Message that appears prior to the login.
+    eseries_system_controller_shelf_id:            # Controller shelf identifier.
     eseries_system_default_host_type:              # Only required when using something other than Linux kernel 3.10 or later with DM-MP (Linux DM-MP),
                                                    #     non-clustered Windows (Windows), or the storage system default host type is incorrect. Common definitions below:
                                                    #     - AIX MPIO: The Advanced Interactive Executive (AIX) OS and the native MPIO driver
@@ -177,7 +179,7 @@ Role Variables
         Note:  eseries_management_* variables have the lowest priority and will be overwritten by those found in eseries_management_interfaces; use these to defined host group defaults.
     eseries_management_config_method:         # Default config method for all management interfaces. Choices: static, dhcp
     eseries_management_subnet_mask:           # Default subnet mask for all management interfaces
-    eseries_management_gateway_mask:          # Default gateway for all management interfaces
+    eseries_management_gateway:          # Default gateway for all management interfaces
     eseries_management_dns_config_method:     # Default DNS config method for all management interfaces
     eseries_management_dns_address:           # Default primary DNS address for all management interfaces
     eseries_management_dns_address_backup:    # Default backup DNS address for all management interfaces

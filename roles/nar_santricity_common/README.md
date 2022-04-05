@@ -2,7 +2,7 @@ nar_santricity_common
 =====================
     Discover NetApp E-Series storage systems and configures SANtricity Web Services Proxy.
 
-    The following variables with be added to the runtime host inventory.
+    The following variables will be added to the runtime host inventory.
         current_eseries_api_url:            # Web Services REST API URL
         current_eseries_api_username:       # Web Services REST API username
         current_eseries_api_password:       # Web Services REST API password

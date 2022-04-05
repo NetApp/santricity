@@ -30,6 +30,9 @@ class LookupModule(LookupBase):
         if isinstance(inventory, list):
             inventory = inventory[0]
 
+        if not isinstance(volumes, list):
+            volumes = [volumes]
+
         if ("eseries_storage_pool_configuration" not in inventory or not isinstance(inventory["eseries_storage_pool_configuration"], list) or
                 len(inventory["eseries_storage_pool_configuration"]) == 0):
             return list()

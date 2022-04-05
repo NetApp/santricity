@@ -153,6 +153,12 @@ options:
         type: bool
         default: true
         required: false
+    write_cache_mirror_enable:
+        description:
+            - Indicates whether write cache mirroring should be enabled.
+        type: bool
+        default: true
+        required: false
     cache_without_batteries:
         description:
             - Indicates whether caching should be used without battery backup.
@@ -189,6 +195,13 @@ options:
             - Dictionary key cannot be longer than 14 characters
             - Dictionary values cannot be longer than 240 characters
         type: dict
+        required: false
+    allow_expansion:
+        description:
+            - Allows volume size to expand to meet the required specification.
+            - Warning, when I(allows_expansion==false) and the existing volume needs to be expanded the module will continue with a warning.
+        type: bool
+        default: false
         required: false
     wait_for_initialization:
         description:
@@ -312,10 +325,12 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             read_cache_enable=dict(type="bool", default=True),
             read_ahead_enable=dict(type="bool", default=True),
             write_cache_enable=dict(type="bool", default=True),
+            write_cache_mirror_enable=dict(type="bool", default=True),
             cache_without_batteries=dict(type="bool", default=False),
             workload_name=dict(type="str", required=False),
             workload_metadata=dict(type="dict", require=False, aliases=["metadata"]),
             volume_metadata=dict(type="dict", require=False),
+            allow_expansion=dict(type="bool", default=False),
             wait_for_initialization=dict(type="bool", default=False))
 
         required_if = [
@@ -349,6 +364,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         self.read_cache_enable = args["read_cache_enable"]
         self.read_ahead_enable = args["read_ahead_enable"]
         self.write_cache_enable = args["write_cache_enable"]
+        self.write_cache_mirror_enable = args["write_cache_mirror_enable"]
         self.ssd_cache_enabled = args["ssd_cache_enabled"]
         self.cache_without_batteries = args["cache_without_batteries"]
         self.data_assurance_enabled = args["data_assurance_enabled"]
@@ -365,6 +381,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             self.thin_volume_max_repo_size_b = self.convert_to_aligned_bytes(args["thin_volume_max_repo_size"])
 
         self.workload_name = args["workload_name"]
+        self.allow_expansion = args["allow_expansion"]
         self.wait_for_initialization = args["wait_for_initialization"]
 
         # convert metadata to a list of dictionaries containing the keys "key" and "value" corresponding to
@@ -627,7 +644,8 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         change = False
         request_body = dict(flashCache=self.ssd_cache_enabled, metaTags=[],
                             cacheSettings=dict(readCacheEnable=self.read_cache_enable,
-                                               writeCacheEnable=self.write_cache_enable))
+                                               writeCacheEnable=self.write_cache_enable,
+                                               mirrorEnable=self.write_cache_mirror_enable))
 
         # check for invalid modifications
         if self.segment_size_kb * 1024 != int(self.volume_detail["segmentSize"]):
@@ -637,6 +655,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         # common thick/thin volume properties
         if (self.read_cache_enable != self.volume_detail["cacheSettings"]["readCacheEnable"] or
                 self.write_cache_enable != self.volume_detail["cacheSettings"]["writeCacheEnable"] or
+                self.write_cache_mirror_enable != self.volume_detail["cacheSettings"]["mirrorEnable"] or
                 self.ssd_cache_enabled != self.volume_detail["flashCached"]):
             change = True
 
@@ -716,6 +735,10 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         elif self.size_b > int(self.volume_detail["capacity"]):
             request_body.update(dict(sizeUnit="bytes", expansionSize=self.size_b))
             self.module.log("Volume storage capacities have been expanded.")
+
+        if request_body and not self.allow_expansion:
+            self.module.warn("Expansion not allowed! Change allow_expansion flag to true to allow volume expansions. Array Id [%s]." % self.ssid)
+            return dict()
 
         return request_body
 
@@ -851,7 +874,10 @@ class NetAppESeriesVolume(NetAppESeriesModule):
                 change = True
 
             elif self.state == 'present':
-                if self.get_expand_volume_changes() or self.get_volume_property_changes():
+                # Must check the property changes first as it makes sure the segment size has no change before
+                # using the size to determine if the volume expansion is needed which will cause an irrelevant 
+                # error message to show up.
+                if self.get_volume_property_changes() or self.get_expand_volume_changes():
                     change = True
 
         elif self.state == 'present':

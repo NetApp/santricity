@@ -88,7 +88,7 @@
           loop: "{{ host_interface }}"
           when: "(hostvars[item['item']]['ansible_facts']['system'] | lower) == 'linux' and (item['generate'] | default(False)) == True"
         - name: Generate initiatorname.iscsi file.
-          template:
+          ansible.builtin.template:
             src: initiatorname_iscsi.j2
             dest: "{{ eseries_iscsi_iqn_path }}initiatorname.iscsi"
           delegate_to: "{{ item['item'] }}"
@@ -108,7 +108,7 @@
           loop: "{{ host_interface }}"
           when: "(hostvars[item['item']]['ansible_facts']['system'] | lower) == 'linux' and (item['generate'] | default(False)) == True"
         - name: Generate NVMe NQN for host if one was not discovered.
-          template:
+          ansible.builtin.template:
             src: hostnqn.j2
             dest: "{{ eseries_nvme_nqn_path }}hostnqn"
           delegate_to: "{{ item['item'] }}"

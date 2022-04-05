@@ -1,13 +1,19 @@
+- name: Check whether at least one management interface has been defined.
+  ansible.builtin.fail:
+    msg: "Missing management interface! At least one management interface must be defined."
+  when: eseries_management_interfaces['controller_a'][0] is not defined and eseries_management_interfaces['controller_b'][0] is not defined
+
 - name: Determine individual management interface information.
-  set_fact:
+  ansible.builtin.set_fact:
     interface_a1: "{{ eseries_management_interfaces['controller_a'][0] | default(omit) }}"
     interface_a2: "{{ eseries_management_interfaces['controller_a'][1] | default(omit) }}"
     interface_b1: "{{ eseries_management_interfaces['controller_b'][0] | default(omit) }}"
     interface_b2: "{{ eseries_management_interfaces['controller_b'][1] | default(omit) }}"
 
-- name: Ensure the management interface (controller A, port 1) have been configure.
+- name: Ensure the management interface (controller A, port 1) has been configured.
   block:
-    - na_santricity_mgmt_interface:
+    - name: Ensure the management interface (controller A, port 1) has been configured.
+      netapp_eseries.santricity.na_santricity_mgmt_interface:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ current_eseries_api_username }}"
@@ -18,7 +24,7 @@
         address: "{{ interface_a1['address'] | default(omit) }}"
         config_method: "{{ interface_a1['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
         subnet_mask: "{{ interface_a1['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-        gateway: "{{ interface_a1['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+        gateway: "{{ interface_a1['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway | default(omit))) }}"
         dns_config_method: "{{ interface_a1['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
         dns_address: "{{ interface_a1['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
         dns_address_backup: "{{ interface_a1['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
@@ -29,14 +35,14 @@
       connection: local
       register: current_management_urls_a1
     - name: Update Web Services URL
-      set_fact:
+      ansible.builtin.set_fact:
         current_eseries_api_url: "{{ current_management_urls_a1['available_embedded_api_urls'][0] | default(current_eseries_api_url) }}"
   when: interface_a1 is defined and interface_a1
 
-- name: Ensure the management interface (controller A, port 2) have been configure.
+- name: Ensure the management interface (controller A, port 2) has been configured.
   block:
-    - name: Ensure the management interface (controller A, port 2) have been configure.
-      na_santricity_mgmt_interface:
+    - name: Ensure the management interface (controller A, port 2) has been configured.
+      netapp_eseries.santricity.na_santricity_mgmt_interface:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ current_eseries_api_username }}"
@@ -47,7 +53,7 @@
         address: "{{ interface_a2['address'] | default(omit) }}"
         config_method: "{{ interface_a2['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
         subnet_mask: "{{ interface_a2['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-        gateway: "{{ interface_a2['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+        gateway: "{{ interface_a2['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway | default(omit))) }}"
         dns_config_method: "{{ interface_a2['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
         dns_address: "{{ interface_a2['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
         dns_address_backup: "{{ interface_a2['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
@@ -58,14 +64,14 @@
       connection: local
       register: current_management_urls_a2
     - name: Try backup Web Services REST API url.
-      set_fact:
+      ansible.builtin.set_fact:
         current_eseries_api_url: "{{ current_management_urls_a2['available_embedded_api_urls'][0] | default(current_eseries_api_url) }}"
   when: interface_a2 is defined and interface_a2
 
-- name: Ensure the management interface (controller B, port 1) have been configure.
+- name: Ensure the management interface (controller B, port 1) has been configured.
   block:
-    - name: Ensure the management interface (controller B, port 1) have been configure.
-      na_santricity_mgmt_interface:
+    - name: Ensure the management interface (controller B, port 1) has been configured.
+      netapp_eseries.santricity.na_santricity_mgmt_interface:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ current_eseries_api_username }}"
@@ -76,7 +82,7 @@
         address: "{{ interface_b1['address'] | default(omit) }}"
         config_method: "{{ interface_b1['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
         subnet_mask: "{{ interface_b1['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-        gateway: "{{ interface_b1['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+        gateway: "{{ interface_b1['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway | default(omit))) }}"
         dns_config_method: "{{ interface_b1['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
         dns_address: "{{ interface_b1['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
         dns_address_backup: "{{ interface_b1['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
@@ -87,14 +93,14 @@
       connection: local
       register: current_management_urls_b1
     - name: Try backup Web Services REST API url.
-      set_fact:
+      ansible.builtin.set_fact:
         current_eseries_api_url: "{{ current_management_urls_b1['available_embedded_api_urls'][0] | default(current_eseries_api_url) }}"
   when: interface_b1 is defined and interface_b1
 
-- name: Ensure the management interface (controller B, port 2) have been configure.
+- name: Ensure the management interface (controller B, port 2) has been configured.
   block:
-    - name: Ensure the management interface (controller B, port 2) have been configure.
-      na_santricity_mgmt_interface:
+    - name: Ensure the management interface (controller B, port 2) has been configured.
+      netapp_eseries.santricity.na_santricity_mgmt_interface:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"
         api_username: "{{ current_eseries_api_username }}"
@@ -105,7 +111,7 @@
         address: "{{ interface_b2['address'] | default(omit) }}"
         config_method: "{{ interface_b2['config_method'] | default(eseries_management_interfaces['config_method'] | default(eseries_management_config_method | default(omit))) }}"
         subnet_mask: "{{ interface_b2['subnet_mask'] | default(eseries_management_interfaces['subnet_mask'] | default(eseries_management_subnet_mask | default(omit))) }}"
-        gateway: "{{ interface_b2['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway_mask | default(omit))) }}"
+        gateway: "{{ interface_b2['gateway'] | default(eseries_management_interfaces['gateway'] | default(eseries_management_gateway | default(omit))) }}"
         dns_config_method: "{{ interface_b2['dns_config_method'] | default(eseries_management_interfaces['dns_config_method'] | default(eseries_management_dns_config_method | default(omit))) }}"
         dns_address: "{{ interface_b2['dns_address'] | default(eseries_management_interfaces['dns_address'] | default(eseries_management_dns_address | default(omit))) }}"
         dns_address_backup: "{{ interface_b2['dns_address_backup'] | default(eseries_management_interfaces['dns_address_backup'] | default(eseries_management_dns_address_backup | default(omit))) }}"
@@ -116,6 +122,6 @@
       connection: local
       register: current_management_urls_b2
     - name: Try backup Web Services REST API url.
-      set_fact:
+      ansible.builtin.set_fact:
         current_eseries_api_url: "{{ current_management_urls_b2['available_embedded_api_urls'][0] | default(current_eseries_api_url) }}"
   when: interface_b2 is defined and interface_b2

@@ -99,10 +99,8 @@ releases:
         role.
       - Remove resource-provisioned volumes setting from na_santicity_global module
         and nar_santricity_management role."
-      release_summary: 'Release 1.2.2 simply removes resource-provisioned volumes
-        feature from collection.
-
-'
+      release_summary: Release 1.2.2 simply removes resource-provisioned volumes feature
+        from collection.
     fragments:
     - 1.2.2.yml
     - criteria_drive_max_size.yml
@@ -216,3 +214,21 @@ releases:
     - add_eseries_system_old_password_variable_to_change_admin.yml
     - fix_certificates.yml
     release_date: '2021-05-13'
+  1.3.0:
+    changes:
+      bugfixes:
+      - santricity_host - Ensure a list of volumes are provided to prevent netapp_eseries.santricity.santricity_host
+        (lookup) index is string not integer exception.
+      minor_changes:
+      - na_santricity_global - Add controller_shelf_id argument to set controller
+        shelf identifier.
+      - na_santricity_volume - Add flag to control whether volume expansion operations
+        are allowed.
+      - na_santricity_volume - Add volume write cache mirroring option.
+      - nar_santricity_host - Add volume write cache mirroring options.
+    fragments:
+    - add_controller_shelf_id_option.yml
+    - add_flag_to_allow_volume_expansion.yml
+    - add_volume_write_cache_mirroring_option.yml
+    - fix_single_volume_host_mapping_determinations.yml
+    release_date: '2022-04-05'
