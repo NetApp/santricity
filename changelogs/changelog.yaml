@@ -231,4 +231,4 @@ releases:
     - add_flag_to_allow_volume_expansion.yml
     - add_volume_write_cache_mirroring_option.yml
     - fix_single_volume_host_mapping_determinations.yml
-    release_date: '2022-04-04'
+    release_date: '2022-04-05'
