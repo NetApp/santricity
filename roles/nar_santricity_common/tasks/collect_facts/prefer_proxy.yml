@@ -78,14 +78,14 @@
     - name: Determine storage system Web Services information
       set_fact:
         current_eseries_api_info: |-
-          {% set info = {} %}
-          {%- for result in discovered_systems["results"] -%}
-            {%- for serial in (result["systems_found"].keys() | list) if eseries_system_serial and serial == eseries_system_serial -%}
-               {%- if info.update(result["systems_found"][serial]) %}{%- endif -%}
+          {%- set info = {} -%}
+          {%- if eseries_system_serial is defined -%}
+            {%- set serial = eseries_system_serial | string -%}
+            {%- for result in discovered_systems["results"] if result["systems_found"][serial] is defined -%}
+              {%- if info.update(result["systems_found"][serial]) %}{%- endif -%}
             {%- endfor %}
-          {%- endfor %}
+          {%- endif -%}
           {{ info }}
-      no_log: true
 
     - name: Check whether storage system was discovered.
       fail:

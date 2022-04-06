@@ -8,7 +8,6 @@
     prefer_embedded: "{{ item['value']['prefer_embedded'] }}"
   run_once: true
   connection: local
-  no_log: true
   register: discovered_systems
   loop: "{{ subnets | dict2items }}"
   tags: always
