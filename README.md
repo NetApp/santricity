@@ -148,7 +148,7 @@ Example Storage System Inventory File (Discover storage system)
 -------------------------------------
 **Note that this discovery method works for SANtricity versions 11.62 or later, otherwise it will only discover the systems with unset passwords.**
 
-    eseries_system_serial: "012345678901"   # Be sure to quote if the serial is all numbers and begins with zero.
+    eseries_system_serial: 012345678901
     eseries_system_password: admin_password
     eseries_subnet: 192.168.1.0/24
 
@@ -163,7 +163,7 @@ Example Storage System Inventory File (Discover storage system)
 
 Example Storage System Inventory File (Discover storage system with proxy)
 -------------------------------------
-    eseries_system_serial: "012345678901"   # Be sure to quote if the serial is all numbers and begins with zero.
+    eseries_system_serial: 012345678901
     eseries_system_password: admin_password
 
     eseries_proxy_api_url: https://192.168.1.100:8443/devmgr/v2/
@@ -308,8 +308,7 @@ Collection Variables
 
     # Storage system specific variables
     eseries_proxy_ssid:               # Arbitrary string for the proxy to represent the storage system. eseries_system_serial will be used when not defined.
-    eseries_system_serial:            # Storage system serial number. Be sure to quote if the serial is all numbers and begins with zero. (This is located on a
-                                      #     label at the top-left towards the front on the device)
+    eseries_system_serial:            # Storage system serial number. (This is located on a label at the top-left towards the front on the device)
     eseries_system_addresses:         # Storage system management IP addresses. Only required when eseries_system_serial or eseries_system_api_url are not
                                       #     defined. When not specified, addresses will be populated with eseries_management_interfaces controller addresses.
     eseries_system_api_url:           # Url for the storage system's for embedded web services rest api. Example: https://192.168.10.100/devmgr/v2

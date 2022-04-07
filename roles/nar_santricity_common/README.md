@@ -34,7 +34,7 @@ Example Inventory Host file using discovery with proxy
     eseries_proxy_api_url: https://192.168.1.100:8443/devmgr/v2/
     eseries_proxy_api_password: admin_password
     eseries_subnet: 192.168.1.0/24   # This should only be defined at the group level once when utilizing Web Services Proxy and should be broad enough to include all systems being added to proxy instance.
-    eseries_system_serial: "012345678901"   # Be sure to quote if the serial is all numbers and begins with zero.
+    eseries_system_serial: 012345678901
     eseries_system_password: admin_password
     eseries_validate_certs: false
     (...)
@@ -44,7 +44,7 @@ Example Inventory Host file using discovery without proxy
 ---------------------------------------------------------
 **Note that while eseries_management_interfaces or eseries_system_api_url are optional, including at least one of them will prevent the discovery mechanism from being used when the system can be reached from their information.
     eseries_subnet: 192.168.1.0/24
-    eseries_system_serial: "012345678901"   # Be sure to quote if the serial is all numbers and begins with zero.
+    eseries_system_serial: 012345678901
     eseries_system_password: admin_password
     eseries_validate_certs: false
     (...)
@@ -81,7 +81,7 @@ Role Variables
 
     # Storage system specific variables
     eseries_proxy_ssid:               # Arbitrary string for the proxy to represent the storage system. eseries_system_serial will be used when not defined.
-    eseries_system_serial:            # Storage system serial number. Be sure to quote if the serial is all numbers and begins with zero. (This is located on a label at the top-left towards the front on the device)
+    eseries_system_serial:            # Storage system serial number. (This is located on a label at the top-left towards the front on the device)
     eseries_system_addresses:         # Storage system management IP addresses. Only required when eseries_system_serial or eseries_system_api_url are not defined. When not specified, addresses will be populated with eseries_management_interfaces controller addresses.
     eseries_system_api_url:           # Url for the storage system's for embedded web services rest api. Example: https://192.168.10.100/devmgr/v2
     eseries_system_username: admin    # Username for the storage system's for embedded web services rest api
