@@ -50,13 +50,22 @@ options:
             - Maximum virtual volume size of a thin provisioned volume is 256tb; however other OS-level restrictions may exist.
         type: float
         required: true
+    size_tolerance_b:
+        description:
+            - Tolerance for total volume size measured in bytes; so, if the total volumes size is within
+              +/- I(size_tolerance_b) then no resizing will be expected.
+            - This parameter can be useful in the case of existing volumes not created by na_santricity_volume
+              since providing the exact size can be difficult due to volume alignment and overhead.
+        type: int
+        required: false
+        default: 10485760
     segment_size_kb:
         description:
             - Segment size of the volume
             - All values are in kibibytes.
             - Some common choices include 8, 16, 32, 64, 128, 256, and 512 but options are system
               dependent.
-            - Retrieve the definitive s ystem list from M(na_santricity_facts) under segment_sizes.
+            - Retrieve the definitive system list from M(na_santricity_facts) under segment_sizes.
             - When the storage pool is a raidDiskPool then the segment size must be 128kb.
             - Segment size migrations are not allowed in this module
         type: int
@@ -313,6 +322,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             storage_pool_name=dict(type="str"),
             size_unit=dict(default="gb", choices=["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb", "pct"], type="str"),
             size=dict(type="float"),
+            size_tolerance_b=dict(type="int", required=False, default=10485760),
             segment_size_kb=dict(type="int", default=128, required=False),
             owning_controller=dict(type="str", choices=["A", "B"], required=False),
             ssd_cache_enabled=dict(type="bool", default=False),
@@ -348,7 +358,9 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         self.name = args["name"]
         self.storage_pool_name = args["storage_pool_name"]
         self.size_unit = args["size_unit"]
+        self.size_tolerance_b = args["size_tolerance_b"]
         self.segment_size_kb = args["segment_size_kb"]
+
         if args["size"]:
             if self.size_unit == "pct":
                 if args["thin_provision"]:
@@ -707,22 +719,22 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         """
         request_body = dict()
 
-        if self.size_b < int(self.volume_detail["capacity"]):
+        if self.size_b < int(self.volume_detail["capacity"]) - self.size_tolerance_b:
             self.module.fail_json(msg="Reducing the size of volumes is not permitted. Volume [%s]. Array [%s]"
                                       % (self.name, self.ssid))
 
         if self.volume_detail["thinProvisioned"]:
-            if self.size_b > int(self.volume_detail["capacity"]):
+            if self.size_b > int(self.volume_detail["capacity"]) + self.size_tolerance_b:
                 request_body.update(dict(sizeUnit="bytes", newVirtualSize=self.size_b))
                 self.module.log("Thin volume virtual size have been expanded.")
 
             if self.volume_detail["expansionPolicy"] == "automatic":
-                if self.thin_volume_max_repo_size_b > int(self.volume_detail["provisionedCapacityQuota"]):
+                if self.thin_volume_max_repo_size_b > int(self.volume_detail["provisionedCapacityQuota"]) + self.size_tolerance_b:
                     request_body.update(dict(sizeUnit="bytes", newRepositorySize=self.thin_volume_max_repo_size_b))
                     self.module.log("Thin volume maximum repository size have been expanded (automatic policy).")
 
             elif self.volume_detail["expansionPolicy"] == "manual":
-                if self.thin_volume_repo_size_b > int(self.volume_detail["currentProvisionedCapacity"]):
+                if self.thin_volume_repo_size_b > int(self.volume_detail["currentProvisionedCapacity"]) + self.size_tolerance_b:
                     change = self.thin_volume_repo_size_b - int(self.volume_detail["currentProvisionedCapacity"])
                     if change < 4 * 1024 ** 3 or change > 256 * 1024 ** 3 or change % (4 * 1024 ** 3) != 0:
                         self.module.fail_json(msg="The thin volume repository increase must be between or equal to 4gb"
@@ -732,7 +744,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
                     request_body.update(dict(sizeUnit="bytes", newRepositorySize=self.thin_volume_repo_size_b))
                     self.module.log("Thin volume maximum repository size have been expanded (manual policy).")
 
-        elif self.size_b > int(self.volume_detail["capacity"]):
+        elif self.size_b > int(self.volume_detail["capacity"]) + self.size_tolerance_b:
             request_body.update(dict(sizeUnit="bytes", expansionSize=self.size_b))
             self.module.log("Volume storage capacities have been expanded.")
 
