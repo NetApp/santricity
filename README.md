@@ -47,6 +47,7 @@ NetApp E-Series SANtricity Collection
         - na_santricity_syslog: Manage syslog settings
         - na_santricity_volume: Manage storage volumes
         
+    *** Note that the following deprecated modules will be removed in a future release.
     Deprecated Modules:
         - netapp_e_alerts: Manage email notification settings
         - netapp_e_amg: Create, remove, and update asynchronous mirror groups
