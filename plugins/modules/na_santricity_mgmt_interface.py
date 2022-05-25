@@ -256,7 +256,7 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
                                ntp_address_backup=dict(type="str", required=False),
                                ssh=dict(type="bool", required=False))
 
-        required_if = [["state", "enable", ["config_method"]],
+        required_if = [["state", "enabled", ["config_method"]],
                        ["config_method", "static", ["address", "subnet_mask"]],
                        ["dns_config_method", "static", ["dns_address"]],
                        ["ntp_config_method", "static", ["ntp_address"]]]
