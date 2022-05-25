@@ -113,11 +113,6 @@
       include_tasks: collect_facts/discovery.yml
       when: discovered_systems is not defined
 
-    - name: Check whether eseries_system_serial and eseries_subnet are defined.
-      fail:
-        msg: "Unable to discover storage system. Check network connection and storage system inventory (See SANtricity README, section Storage System Credentials)"
-      when: eseries_system_serial is not defined or eseries_subnet is not defined
-
     - name: Determine storage system Web Services information
       set_fact:
         current_eseries_api_info: |-
@@ -132,7 +127,7 @@
 
     - name: Check whether storage system was discovered.
       fail:
-        msg: "Storage system failed to be discovered! Serial [{{ eseries_system_serial }}]. Subnet [{{ eseries_subnet }}]."
+        msg: "Storage system failed to be discovered! Serial [{{ eseries_system_serial }}]."
       when: current_eseries_api_info == {}
 
     - name: Set storage systems Web Services URL information

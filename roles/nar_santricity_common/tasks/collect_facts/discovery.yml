@@ -1,5 +1,28 @@
+- name: Check whether eseries_system_serial is defined.
+  ansible.builtin.fail:
+    msg: "Unable to search for storage system! The variable eseries_system_serial must be defined (See SANtricity README, section Storage System Credentials)."
+  when: eseries_system_serial is not defined
+
+- name: Determine associated management interface subnet information.
+  ansible.builtin.set_fact:
+    eseries_subnets: |-
+      {%- set subnets = [] %}
+      {%- if eseries_subnet is defined -%}
+        {%- if subnets.append(eseries_subnet) -%}{%- endif -%}
+      {%- endif -%}
+      {%- set interfaces = eseries_management_interfaces["controller_a"] | default([]) + eseries_management_interfaces["controller_b"] | default([]) -%}
+      {%- for interface in interfaces if interface["address"] is defined -%}
+        {%- if subnets.append(interface["address"] ~ "/" ~ interface["subnet_mask"] | default(eseries_management_interfaces["subnet_mask"] | default(eseries_management_subnet_mask | default(eseries_subnet_default_prefix)))) -%}{%- endif -%}
+      {%- endfor -%}
+      {{- subnets | ansible.netcommon.ipaddr('network/prefix') | unique -}}
+
+- name: Ensure there is at least one subnet to search for storage systems.
+  ansible.builtin.fail:
+    msg: "There is not enough management information to search for the storage system(s)! (See SANtricity README, section Storage System Credentials)"
+  when: eseries_subnets | length == 0
+
 - name: Discover storage systems from all subnet ranges
-  na_santricity_discover:
+  netapp_eseries.santricity.na_santricity_discover:
     proxy_url: "{{ item['value']['proxy_url'] }}"
     proxy_username: "{{ item['value']['proxy_username'] }}"
     proxy_password: "{{ item['value']['proxy_password'] }}"
@@ -16,10 +39,10 @@
       {#- Build a dictionary subnet searches and any proxies should they be available #}
       {%- set systems = {} %}
       {%- for array in ansible_play_hosts_all %}
-        {%- if "eseries_subnet" in hostvars[array] %}
+        {%- for eseries_subnet in hostvars[array]["eseries_subnets"] | default([]) -%}
 
           {%- if "eseries_proxy_api_url" in (hostvars[array].keys() | list) -%}
-            {%- if systems.update({hostvars[array]["eseries_subnet"]: {
+            {%- if systems.update({eseries_subnet: {
               "proxy_url": hostvars[array]["eseries_proxy_api_url"] | default(omit),
               "proxy_username": hostvars[array]["eseries_proxy_api_username"] | default("admin"),
               "proxy_password": hostvars[array]["eseries_proxy_api_password"] | default(omit),
@@ -27,7 +50,7 @@
               "proxy_validate_certs": hostvars[array]["eseries_validate_certs"] | default(omit)}}) %}
             {%- endif %}
           {%- else -%}
-            {%- if systems.update({hostvars[array]["eseries_subnet"]: {
+            {%- if systems.update({eseries_subnet: {
               "proxy_url": hostvars[array]["eseries_proxy_api_url"] | default(omit),
               "proxy_username": hostvars[array]["eseries_proxy_api_username"] | default(omit),
               "proxy_password": hostvars[array]["eseries_proxy_api_password"] | default(omit),
@@ -36,6 +59,6 @@
             {%- endif %}
           {%- endif -%}
 
-        {%- endif %}
+        {%- endfor %}
       {%- endfor %}
       {{ systems }}
