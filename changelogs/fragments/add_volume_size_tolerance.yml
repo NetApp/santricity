@@ -1,0 +1,2 @@
+minor_changes:
+  - na_santricity_volume - Add size_tolerance option to handle the difference in volume size with SANtricity System Manager.
