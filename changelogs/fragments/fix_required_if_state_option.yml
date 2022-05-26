@@ -1,2 +1,0 @@
-bugfixes:
-  - na_santricity_mgmt_interface - Fix default required_if state option for na_santricity_mgmt_interface

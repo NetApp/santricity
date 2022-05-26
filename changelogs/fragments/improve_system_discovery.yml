@@ -1,2 +1,0 @@
-minor_changes:
-  - nar_santricity_common - utilize provided eseries management information to determine network to search.
