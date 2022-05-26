@@ -79,7 +79,7 @@ NetApp E-Series SANtricity Collection
 
 Requirements
 ------------
-    - Ansible 2.9 or later
+    - Ansible 2.10 or later
     - NetApp E-Series E2800 platform or newer or NetApp E-Series SANtricity Web Services Proxy configured for older E-Series Storage arrays.
     - Python cryptography >= 2.5 package is required for na_santricity_server_certificate and nar_santricity_management role.
     - Python ipaddress and netaddr packages are required for na_santricity_discover, na_santricity_ and nar_santricity_common role.
