@@ -1,0 +1,2 @@
+bugfixes:
+  - netapp_eseries.santricity.nar_santricity_host - Fix default MTU value for NVMe RoCE.
