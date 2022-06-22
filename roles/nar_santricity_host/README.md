@@ -145,7 +145,7 @@ Role Variables
     eseries_controller_nvme_roce_port_config_method: dhcp    # General port configuration method definition for both controllers. Choices: static, dhcp
     eseries_controller_nvme_roce_port_gateway:               # General port IPv4 gateway for both controllers.
     eseries_controller_nvme_roce_port_subnet_mask:           # General port IPv4 subnet mask for both controllers.
-    eseries_controller_nvme_roce_port_mtu: 9000              # General port maximum transfer units (MTU). Any value greater than 1500 (bytes).
+    eseries_controller_nvme_roce_port_mtu: 4200              # General port maximum transfer units (MTU). Any value greater than 1500 (bytes).
     eseries_controller_nvme_roce_port_speed: auto            # General interface speed. Value must be a supported speed or auto for automatically negotiating the speed with the port.
     eseries_controller_nvme_roce_port:
       controller_a:         # Ordered list of controller A channel definition.

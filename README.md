@@ -564,7 +564,7 @@ Collection Variables
     eseries_controller_nvme_roce_port_config_method: dhcp    # Port configuration method definition for both controllers. Choices: static, dhcp
     eseries_controller_nvme_roce_port_gateway:               # Port IPv4 gateway for both controllers.
     eseries_controller_nvme_roce_port_subnet_mask:           # Port IPv4 subnet mask for both controllers.
-    eseries_controller_nvme_roce_port_mtu: 9000              # Port maximum transfer units (MTU). Any value greater than 1500 (bytes).
+    eseries_controller_nvme_roce_port_mtu: 4200              # Port maximum transfer units (MTU). Any value greater than 1500 (bytes).
     eseries_controller_nvme_roce_port_speed: auto            # Interface speed. Value must be a supported speed or auto to negotiate the speed with the port.
     eseries_controller_nvme_roce_port:
       controller_a:         # Controller A port definition. List containing ports definitions.
