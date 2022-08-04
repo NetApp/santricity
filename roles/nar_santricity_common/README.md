@@ -13,9 +13,11 @@ nar_santricity_common
 
 Requirements
 ------------
-    - Ansible 2.10 or later
     - NetApp E-Series E2800 platform or newer or NetApp E-Series SANtricity Web Services Proxy configured for older E-Series storage systems.
 
+Tested Ansible Versions
+-----------------------
+    - Ansible 5.x (ansible-core 2.12)
 
 Example Playbook
 ----------------
