@@ -19,6 +19,7 @@ Bugfixes
 --------
 
 - na_santricity_mgmt_interface - Fix default required_if state option for na_santricity_mgmt_interface
+- netapp_eseries.santricity.nar_santricity_host - Fix default MTU value for NVMe RoCE.
 
 v1.3.0
 ======

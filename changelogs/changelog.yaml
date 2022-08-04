@@ -236,6 +236,8 @@ releases:
     changes:
       bugfixes:
       - na_santricity_mgmt_interface - Fix default required_if state option for na_santricity_mgmt_interface
+      - netapp_eseries.santricity.nar_santricity_host - Fix default MTU value for
+        NVMe RoCE.
       minor_changes:
       - Require Ansible 2.10 or later.
       - na_santricity_volume - Add size_tolerance option to handle the difference
@@ -244,7 +246,8 @@ releases:
         determine network to search.
     fragments:
     - add_volume_size_tolerance.yml
+    - fix_nvme_roce_mtu_default.yml
     - fix_required_if_state_option.yml
     - improve_system_discovery.yml
     - require_ansible_2.10_or_later.yml
-    release_date: '2022-05-26'
+    release_date: '2022-08-08'
