@@ -250,4 +250,4 @@ releases:
     - fix_required_if_state_option.yml
     - improve_system_discovery.yml
     - require_ansible_2.10_or_later.yml
-    release_date: '2022-08-08'
+    release_date: '2022-08-15'
