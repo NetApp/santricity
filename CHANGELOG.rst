@@ -5,6 +5,22 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.3.1
+======
+
+Minor Changes
+-------------
+
+- Require Ansible 2.10 or later.
+- na_santricity_volume - Add size_tolerance option to handle the difference in volume size with SANtricity System Manager.
+- nar_santricity_common - utilize provided eseries management information to determine network to search.
+
+Bugfixes
+--------
+
+- na_santricity_mgmt_interface - Fix default required_if state option for na_santricity_mgmt_interface
+- netapp_eseries.santricity.nar_santricity_host - Fix default MTU value for NVMe RoCE.
+
 v1.3.0
 ======
 
