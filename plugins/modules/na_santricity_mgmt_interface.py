@@ -22,10 +22,10 @@ options:
         description:
             - Enable or disable IPv4 network interface configuration.
             - Either IPv4 or IPv6 must be enabled otherwise error will occur.
+            - Assumed to be I(state==enabled) when I(config_method) is specified unless defined.
         choices:
             - enabled
             - disabled
-        default: enabled
         type: str
         required: false
     controller:
@@ -44,8 +44,9 @@ options:
         description:
             - The ethernet port configuration to modify.
             - The channel represents the port number left to right on the controller, beginning with 1.
+            - Required when I(config_method) is specified.
         type: int
-        required: true
+        required: false
     address:
         description:
             - The IPv4 address to assign to the interface.
@@ -241,7 +242,7 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
     MAXIMUM_VERIFICATION_TIMEOUT = 120
 
     def __init__(self):
-        ansible_options = dict(state=dict(type="str", choices=["enabled", "disabled"], default="enabled", required=False),
+        ansible_options = dict(state=dict(type="str", choices=["enabled", "disabled"], required=False),
                                controller=dict(type="str", required=True, choices=["A", "B"]),
                                port=dict(type="int"),
                                address=dict(type="str", required=False),
@@ -256,8 +257,7 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
                                ntp_address_backup=dict(type="str", required=False),
                                ssh=dict(type="bool", required=False))
 
-        required_if = [["state", "enabled", ["config_method"]],
-                       ["config_method", "static", ["address", "subnet_mask"]],
+        required_if = [["config_method", "static", ["port", "address", "subnet_mask"]],
                        ["dns_config_method", "static", ["dns_address"]],
                        ["ntp_config_method", "static", ["ntp_address"]]]
 
@@ -267,7 +267,14 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
                                                          supports_check_mode=True)
 
         args = self.module.params
-        self.enable_interface = args["state"] == "enabled"
+        if args["state"] is None:
+            if args["config_method"] is not None:
+                self.enable_interface = True
+            else:
+                self.enable_interface = None
+        else:
+            self.enable_interface = args["state"] == "enabled"
+
         self.controller = args["controller"]
         self.channel = args["port"]
 
@@ -334,9 +341,19 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
         controller_info = self.get_controllers()[self.controller]
         controller_ref = controller_info["controllerRef"]
         controller_ssh = controller_info["ssh"]
+        controller_dns = None
+        controller_ntp = None
+        dummy_interface_id = None # Needed for when a specific interface is not required (ie dns/ntp/ssh changes only)
         for net in net_interfaces:
             if net["controllerRef"] == controller_ref:
                 channels.update({net["channel"]: net["linkStatus"]})
+                if dummy_interface_id is None:
+                    dummy_interface_id = net["interfaceRef"]
+                if controller_dns is None:
+                    controller_dns = net["dnsProperties"]
+                if controller_ntp is None:
+                    controller_ntp = net["ntpProperties"]
+
             if net["ipv4Enabled"] and net["linkStatus"] == "up":
                 self.all_interface_addresses.append(net["ipv4Address"])
             if net["controllerRef"] == controller_ref and net["channel"] == self.channel:
@@ -344,27 +361,34 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
             elif net["ipv4Enabled"] and net["linkStatus"] == "up":
                 self.alt_interface_addresses.append(net["ipv4Address"])
 
-        if iface is None:
-            available_controllers = ["%s (%s)" % (channel, status) for channel, status in channels.items()]
-            self.module.fail_json(msg="Invalid port number! Controller %s ports: [%s]. Array [%s]"
-                                      % (self.controller, ",".join(available_controllers), self.ssid))
+        # Add controller specific information (ssh, dns and ntp)
+        self.interface_info.update({
+            "id": dummy_interface_id,
+            "controllerRef": controller_ref,
+            "ssh": controller_ssh,
+            "dns_config_method": controller_dns["acquisitionProperties"]["dnsAcquisitionType"],
+            "dns_servers": controller_dns["acquisitionProperties"]["dnsServers"],
+            "ntp_config_method": controller_ntp["acquisitionProperties"]["ntpAcquisitionType"],
+            "ntp_servers": controller_ntp["acquisitionProperties"]["ntpServers"],})
 
-        self.interface_info.update({"channel": iface["channel"],
-                                    "link_status": iface["linkStatus"],
-                                    "enabled": iface["ipv4Enabled"],
-                                    "address": iface["ipv4Address"],
-                                    "gateway": iface["ipv4GatewayAddress"],
-                                    "subnet_mask": iface["ipv4SubnetMask"],
-                                    "dns_config_method": iface["dnsProperties"]["acquisitionProperties"]["dnsAcquisitionType"],
-                                    "dns_servers": iface["dnsProperties"]["acquisitionProperties"]["dnsServers"],
-                                    "ntp_config_method": iface["ntpProperties"]["acquisitionProperties"]["ntpAcquisitionType"],
-                                    "ntp_servers": iface["ntpProperties"]["acquisitionProperties"]["ntpServers"],
-                                    "config_method": iface["ipv4AddressConfigMethod"],
-                                    "controllerRef": iface["controllerRef"],
-                                    "controllerSlot": iface["controllerSlot"],
-                                    "ipv6_enabled": iface["ipv6Enabled"],
-                                    "id": iface["interfaceRef"],
-                                    "ssh": controller_ssh})
+        # Add interface specific information when configuring IP address.
+        if self.config_method is not None:
+            if iface is None:
+                available_controllers = ["%s (%s)" % (channel, status) for channel, status in channels.items()]
+                self.module.fail_json(msg="Invalid port number! Controller %s ports: [%s]. Array [%s]"
+                                        % (self.controller, ",".join(available_controllers), self.ssid))
+            else:
+                self.interface_info.update({
+                    "id": iface["interfaceRef"],
+                    "controllerSlot": iface["controllerSlot"],
+                    "channel": iface["channel"],
+                    "link_status": iface["linkStatus"],
+                    "enabled": iface["ipv4Enabled"],
+                    "config_method": iface["ipv4AddressConfigMethod"],
+                    "address": iface["ipv4Address"],
+                    "subnet_mask": iface["ipv4SubnetMask"],
+                    "gateway": iface["ipv4GatewayAddress"],
+                    "ipv6_enabled": iface["ipv6Enabled"],})
 
     def update_body_enable_interface_setting(self):
         """Enable or disable the IPv4 network interface."""

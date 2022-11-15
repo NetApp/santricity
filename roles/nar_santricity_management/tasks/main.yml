@@ -1,5 +1,5 @@
 - name: Set current storage system credentials
-  include_role:
+  ansible.builtin.include_role:
     name: netapp_eseries.santricity.nar_santricity_common
     tasks_from: build_info.yml
   when: current_eseries_api_url is not defined
@@ -7,11 +7,10 @@
     - always
 
 - name: Ensure security settings are configured
-  import_tasks: security.yml
+  ansible.builtin.import_tasks: security.yml
 
 - name: Ensure management interfaces are configured
-  include_tasks: interface.yml
-  when: "eseries_management_interfaces['controller_a'] is defined or eseries_management_interfaces['controller_b'] is defined"
+  ansible.builtin.import_tasks: interface.yml
   tags:
     - interface
     - ntp
@@ -19,10 +18,10 @@
     - ssh
 
 - name: Ensure all global system settings are configured
-  import_tasks: system.yml
+  ansible.builtin.import_tasks: system.yml
 
 - name: Ensure event logging has been configured
-  import_tasks: logging.yml
+  ansible.builtin.import_tasks: logging.yml
 
 - name: Ensure drive and controller firmware are correct
-  import_tasks: firmware.yml
+  ansible.builtin.import_tasks: firmware.yml

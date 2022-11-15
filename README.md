@@ -15,7 +15,7 @@ NetApp E-Series SANtricity Collection
         - nar_santricity_common: Discover NetApp E-Series storage systems and configures SANtricity Web Services Proxy.
         - nar_santricity_host: Configure storage pools, volumes, hosts, host groups, port interfaces and snapshots.
         - nar_santricity_management: Manage storage system's name, management interfaces, alerts, syslog, auditlog, asup, ldap, certificates, drive firmware and controller firmware.
-            
+
     Modules:
         - na_santricity_alerts: Manage email alert notification settings
         - na_santricity_alerts_syslog: Manage syslog servers receiving storage system alerts
@@ -46,7 +46,7 @@ NetApp E-Series SANtricity Collection
         - na_santricity_storagepool: Manage volume groups and disk pools
         - na_santricity_syslog: Manage syslog settings
         - na_santricity_volume: Manage storage volumes
-        
+
     *** Note that the following deprecated modules will be removed in a future release.
     Deprecated Modules:
         - netapp_e_alerts: Manage email notification settings
@@ -421,13 +421,21 @@ Collection Variables
           config_method:         # Config method for controller A. Choices: static, dhcp
           subnet_mask:           # Subnet mask for controller A
           gateway:               # Gateway for controller A
-          dns_config_method:     # DNS config method for controller A
-          dns_address:           # Primary DNS address for controller A
-          dns_address_backup:    # Backup DNS address for controller A
-          ntp_config_method:     # NTP config method for controller A
-          ntp_address:           # Primary NTP address for controller A
-          ntp_address_backup:    # Backup NTP address for controller A
-          ssh:                   # SSH access for controller A. Choices: true, false
+          dns_config_method:     # DNS config method for controller A (Note this will apply to every interface of the
+                                 #   controller. To be idempotent, only define for one interface on this controller).
+          dns_address:           # Primary DNS address for controller A (Note this will apply to every interface of the
+                                 #   controller. To be idempotent, only define for one interface on this controller).
+          dns_address_backup:    # Backup DNS address for controller A (Note this will apply to every interface of the
+                                 #   controller. To be idempotent, only define for one interface on this controller).
+          ntp_config_method:     # NTP config method for controller A (Note this will apply to every interface of the
+                                 #   controller. To be idempotent, only define for one interface on this controller).
+          ntp_address:           # Primary NTP address for controller A (Note this will apply to every interface of the
+                                 #   controller. To be idempotent, only define for one interface on this controller).
+          ntp_address_backup:    # Backup NTP address for controller A (Note this will apply to every interface of the
+                                 #   controller. To be idempotent, only define for one interface on this controller).
+          ssh:                   # SSH access for controller A (Note this will apply to every interface of the
+                                 #   controller. To be idempotent, only define for one interface on this controller).
+                                 #   Choices: true, false
       controller_b:              # List of controller B ports
         - (...)                  # Same as for controller A but for controller B.
 
