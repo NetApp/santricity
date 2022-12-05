@@ -32,8 +32,9 @@ options:
             - B
     port:
         description:
-            - The controller iSCSI HIC port to modify.
-            - You can determine this value by numbering the iSCSI ports left to right on the controller you wish to modify starting with one.
+            - The controller iSCSI baseboard or HIC port to modify.
+            - Determine the port by counting from one the controller's iSCSI ports left to right, start with the
+              baseboard ports and then the HIC ports.
         type: int
         required: true
     state:
@@ -88,6 +89,15 @@ options:
         required: false
         aliases:
             - max_frame_size
+    speed:
+        description:
+            - The option will change the interface port speed.
+            - Only supported speeds will be accepted and must be in the form [0-9]+[gm] (i.e. 25g)
+            - 'Down' interfaces will report 'Unknown' speed until they are set to an accepted network speed.
+            - Do not use this option when the port's speed is automatically configured as it will fail. See System
+              Manager for the port's capability.
+        type: str
+        required: false
 notes:
     - Check mode is supported.
     - The interface settings are applied synchronously, but changes to the interface itself (receiving a new IP address
@@ -110,6 +120,7 @@ EXAMPLES = """
         address: "192.168.1.100"
         subnet_mask: "255.255.255.0"
         gateway: "192.168.1.1"
+        speed: "25g"
 
     - name: Disable ipv4 connectivity for the second port on the B controller
       na_santricity_iscsi_interface:
@@ -153,6 +164,17 @@ import re
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 
+def strip_interface_speed(speed):
+    """Converts symbol interface speeds to a more common notation. Example: 'speed10gig' -> '10g'"""
+    if isinstance(speed, list):
+        result = [re.match(r"speed[0-9]{1,3}[gm]", sp) for sp in speed]
+        result = [sp.group().replace("speed", "") if result else "unknown" for sp in result if sp]
+        result = ["auto" if re.match(r"auto", sp) else sp for sp in result]
+    else:
+        result = re.match(r"speed[0-9]{1,3}[gm]", speed)
+        result = result.group().replace("speed", "") if result else "unknown"
+        result = "auto" if re.match(r"auto", result.lower()) else result
+    return result
 
 class NetAppESeriesIscsiInterface(NetAppESeriesModule):
     def __init__(self):
@@ -163,7 +185,8 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
                                subnet_mask=dict(type="str", required=False),
                                gateway=dict(type="str", required=False),
                                config_method=dict(type="str", required=False, default="dhcp", choices=["dhcp", "static"]),
-                               mtu=dict(type="int", default=1500, required=False, aliases=["max_frame_size"]))
+                               mtu=dict(type="int", default=1500, required=False, aliases=["max_frame_size"]),
+                               speed=dict(type="str", required=False))
 
         required_if = [["config_method", "static", ["address", "subnet_mask"]]]
         super(NetAppESeriesIscsiInterface, self).__init__(ansible_options=ansible_options,
@@ -180,6 +203,7 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
         self.subnet_mask = args["subnet_mask"]
         self.gateway = args["gateway"]
         self.config_method = args["config_method"]
+        self.speed = args["speed"]
 
         self.check_mode = self.module.check_mode
         self.post_body = dict()
@@ -205,6 +229,8 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
         if self.gateway and not address_regex.match(self.gateway):
             self.module.fail_json(msg="An invalid ip address was provided for gateway.")
 
+        self.get_host_board_id_cache = None
+
     @property
     def interfaces(self):
         ifaces = list()
@@ -220,6 +246,20 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
                 iscsi_interfaces.append(iface)
 
         return iscsi_interfaces
+
+    def get_host_board_id(self, iface_ref):
+        if self.get_host_board_id_cache is None:
+            try:
+                rc, iface_board_map_list = self.request("storage-systems/%s/graph/xpath-filter?query=/ioInterfaceHicMap" % self.ssid)
+            except Exception as err:
+                self.module.fail_json(msg="Failed to retrieve controller list! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+
+            self.get_host_board_id_cache = dict()
+            for iface_board_map in iface_board_map_list:
+                self.get_host_board_id_cache.update({iface_board_map["interfaceRef"]: iface_board_map["hostBoardRef"]})
+
+        return self.get_host_board_id_cache[iface_ref]
+
 
     def get_controllers(self):
         """Retrieve a mapping of controller labels to their references
@@ -308,6 +348,36 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
 
         return update_required, body
 
+    def make_update_speed_body(self, target_iface):
+        target_iface = target_iface["iscsi"]
+
+        # Check whether HIC speed should be changed.
+        if self.speed is None:
+            return False, dict()
+        else:
+            if target_iface["interfaceData"]["ethernetData"]["autoconfigSupport"]:
+               self.module.warn("This interface's HIC speed is autoconfigured!")
+               return False, dict()
+            if self.speed == strip_interface_speed(target_iface["interfaceData"]["ethernetData"]["currentInterfaceSpeed"]):
+                return False, dict()
+
+        # Create a dictionary containing supported HIC speeds keyed by simplified value to the complete value (ie. {"10g": "speed10gig"})
+        supported_speeds = dict()
+        for supported_speed in target_iface["interfaceData"]["ethernetData"]["supportedInterfaceSpeeds"]:
+            supported_speeds.update({strip_interface_speed(supported_speed): supported_speed})
+
+        if self.speed not in supported_speeds:
+            self.module.fail_json(msg="The host interface card (HIC) does not support the provided speed. Array Id [%s]. Supported speeds [%s]" % (self.ssid, ", ".join(supported_speeds.keys())))
+
+        body = {"settings": {"maximumInterfaceSpeed": [supported_speeds[self.speed]]}, "portsRef": {}}
+        hic_ref = self.get_host_board_id(target_iface["id"])
+        if hic_ref == "0000000000000000000000000000000000000000":
+            body.update({"portsRef": {"portRefType": "baseBoard", "baseBoardRef": target_iface["id"], "hicRef": ""}})
+        else:
+            body.update({"portsRef":{"portRefType": "hic", "hicRef": self.get_host_board_id(target_iface["id"]), "baseBoardRef": ""}})
+
+        return True, body
+
     def update(self):
         self.controllers = self.get_controllers()
         if self.controller not in self.controllers:
@@ -330,7 +400,17 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
             except Exception as err:
                 self.module.fail_json(msg="Connection failure: we failed to modify the interface! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
 
-        self.module.exit_json(msg="The interface settings have been updated.", changed=update_required)
+        update_speed_required, speed_body = self.make_update_speed_body(iface_before)
+        if update_speed_required and not self.check_mode:
+            try:
+
+                rc, result = self.request("storage-systems/%s/symbol/setHostPortsAttributes?verboseErrorResponse=true" % self.ssid, method="POST", data=speed_body)
+            except Exception as err:
+                self.module.fail_json(msg="Failed to update host interface card speed. Array Id [%s], Body [%s]. Error [%s]." % (self.ssid, speed_body, to_native(err)))
+
+        if update_required or update_speed_required:
+            self.module.exit_json(msg="The interface settings have been updated.", changed=True)
+        self.module.exit_json(msg="No changes were required.", changed=False)
 
 
 def main():

@@ -118,6 +118,7 @@ Role Variables
     eseries_controller_iscsi_port_gateway:               # General port IPv4 gateway for both controllers.
     eseries_controller_iscsi_port_subnet_mask:           # General port IPv4 subnet mask for both controllers.
     eseries_controller_iscsi_port_mtu: 9000              # General port maximum transfer units (MTU) for both controllers. Any value greater than 1500 (bytes).
+    eseries_controller_iscsi_port_speed:             # General host interface card (HIC) speed. This value will control all ports on the HIC.
     eseries_controller_iscsi_port:
       controller_a:         # Ordered list of controller A channel definition.
         - state:            # Whether the port should be enabled. Choices: enabled, disabled
@@ -126,6 +127,7 @@ Role Variables
           gateway:          # Port IPv4 gateway
           subnet_mask:      # Port IPv4 subnet_mask
           mtu:              # Port IPv4 mtu
+          speed:        # Host interface card (HIC) speed. This value will control all ports on the HIC.
       controller_b:         # Ordered list of controller B channel definition.
         - (...)             # Same as controller A but for controller B
 

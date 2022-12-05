@@ -13,6 +13,7 @@
     gateway: "{{ item['gateway'] | default(eseries_controller_iscsi_port_gateway | default(omit)) }}"
     subnet_mask: "{{ item['subnet_mask'] | default(eseries_controller_iscsi_port_subnet_mask | default(omit)) }}"
     mtu: "{{ item['mtu'] | default(eseries_controller_iscsi_port_mtu | default(omit)) }}"
+    speed: "{{ item['speed'] | default(eseries_controller_iscsi_port_speed | default(omit)) }}"
   loop: "{{ lookup('list', eseries_controller_iscsi_port['controller_a']) }}"
   loop_control:
     index_var: port
@@ -33,6 +34,7 @@
     gateway: "{{ item['gateway'] | default(eseries_controller_iscsi_port_gateway | default(omit)) }}"
     subnet_mask: "{{ item['subnet_mask'] | default(eseries_controller_iscsi_port_subnet_mask | default(omit)) }}"
     mtu: "{{ item['mtu'] | default(eseries_controller_iscsi_port_mtu | default(omit)) }}"
+    speed: "{{ item['speed'] | default(eseries_controller_iscsi_port_speed | default(omit)) }}"
   loop: "{{ lookup('list', eseries_controller_iscsi_port['controller_b']) }}"
   loop_control:
     index_var: port
