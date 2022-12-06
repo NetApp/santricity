@@ -161,7 +161,7 @@
       register: storage_array_facts
       when: eseries_remove_all_configuration_state is not defined or eseries_remove_all_configuration_state == False
 
-    - name: "{{'Map' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Unmap' }} hosts to there respective volume"
+    - name: "{{'Map' if (eseries_remove_all_configuration_state | default('present')) == 'present' else 'Unmap' }} volume to host or host group."
       na_santricity_lun_mapping:
         ssid: "{{ current_eseries_ssid }}"
         api_url: "{{ current_eseries_api_url }}"

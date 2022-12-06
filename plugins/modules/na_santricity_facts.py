@@ -694,7 +694,12 @@ class Facts(NetAppESeriesModule):
                 # Select only the host side channels
                 if interface["channelType"] == "hostside":
                     interface_type = interface["ioInterfaceTypeData"]["interfaceType"]
-                    interface_data = interface["ioInterfaceTypeData"]["fibre" if interface_type == "fc" else interface_type]
+                    if interface_type == "fibre":
+                        interface_type = "fc"
+                    elif interface_type == "nvmeCouplingDriver":
+                        interface_type = "couplingDriverNvme"
+
+                    interface_data = interface["ioInterfaceTypeData"][interface_type]
                     command_protocol_properties = interface["commandProtocolPropertiesList"]["commandProtocolProperties"]
 
                     # Build generic information for each interface entry
@@ -717,12 +722,14 @@ class Facts(NetAppESeriesModule):
                                       "ipv4": None,  # enabled, config_method, address, subnet, gateway
                                       "ipv6": None}  # for expansion if needed
 
-                    # Add target information
+                    # Determine storage target identifiers
+                    controller_iqn = "unknown"
+                    controller_nqn = "unknown"
                     for target in targets:
                         if target["nodeName"]["ioInterfaceType"] == "nvmeof":
-                            interface_info.update({"nqn": target["nodeName"]["nvmeNodeName"]})
+                            controller_nqn = target["nodeName"]["nvmeNodeName"]
                         if target["nodeName"]["ioInterfaceType"] == "iscsi":
-                            interface_info.update({"iqn": target["nodeName"]["iscsiNodeName"]})
+                            controller_iqn = target["nodeName"]["iscsiNodeName"]
 
                     # iSCSI IO interface
                     if interface_type == "iscsi":
@@ -734,7 +741,8 @@ class Facts(NetAppESeriesModule):
 
                         # InfiniBand (iSER) protocol
                         if interface_data["interfaceData"]["type"] == "infiniband" and interface_data["interfaceData"]["infinibandData"]["isIser"]:
-                            interface_info.update({"protocol": "ib_iser"})
+                            interface_info.update({"protocol": "ib_iser",
+                                                   "iqn": controller_iqn})
 
                             # Get more details from hardware-inventory
                             for ib_port in hardware_inventory_facts["ibPorts"]:
@@ -749,7 +757,8 @@ class Facts(NetAppESeriesModule):
                         # iSCSI protocol
                         elif interface_data["interfaceData"]["type"] == "ethernet":
                             ethernet_data = interface_data["interfaceData"]["ethernetData"]
-                            interface_info.update({"protocol": "iscsi"})
+                            interface_info.update({"protocol": "iscsi",
+                                                   "iqn": controller_iqn})
                             interface_info.update({"part": "%s,%s" % (ethernet_data["partData"]["vendorName"], ethernet_data["partData"]["partNumber"]),
                                                    "link_status": ethernet_data["linkStatus"],
                                                    "mtu": ethernet_data["maximumFramePayloadSize"],
@@ -771,7 +780,8 @@ class Facts(NetAppESeriesModule):
                         if (command_protocol_properties and command_protocol_properties[0]["commandProtocol"] == "nvme" and
                                 command_protocol_properties[0]["nvmeProperties"]["commandSet"] == "nvmeof" and
                                 command_protocol_properties[0]["nvmeProperties"]["nvmeofProperties"]["fcProperties"]):
-                            interface_info.update({"protocol": "nvme_fc"})
+                            interface_info.update({"protocol": "nvme_fc",
+                                                   "nqn": controller_nqn})
 
                         # Fibre channel protocol
                         else:
@@ -798,9 +808,11 @@ class Facts(NetAppESeriesModule):
 
                         # Determine protocol (NVMe over Infiniband, InfiniBand iSER, InfiniBand SRP)
                         if interface_data["isNVMeSupported"]:
-                            interface_info.update({"protocol": "nvme_ib"})
+                            interface_info.update({"protocol": "nvme_ib",
+                                                   "nqn": controller_nqn})
                         elif interface_data["isISERSupported"]:
-                            interface_info.update({"protocol": "ib_iser"})
+                            interface_info.update({"protocol": "ib_iser",
+                                                   "iqn": controller_iqn})
                         elif interface_data["isSRPSupported"]:
                             interface_info.update({"protocol": "ib_srp"})
 
@@ -845,12 +857,14 @@ class Facts(NetAppESeriesModule):
                                         nvmeof_properties = command_protocol_property["nvmeProperties"]["nvmeofProperties"]
                                         if nvmeof_properties["provider"] == "providerRocev2":
                                             ipv4_data = nvmeof_properties["roceV2Properties"]["ipv4Data"]
-                                            interface_info.update({"protocol": "nvme_roce"})
+                                            interface_info.update({"protocol": "nvme_roce",
+                                                                   "nqn": controller_nqn})
                                             interface_info.update({"ipv4": {"enabled": nvmeof_properties["roceV2Properties"]["ipv4Enabled"],
                                                                             "config_method": ipv4_data["ipv4AddressConfigMethod"],
                                                                             "address": ipv4_data["ipv4AddressData"]["ipv4Address"],
                                                                             "subnet": ipv4_data["ipv4AddressData"]["ipv4SubnetMask"],
                                                                             "gateway": ipv4_data["ipv4AddressData"]["ipv4GatewayAddress"]}})
+
 
                     facts['netapp_hostside_io_interfaces'].append(interface_info)
 

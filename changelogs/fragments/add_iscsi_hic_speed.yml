@@ -1,0 +1,3 @@
+minor_changes:
+  - netapp_eseries.santricity.na_santricity_iscsi_interface - Add support of iSCSI HIC speed.
+  - netapp_eseries.santricity.nar_santricity_host - Add support of iSCSI HIC speed.
