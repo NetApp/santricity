@@ -33,8 +33,8 @@ options:
     port:
         description:
             - The controller iSCSI baseboard or HIC port to modify.
-            - Determine the port by counting from one the controller's iSCSI ports left to right, start with the
-              baseboard ports and then the HIC ports.
+            - Determine the port by counting, starting from one, the controller's iSCSI ports left to right. Count the
+              baseboard and then the HIC ports.
         type: int
         required: true
     state:
@@ -252,7 +252,8 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
             try:
                 rc, iface_board_map_list = self.request("storage-systems/%s/graph/xpath-filter?query=/ioInterfaceHicMap" % self.ssid)
             except Exception as err:
-                self.module.fail_json(msg="Failed to retrieve controller list! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="Failed to retrieve IO interface HIC mappings! Array Id [%s]."
+                                          " Error [%s]." % (self.ssid, to_native(err)))
 
             self.get_host_board_id_cache = dict()
             for iface_board_map in iface_board_map_list:
@@ -374,7 +375,7 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
         if hic_ref == "0000000000000000000000000000000000000000":
             body.update({"portsRef": {"portRefType": "baseBoard", "baseBoardRef": target_iface["id"], "hicRef": ""}})
         else:
-            body.update({"portsRef":{"portRefType": "hic", "hicRef": self.get_host_board_id(target_iface["id"]), "baseBoardRef": ""}})
+            body.update({"portsRef":{"portRefType": "hic", "hicRef": hic_ref, "baseBoardRef": ""}})
 
         return True, body
 
