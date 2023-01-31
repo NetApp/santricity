@@ -5,6 +5,22 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.4.0
+======
+
+Minor Changes
+-------------
+
+- netapp_eseries.santricity.na_santricity_iscsi_interface - Add support of iSCSI HIC speed.
+- netapp_eseries.santricity.nar_santricity_host - Add support of iSCSI HIC speed.
+
+Bugfixes
+--------
+
+- netapp_eseries.santricity.na_santricity_mgmt_interface - Add the ability to configure DNS, NTP and SSH separately from management interfaces.
+- netapp_eseries.santricity.nar_santricity_host - Fix default MTU value for NVMe RoCE.
+- netapp_eseries.santricity.nar_santricity_management - Add tasks to set DNS, NTP and SSH globally separately from management interfaces.
+
 v1.3.1
 ======
 

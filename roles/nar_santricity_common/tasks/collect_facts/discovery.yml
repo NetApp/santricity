@@ -14,7 +14,7 @@
       {%- for interface in interfaces if interface["address"] is defined -%}
         {%- if subnets.append(interface["address"] ~ "/" ~ interface["subnet_mask"] | default(eseries_management_interfaces["subnet_mask"] | default(eseries_management_subnet_mask | default(eseries_subnet_default_prefix)))) -%}{%- endif -%}
       {%- endfor -%}
-      {{- subnets | ansible.netcommon.ipaddr('network/prefix') | unique -}}
+      {{- subnets | ansible.utils.ipaddr('network/prefix') | unique -}}
 
 - name: Ensure there is at least one subnet to search for storage systems.
   ansible.builtin.fail:

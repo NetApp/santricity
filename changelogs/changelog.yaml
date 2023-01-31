@@ -251,3 +251,21 @@ releases:
     - improve_system_discovery.yml
     - require_ansible_2.10_or_later.yml
     release_date: '2022-08-15'
+  1.4.0:
+    changes:
+      bugfixes:
+      - netapp_eseries.santricity.na_santricity_mgmt_interface - Add the ability to
+        configure DNS, NTP and SSH separately from management interfaces.
+      - netapp_eseries.santricity.nar_santricity_host - Fix default MTU value for
+        NVMe RoCE.
+      - netapp_eseries.santricity.nar_santricity_management - Add tasks to set DNS,
+        NTP and SSH globally separately from management interfaces.
+      minor_changes:
+      - netapp_eseries.santricity.na_santricity_iscsi_interface - Add support of iSCSI
+        HIC speed.
+      - netapp_eseries.santricity.nar_santricity_host - Add support of iSCSI HIC speed.
+    fragments:
+    - add_iscsi_hic_speed.yml
+    - fix_global_management_interface_configuration.yml
+    - fix_nvme_roce_mtu_default.yml
+    release_date: '2023-01-30'
