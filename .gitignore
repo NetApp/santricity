@@ -2,3 +2,6 @@
 .idea
 *.iml
 ansible.cfg
+tests/output/
+certificate.crt
+

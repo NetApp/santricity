@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -12,7 +12,9 @@ module: na_santricity_alerts_syslog
 short_description: NetApp E-Series manage syslog servers receiving storage system alerts.
 description:
     - Manage the list of syslog servers that will notifications on potentially critical events.
-author: Nathan Swartz (@ndswartz)
+author:
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -20,6 +22,7 @@ options:
         description:
             - List of dictionaries where each dictionary contains a syslog server entry.
         type: list
+        elements: raw
         required: False
         suboptions:
             address:
@@ -36,6 +39,7 @@ options:
             - This forces a test syslog message to be sent to the stated syslog server.
             - Test will only be issued when a change is made.
         type: bool
+        required: false
         default: false
 notes:
     - Check mode is supported.
@@ -72,11 +76,12 @@ from ansible.module_utils._text import to_native
 
 class NetAppESeriesAlertsSyslog(NetAppESeriesModule):
     def __init__(self):
-        ansible_options = dict(servers=dict(type="list", required=False),
-                               test=dict(type="bool", default=False, require=False))
+        ansible_options = dict(servers=dict(type="list", required=False, elements='raw'),
+                               test=dict(type="bool", default=False, required=False))
 
-        required_if = [["state", "present", ["address"]]]
-        mutually_exclusive = [["test", "absent"]]
+        required_if = None
+        mutually_exclusive = None
+
         super(NetAppESeriesAlertsSyslog, self).__init__(ansible_options=ansible_options,
                                                         web_services_version="02.00.0000.0000",
                                                         mutually_exclusive=mutually_exclusive,

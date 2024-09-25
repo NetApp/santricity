@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2016, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -14,12 +14,13 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: netapp_e_firmware
-version_added: "2.9"
+version_added: "2.9.0"
 short_description: NetApp E-Series manage firmware.
 description:
     - Ensure specific firmware versions are activated on E-Series storage system.
 author:
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries
 options:
@@ -77,8 +78,8 @@ import os
 
 from time import sleep
 from ansible.module_utils import six
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.netapp import NetAppESeriesModule, create_multipart_formdata, request
-from ansible.module_utils._text import to_native, to_text, to_bytes
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.netapp import NetAppESeriesModule, create_multipart_formdata
+from ansible.module_utils._text import to_native
 
 
 class NetAppESeriesFirmware(NetAppESeriesModule):

@@ -17,7 +17,7 @@ module: netapp_e_mgmt_interface
 short_description: NetApp E-Series management interface configuration
 description:
     - Configure the E-Series management interfaces
-version_added: '2.7'
+version_added: '2.7.0'
 author:
     - Michael Price (@lmprice)
     - Nathan Swartz (@ndswartz)
@@ -241,7 +241,7 @@ enabled:
 """
 import json
 import logging
-from pprint import pformat, pprint
+from pprint import pformat
 import time
 import socket
 

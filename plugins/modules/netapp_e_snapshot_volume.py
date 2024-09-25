@@ -18,7 +18,7 @@ module: netapp_e_snapshot_volume
 short_description: NetApp E-Series manage snapshot volumes.
 description:
     - Create, update, remove snapshot volumes for NetApp E/EF-Series storage arrays.
-version_added: '2.2'
+version_added: '2.2.0'
 author: Kevin Hulquest (@hulquest)
 notes:
   - Only I(full_threshold) is supported for update operations. If the snapshot volume already exists and the threshold matches, then an C(ok) status
@@ -55,7 +55,8 @@ options:
         type: str
         description:
           - The identifier of the snapshot image used to create the new snapshot volume.
-          - "Note: You'll likely want to use the M(netapp_e_facts) module to find the ID of the image you want."
+          - "Note: You'll likely want to use the M(netapp_eseries.santricity.netapp_e_facts) module to find
+            the ID of the image you want."
     full_threshold:
         description:
           - The repository utilization warning threshold percentage
@@ -67,7 +68,7 @@ options:
           - The name you wish to give the snapshot volume
         type: str
     view_mode:
-        required: True
+        required: False
         type: str
         description:
           - The snapshot volume access mode
@@ -166,7 +167,7 @@ class SnapshotVolume(object):
             snapshot_image_id=dict(type='str', required=True),
             full_threshold=dict(type='int', default=85),
             name=dict(type='str', required=True),
-            view_mode=dict(type='str', default='readOnly',
+            view_mode=dict(type='str', required=False, default='readOnly',
                            choices=['readOnly', 'readWrite', 'modeUnknown', '__Undefined']),
             repo_percentage=dict(type='int', default=20),
             storage_pool_name=dict(type='str', required=True),

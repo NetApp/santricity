@@ -73,7 +73,6 @@ msg:
 """
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
-from time import sleep
 
 
 class NetAppESeriesAuth(NetAppESeriesModule):
@@ -190,7 +189,8 @@ class NetAppESeriesAuth(NetAppESeriesModule):
         except Exception as error:
             self.module.fail_json(msg="Failed to retrieve information about storage system [%s]. Error [%s]." % (self.ssid, to_native(error)))
 
-        self.is_admin_password_set = system_info["adminPasswordSet"]
+        self.is_admin_password_set = system_info.get("adminPasswordSet", False) \
+            if isinstance(system_info, dict) else False
 
         if not self.is_admin_password_set:
             if self.user == "admin" and self.password != "":
@@ -215,7 +215,8 @@ class NetAppESeriesAuth(NetAppESeriesModule):
                         rc, response = self.request("storage-systems/%s/stored-password/validate" % self.ssid, method="POST", log_request=False,
                                                     ignore_errors=True, data={"password": self.password})
                         if rc == 200:
-                            change_required = not response["isValidPassword"]
+                            change_required = not response.get("isValidPassword", False) \
+                                if isinstance(response, dict) else False
                         elif rc == 404:     # endpoint did not exist, old proxy version
                             if self.is_web_services_version_met("04.10.0000.0000"):
                                 self.module.fail_json(msg="For platforms before E2800 use SANtricity Web Services Proxy 4.1 or later! Array Id [%s].")

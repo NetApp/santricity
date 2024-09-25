@@ -1,5 +1,6 @@
-# (c) 2020, NetApp, Inc
-# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+# (c) 2024, NetApp, Inc
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
@@ -9,8 +10,8 @@ import mimetypes
 
 from pprint import pformat
 from ansible.module_utils import six
-from ansible.module_utils.basic import AnsibleModule, missing_required_lib
-from ansible.module_utils.six.moves.urllib.error import HTTPError, URLError
+from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.six.moves.urllib.error import HTTPError
 from ansible.module_utils.urls import open_url
 from ansible.module_utils.api import basic_auth_argument_spec
 from ansible.module_utils._text import to_native
@@ -20,9 +21,9 @@ except ImportError:
     ansible_version = 'unknown'
 
 try:
-    from urlparse import urlparse, urlunparse
+    from urlparse import urlparse
 except ImportError:
-    from urllib.parse import urlparse, urlunparse
+    from urllib.parse import urlparse
 
 
 def eseries_host_argument_spec():
@@ -64,7 +65,8 @@ class NetAppESeriesModule(object):
     :param str web_services_version: minimally required web services rest api version (default value: "02.00.0000.0000")
     :param bool supports_check_mode: whether the module will support the check_mode capabilities (default=False)
     :param list(list) mutually_exclusive: list containing list(s) of mutually exclusive options (optional)
-    :param list(list) required_if: list containing list(s) containing the option, the option value, and then a list of required options. (optional)
+    :param list(list) required_if: list containing list(s) containing the option, the option value, and then a list of
+        required options. (optional)
     :param list(list) required_one_of: list containing list(s) of options for which at least one is required. (optional)
     :param list(list) required_together: list containing list(s) of options that are required together. (optional)
     :param bool log_requests: controls whether to log each request (default: True)
@@ -136,16 +138,20 @@ class NetAppESeriesModule(object):
                                 alternates.append(system["id"])
                         else:
                             if len(alternates) == 1:
-                                self.module.warn("Array Id does not exist on Web Services Proxy Instance! However, there is a storage system with a"
-                                                 " matching name. Updating Identifier. Array Name: [%s], Array Id [%s]." % (self.ssid, alternates[0]))
+                                self.module.warn("Array Id does not exist on Web Services Proxy instance! "
+                                                 "However, there is a storage system with a matching name. "
+                                                 "Updating Identifier. Array Name: [%s], Array Id [%s]." % (self.ssid, alternates[0]))
                                 self.ssid = alternates[0]
                             else:
-                                self.module.fail_json(msg="Array identifier does not exist on Web Services Proxy Instance! Array ID [%s]." % self.ssid)
+                                self.module.fail_json(msg="Array identifier does not exist on Web Services Proxy "
+                                                          "instance! Array ID [%s]." % self.ssid)
 
                     except Exception as error:
-                        self.module.fail_json(msg="Failed to determine Web Services Proxy storage systems! Array [%s]. Error [%s]" % (self.ssid, to_native(error)))
+                        self.module.fail_json(msg="Failed to determine Web Services Proxy storage systems! "
+                                                  "Array [%s]. Error [%s]" % (self.ssid, to_native(error)))
         except Exception as error:
-            # Don't fail here, if the ssid is wrong the it will fail on the next request. Causes issues for na_santricity_auth module.
+            # Don't fail here, if the ssid is wrong then it will fail on the next request. Causes issues for
+            # na_santricity_auth module.
             pass
 
     def _check_web_services_version(self):
@@ -162,7 +168,8 @@ class NetAppESeriesModule(object):
 
             url_parts = urlparse(self.url)
             if not url_parts.scheme or not url_parts.netloc:
-                self.module.fail_json(msg="Failed to provide valid API URL. Example: https://192.168.1.100:8443/devmgr/v2. URL [%s]." % self.url)
+                self.module.fail_json(msg="Failed to provide valid API URL. "
+                                          "Example: https://192.168.1.100:8443/devmgr/v2. URL [%s]." % self.url)
 
             if url_parts.scheme not in ["http", "https"]:
                 self.module.fail_json(msg="Protocol must be http or https. URL [%s]." % self.url)
@@ -172,14 +179,15 @@ class NetAppESeriesModule(object):
             rc, data = request(about_url, timeout=self.DEFAULT_TIMEOUT, headers=self.DEFAULT_HEADERS, ignore_errors=True, force_basic_auth=False, **self.creds)
 
             if rc != 200:
-                self.module.warn("Failed to retrieve web services about information! Retrying with secure ports. Array Id [%s]." % self.ssid)
+                self.module.warn("Failed to retrieve web services about information! Retrying with secure ports. "
+                                 "Array Id [%s]." % self.ssid)
                 self.url = "https://%s:8443/" % url_parts.netloc.split(":")[0]
                 about_url = self.url + self.DEFAULT_REST_API_ABOUT_PATH
                 try:
                     rc, data = request(about_url, timeout=self.DEFAULT_TIMEOUT, headers=self.DEFAULT_HEADERS, **self.creds)
                 except Exception as error:
-                    self.module.fail_json(msg="Failed to retrieve the webservices about information! Array Id [%s]. Error [%s]."
-                                              % (self.ssid, to_native(error)))
+                    self.module.fail_json(msg="Failed to retrieve the webservices about information! Array Id [%s]. "
+                                              "Error [%s]." % (self.ssid, to_native(error)))
 
             if len(data["version"].split(".")) == 4:
                 major, minor, other, revision = data["version"].split(".")
@@ -188,7 +196,8 @@ class NetAppESeriesModule(object):
                 if not (major > minimum_major or
                         (major == minimum_major and minor > minimum_minor) or
                         (major == minimum_major and minor == minimum_minor and revision >= minimum_revision)):
-                    self.module.fail_json(msg="Web services version does not meet minimum version required. Current version: [%s]."
+                    self.module.fail_json(msg="Web services version does not meet minimum version required. "
+                                              "Current version: [%s]."
                                               " Version required: [%s]." % (data["version"], self.web_services_version))
                 self.module.log("Web services rest api version met the minimum required version.")
             else:
@@ -205,7 +214,8 @@ class NetAppESeriesModule(object):
 
         url_parts = urlparse(self.url)
         if not url_parts.scheme or not url_parts.netloc:
-            self.module.fail_json(msg="Failed to provide valid API URL. Example: https://192.168.1.100:8443/devmgr/v2. URL [%s]." % self.url)
+            self.module.fail_json(msg="Failed to provide valid API URL. "
+                                      "Example: https://192.168.1.100:8443/devmgr/v2. URL [%s]." % self.url)
 
         if url_parts.scheme not in ["http", "https"]:
             self.module.fail_json(msg="Protocol must be http or https. URL [%s]." % self.url)
@@ -215,13 +225,15 @@ class NetAppESeriesModule(object):
         rc, data = request(about_url, timeout=self.DEFAULT_TIMEOUT, headers=self.DEFAULT_HEADERS, ignore_errors=True, **self.creds)
 
         if rc != 200:
-            self.module.warn("Failed to retrieve web services about information! Retrying with secure ports. Array Id [%s]." % self.ssid)
+            self.module.warn("Failed to retrieve web services about information! Retrying with secure ports. "
+                             "Array Id [%s]." % self.ssid)
             self.url = "https://%s:8443/" % url_parts.netloc.split(":")[0]
             about_url = self.url + self.DEFAULT_REST_API_ABOUT_PATH
             try:
                 rc, data = request(about_url, timeout=self.DEFAULT_TIMEOUT, headers=self.DEFAULT_HEADERS, **self.creds)
             except Exception as error:
-                self.module.fail_json(msg="Failed to retrieve the webservices about information! Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to retrieve the webservices about information! Array Id [%s]. "
+                                          "Error [%s]." % (self.ssid, to_native(error)))
 
         if len(data["version"].split(".")) == 4:
             major, minor, other, revision = data["version"].split(".")
@@ -251,7 +263,8 @@ class NetAppESeriesModule(object):
                         if bundle:
                             self.is_embedded_available_cache = True
                     except Exception as error:
-                        self.module.fail_json(msg="Failed to retrieve information about storage system [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                        self.module.fail_json(msg="Failed to retrieve information about storage system [%s]. "
+                                                  "Error [%s]." % (self.ssid, to_native(error)))
             else:   # Contacted using embedded web services
                 self.is_embedded_available_cache = True
 
@@ -278,7 +291,8 @@ class NetAppESeriesModule(object):
 
                 self.module.log("proxy: [%s]" % ("True" if self.is_proxy_used_cache else "False"))
             except Exception as error:
-                self.module.fail_json(msg="Failed to retrieve the webservices about information! Array Id [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to retrieve the webservices about information! Array Id [%s]. "
+                                          "Error [%s]." % (self.ssid, to_native(error)))
 
         return self.is_proxy_used_cache
 
@@ -286,8 +300,9 @@ class NetAppESeriesModule(object):
                 force_basic_auth=True, log_request=None, json_response=True):
         """Issue an HTTP request to a url, retrieving an optional JSON response.
 
-        :param str path: web services rest api endpoint path (Example: storage-systems/1/graph). Note that when the
-        full url path is specified then that will be used without supplying the protocol, hostname, port and rest path.
+        :param str path: web services rest api endpoint path (Example: storage-systems/1/graph).
+            Note that when the full url path is specified then that will be used without supplying the protocol,
+            hostname, port and rest path.
         :param str rest_api_path: override the class DEFAULT_REST_API_PATH which is used to build the request URL.
         :param str rest_api_url: override the class url member which contains the base url for web services.
         :param data: data required for the request (data may be json or any python structured data)
@@ -320,16 +335,18 @@ class NetAppESeriesModule(object):
         if log_request:
             self.module.log(pformat(dict(url=request_url, data=data, method=method, headers=headers)))
 
-        response = self._request(url=request_url, data=data, method=method, headers=headers, last_mod_time=None, timeout=timeout, http_agent=self.HTTP_AGENT,
-                                 force_basic_auth=force_basic_auth, ignore_errors=ignore_errors, json_response=json_response, **self.creds)
+        response = self._request(url=request_url, data=data, method=method, headers=headers, last_mod_time=None,
+                                 timeout=timeout, http_agent=self.HTTP_AGENT, force_basic_auth=force_basic_auth,
+                                 ignore_errors=ignore_errors, json_response=json_response, **self.creds)
         if log_request:
             self.module.log(pformat(response))
 
         return response
 
     @staticmethod
-    def _request(url, data=None, headers=None, method='GET', use_proxy=True, force=False, last_mod_time=None, timeout=10, validate_certs=True,
-                 url_username=None, url_password=None, http_agent=None, force_basic_auth=True, ignore_errors=False, json_response=True):
+    def _request(url, data=None, headers=None, method='GET', use_proxy=True, force=False, last_mod_time=None,
+                 timeout=10, validate_certs=True, url_username=None, url_password=None, http_agent=None,
+                 force_basic_auth=True, ignore_errors=False, json_response=True):
         """Issue an HTTP request to a url, retrieving an optional JSON response."""
 
         if headers is None:
@@ -340,8 +357,9 @@ class NetAppESeriesModule(object):
             http_agent = "Ansible / %s" % ansible_version
 
         try:
-            r = open_url(url=url, data=data, headers=headers, method=method, use_proxy=use_proxy, force=force, last_mod_time=last_mod_time, timeout=timeout,
-                         validate_certs=validate_certs, url_username=url_username, url_password=url_password, http_agent=http_agent,
+            r = open_url(url=url, data=data, headers=headers, method=method, use_proxy=use_proxy, force=force,
+                         last_mod_time=last_mod_time, timeout=timeout, validate_certs=validate_certs,
+                         url_username=url_username, url_password=url_password, http_agent=http_agent,
                          force_basic_auth=force_basic_auth)
             rc = r.getcode()
             response = r.read()

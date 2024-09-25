@@ -20,13 +20,14 @@ description:
     - Create and delete snapshots images on snapshot groups for NetApp E-series storage arrays.
     - Only the oldest snapshot image can be deleted so consistency is preserved.
     - "Related: Snapshot volumes are created from snapshot images."
-version_added: '2.2'
+version_added: '2.2.0'
 author: Kevin Hulquest (@hulquest)
 options:
     ssid:
         description:
         - Storage system identifier
         type: str
+        required: true
     api_username:
         required: true
         description:
@@ -215,8 +216,8 @@ def main():
         snapshot_group=dict(required=True, type='str'),
         ssid=dict(required=True, type='str'),
         api_url=dict(required=True),
-        api_username=dict(required=False),
-        api_password=dict(required=False, no_log=True),
+        api_username=dict(type='str', required=True),
+        api_password=dict(type='str', required=True, no_log=True),
         validate_certs=dict(required=False, type='bool', default=True),
         state=dict(required=True, choices=['create', 'remove'], type='str'),
     ))

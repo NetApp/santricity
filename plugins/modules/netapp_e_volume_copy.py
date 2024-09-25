@@ -17,7 +17,7 @@ module: netapp_e_volume_copy
 short_description: NetApp E-Series create volume copy pairs
 description:
     - Create and delete snapshots images on volume groups for NetApp E-series storage arrays.
-version_added: '2.2'
+version_added: '2.2.0'
 author: Kevin Hulquest (@hulquest)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries
@@ -281,8 +281,8 @@ def main():
         copy_priority=dict(required=False, default=0, type='int'),
         ssid=dict(type='str', default='1'),
         api_url=dict(required=True),
-        api_username=dict(required=False),
-        api_password=dict(required=False, no_log=True),
+        api_username=dict(type='str', required=True),
+        api_password=dict(type='str', required=True, no_log=True),
         validate_certs=dict(required=False, default=True, type='bool'),
         targetWriteProtected=dict(required=False, default=True, type='bool'),
         onlineCopy=dict(required=False, default=False, type='bool'),

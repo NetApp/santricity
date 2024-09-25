@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2016, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -18,8 +18,10 @@ module: netapp_e_amg_sync
 short_description: NetApp E-Series conduct synchronization actions on asynchronous mirror groups.
 description:
     - Allows for the initialization, suspension and resumption of an asynchronous mirror group's synchronization for NetApp E-series storage arrays.
-version_added: '2.2'
-author: Kevin Hulquest (@hulquest)
+version_added: '2.2.0'
+author:
+    - Kevin Hulquest (@hulquest)
+    - Vu Tran (@VuTran007)
 options:
     api_username:
         required: true
@@ -45,6 +47,7 @@ options:
     ssid:
         description:
             - The ID of the storage array containing the AMG you wish to target
+        required: true
         type: str
     name:
         description:
@@ -249,8 +252,9 @@ class AMGsync(object):
         if self.current_state not in state_map[self.state]:
             if self.current_state in state_map['err']:
                 self.module.fail_json(
-                    msg="The sync is a state of '%s', this requires manual intervention. " +
-                        "Please investigate and try again" % self.current_state)
+                    msg="The sync is a state of '%s', this requires manual intervention. "
+                        "Please investigate and try again" % self.current_state
+                )
             else:
                 self.amg_obj = self.run_sync_action()
 

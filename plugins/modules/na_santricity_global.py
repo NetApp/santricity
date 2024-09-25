@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -13,7 +13,8 @@ description:
     - Allow the user to configure several of the global settings associated with an E-Series storage-system
 author:
     - Michael Price (@lmprice)
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -28,25 +29,28 @@ options:
     cache_block_size:
         description:
             - Size of the cache's block size.
-            - All volumes on the storage system share the same cache space; therefore, the volumes can have only one cache block size.
-            - See M(na_santricity_facts) for available sizes.
+            - All volumes on the storage system share the same cache space; therefore, the volumes can have only one
+              cache block size.
+            - See M(netapp_eseries.santricity.na_santricity_facts) for available sizes.
         type: int
         required: False
     cache_flush_threshold:
         description:
-            - This is the percentage threshold of the amount of unwritten data that is allowed to remain on the storage array's cache before flushing.
+            - This is the percentage threshold of the amount of unwritten data that is allowed to remain on the storage
+              array's cache before flushing.
         type: int
         required: False
     default_host_type:
         description:
             - Default host type for the storage system.
             - Either one of the following names can be specified, Linux DM-MP, VMWare, Windows, Windows Clustered, or a
-              host type index which can be found in M(na_santricity_facts)
+              host type index which can be found in M(netapp_eseries.santricity.na_santricity_facts)
         type: str
         required: False
     automatic_load_balancing:
         description:
-            - Enable automatic load balancing to allow incoming traffic from the hosts to be dynamically managed and balanced across both controllers.
+            - Enable automatic load balancing to allow incoming traffic from the hosts to be dynamically managed and
+              balanced across both controllers.
             - Automatic load balancing requires host connectivity reporting to be enabled.
         type: str
         choices:
@@ -55,8 +59,10 @@ options:
         required: False
     host_connectivity_reporting:
         description:
-            - Enable host connectivity reporting to allow host connections to be monitored for connection and multipath driver problems.
-            - When M(automatic_load_balancing==enabled) then M(host_connectivity_reporting) must be enabled
+            - Enable host connectivity reporting to allow host connections to be monitored for connection and multipath
+              driver problems.
+            - When I(automatic_load_balancing==enabled) then M(netapp_eseries.santricity.host_connectivity_reporting)
+              must be enabled.
         type: str
         choices:
             - enabled
@@ -151,7 +157,7 @@ controller_shelf_id:
 import random
 import sys
 
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils import six
 from ansible.module_utils._text import to_native
 try:
@@ -166,9 +172,9 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
 
     def __init__(self):
         version = "02.00.0000.0000"
-        ansible_options = dict(cache_block_size=dict(type="int", require=False),
+        ansible_options = dict(cache_block_size=dict(type="int", required=False),
                                cache_flush_threshold=dict(type="int", required=False),
-                               default_host_type=dict(type="str", require=False),
+                               default_host_type=dict(type="str", required=False),
                                automatic_load_balancing=dict(type="str", choices=["enabled", "disabled"], required=False),
                                host_connectivity_reporting=dict(type="str", choices=["enabled", "disabled"], required=False),
                                name=dict(type='str', required=False, aliases=['label']),
@@ -200,7 +206,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             self.host_connectivity_reporting_enabled = True
 
         if self.autoload_enabled and not self.host_connectivity_reporting_enabled:
-            self.module.fail_json(msg="Option automatic_load_balancing requires host_connectivity_reporting to be enabled. Array [%s]." % self.ssid)
+            self.module.fail_json(msg="Option automatic_load_balancing requires host_connectivity_reporting to be "
+                                      "enabled. Array [%s]." % self.ssid)
 
         self.current_configuration_cache = None
 
@@ -212,10 +219,13 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             # Get the storage array's capabilities and available options
             try:
                 rc, capabilities = self.request("storage-systems/%s/capabilities" % self.ssid)
-                self.current_configuration_cache["autoload_capable"] = "capabilityAutoLoadBalancing" in capabilities["productCapabilities"]
-                self.current_configuration_cache["cache_block_size_options"] = capabilities["featureParameters"]["cacheBlockSizes"]
+                self.current_configuration_cache["autoload_capable"] = \
+                    "capabilityAutoLoadBalancing" in capabilities["productCapabilities"]
+                self.current_configuration_cache["cache_block_size_options"] = \
+                    capabilities["featureParameters"]["cacheBlockSizes"]
             except Exception as error:
-                self.module.fail_json(msg="Failed to retrieve storage array capabilities. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to retrieve storage array capabilities. Array [%s]. "
+                                          "Error [%s]." % (self.ssid, to_native(error)))
 
             try:
                 rc, host_types = self.request("storage-systems/%s/host-types" % self.ssid)
@@ -223,39 +233,51 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                 for host_type in host_types:
                     self.current_configuration_cache["host_type_options"].update({host_type["code"].lower(): host_type["index"]})
             except Exception as error:
-                self.module.fail_json(msg="Failed to retrieve storage array host options. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to retrieve storage array host options. Array [%s]. "
+                                          "Error [%s]." % (self.ssid, to_native(error)))
 
             # Get the current cache settings
             try:
                 rc, settings = self.request("storage-systems/%s/graph/xpath-filter?query=/sa" % self.ssid)
-                self.current_configuration_cache["cache_settings"] = {"cache_block_size": settings[0]["cache"]["cacheBlkSize"],
-                                                                      "cache_flush_threshold": settings[0]["cache"]["demandFlushThreshold"]}
+                self.current_configuration_cache["cache_settings"] = {
+                    "cache_block_size": settings[0]["cache"]["cacheBlkSize"],
+                    "cache_flush_threshold": settings[0]["cache"]["demandFlushThreshold"]
+                }
                 self.current_configuration_cache["default_host_type_index"] = settings[0]["defaultHostTypeIndex"]
             except Exception as error:
-                self.module.fail_json(msg="Failed to retrieve cache settings. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to retrieve cache settings. Array [%s]. "
+                                          "Error [%s]." % (self.ssid, to_native(error)))
 
             try:
                 rc, array_info = self.request("storage-systems/%s" % self.ssid)
                 self.current_configuration_cache["autoload_enabled"] = array_info["autoLoadBalancingEnabled"]
-                self.current_configuration_cache["host_connectivity_reporting_enabled"] = array_info["hostConnectivityReportingEnabled"]
+                self.current_configuration_cache["host_connectivity_reporting_enabled"] = \
+                    array_info["hostConnectivityReportingEnabled"]
                 self.current_configuration_cache["name"] = array_info['name']
             except Exception as error:
-                self.module.fail_json(msg="Failed to determine current configuration. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to determine current configuration. Array [%s]. "
+                                          "Error [%s]." % (self.ssid, to_native(error)))
 
             try:
-                rc, login_banner_message = self.request("storage-systems/%s/login-banner?asFile=false" % self.ssid, ignore_errors=True, json_response=False,
+                rc, login_banner_message = self.request("storage-systems/%s/login-banner?asFile=false" % self.ssid,
+                                                        ignore_errors=True, json_response=False,
                                                         headers={"Accept": "application/octet-stream", "netapp-client-type": "Ansible-%s" % ansible_version})
-                self.current_configuration_cache["login_banner_message"] = login_banner_message.decode("utf-8").rstrip("\n")
+                self.current_configuration_cache["login_banner_message"] = \
+                    login_banner_message.decode("utf-8").rstrip("\n")
             except Exception as error:
-                self.module.fail_json(msg="Failed to determine current login banner message. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to determine current login banner message. Array [%s]. "
+                                          "Error [%s]." % (self.ssid, to_native(error)))
 
             try:
                 rc, hardware_inventory = self.request("storage-systems/%s/hardware-inventory" % self.ssid)
-                self.current_configuration_cache["controller_shelf_reference"] = hardware_inventory["trays"][0]["trayRef"]
+                self.current_configuration_cache["controller_shelf_reference"] = \
+                    hardware_inventory["trays"][0]["trayRef"]
                 self.current_configuration_cache["controller_shelf_id"] = hardware_inventory["trays"][0]["trayId"]
-                self.current_configuration_cache["used_shelf_ids"] = [tray["trayId"] for tray in hardware_inventory["trays"]]
+                self.current_configuration_cache["used_shelf_ids"] = \
+                    [tray["trayId"] for tray in hardware_inventory["trays"]]
             except Exception as error:
-                self.module.fail_json(msg="Failed to retrieve controller shelf identifier. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to retrieve controller shelf identifier. Array [%s]. "
+                                          "Error [%s]." % (self.ssid, to_native(error)))
 
         return self.current_configuration_cache
 
@@ -267,7 +289,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         current_configuration = self.get_current_configuration()
         current_available_block_sizes = current_configuration["cache_block_size_options"]
         if self.cache_block_size not in current_available_block_sizes:
-            self.module.fail_json(msg="Invalid cache block size. Array [%s]. Available cache block sizes [%s]." % (self.ssid, current_available_block_sizes))
+            self.module.fail_json(msg="Invalid cache block size. Array [%s]. "
+                                      "Available cache block sizes [%s]." % (self.ssid, current_available_block_sizes))
 
         return self.cache_block_size != current_configuration["cache_settings"]["cache_block_size"]
 
@@ -278,7 +301,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
 
         current_configuration = self.get_current_configuration()
         if self.cache_flush_threshold <= 0 or self.cache_flush_threshold >= 100:
-            self.module.fail_json(msg="Invalid cache flushing threshold, it must be equal to or between 0 and 100. Array [%s]" % self.ssid)
+            self.module.fail_json(msg="Invalid cache flushing threshold, it must be equal to or between 0 and 100. "
+                                      "Array [%s]" % self.ssid)
 
         return self.cache_flush_threshold != current_configuration["cache_settings"]["cache_flush_threshold"]
 
@@ -298,7 +322,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             self.host_type_index = current_available_host_types[self.host_type_index]
 
         if self.host_type_index not in current_available_host_types.values():
-            self.module.fail_json(msg="Invalid host type index! Array [%s]. Available host options [%s]." % (self.ssid, current_available_host_types))
+            self.module.fail_json(msg="Invalid host type index! Array [%s]. "
+                                      "Available host options [%s]." % (self.ssid, current_available_host_types))
 
         return int(self.host_type_index) != current_configuration["default_host_type_index"]
 
@@ -313,7 +338,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             self.module.fail_json(msg="Automatic load balancing is not available. Array [%s]." % self.ssid)
 
         if self.autoload_enabled:
-            if not current_configuration["autoload_enabled"] or not current_configuration["host_connectivity_reporting_enabled"]:
+            if not current_configuration["autoload_enabled"] or \
+                    not current_configuration["host_connectivity_reporting_enabled"]:
                 change_required = True
         elif current_configuration["autoload_enabled"]:
             change_required = True
@@ -335,7 +361,8 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
 
         current_configuration = self.get_current_configuration()
         if self.name and len(self.name) > 30:
-            self.module.fail_json(msg="The provided name is invalid, it must be less than or equal to 30 characters in length. Array [%s]" % self.ssid)
+            self.module.fail_json(msg="The provided name is invalid. It must be less than or equal to 30 characters "
+                                      "in length. Array [%s]" % self.ssid)
 
         return self.name != current_configuration["name"]
 
@@ -346,19 +373,25 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
 
         current_configuration = self.get_current_configuration()
         if self.login_banner_message and sys.getsizeof(self.login_banner_message) > self.MAXIMUM_LOGIN_BANNER_SIZE_BYTES:
-            self.module.fail_json(msg="The banner message is too long! It must be %s bytes. Array [%s]" % (self.MAXIMUM_LOGIN_BANNER_SIZE_BYTES, self.ssid))
+            self.module.fail_json(msg="The banner message is too long! It must be %s bytes. "
+                                      "Array [%s]" % (self.MAXIMUM_LOGIN_BANNER_SIZE_BYTES, self.ssid))
         return self.login_banner_message != current_configuration["login_banner_message"]
 
     def change_controller_shelf_id_required(self):
         """Determine whether storage array tray identifier change is required."""
         current_configuration = self.get_current_configuration()
-        if self.controller_shelf_id is not None and self.controller_shelf_id != current_configuration["controller_shelf_id"]:
+        if self.controller_shelf_id is not None and \
+                self.controller_shelf_id != current_configuration["controller_shelf_id"]:
 
             if self.controller_shelf_id in current_configuration["used_shelf_ids"]:
-                self.module.fail_json(msg="The controller_shelf_id is currently being used by another shelf. Used Identifiers: [%s]. Array [%s]." % (", ".join([str(id) for id in self.get_current_configuration()["used_shelf_ids"]]), self.ssid))
+                used_shelf_ids = ", ".join([str(id) for id in self.get_current_configuration()["used_shelf_ids"]])
+                self.module.fail_json(msg="The controller_shelf_id is currently being used by another shelf. "
+                                          "Used Identifiers: [%s]. Array [%s]." % (used_shelf_ids, self.ssid))
 
             if self.controller_shelf_id < 0 or self.controller_shelf_id > self.LAST_AVAILABLE_CONTROLLER_SHELF_ID:
-                self.module.fail_json(msg="The controller_shelf_id must be 0-99 and not already used by another shelf. Used Identifiers: [%s]. Array [%s]." % (", ".join([str(id) for id in self.get_current_configuration()["used_shelf_ids"]]), self.ssid))
+                used_shelf_ids = ", ".join([str(id) for id in self.get_current_configuration()["used_shelf_ids"]])
+                self.module.fail_json(msg="The controller_shelf_id must be 0-99 and not already used by another shelf. "
+                                          "Used Identifiers: [%s]. Array [%s]." % (used_shelf_ids, self.ssid))
 
             return True
         return False
@@ -367,52 +400,77 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
         """Update cache block size and/or flushing threshold."""
         current_configuration = self.get_current_configuration()
         block_size = self.cache_block_size if self.cache_block_size else current_configuration["cache_settings"]["cache_block_size"]
-        threshold = self.cache_flush_threshold if self.cache_flush_threshold else current_configuration["cache_settings"]["cache_flush_threshold"]
+        threshold = self.cache_flush_threshold if self.cache_flush_threshold else \
+            current_configuration["cache_settings"]["cache_flush_threshold"]
         try:
-            rc, cache_settings = self.request("storage-systems/%s/symbol/setSACacheParams?verboseErrorResponse=true" % self.ssid, method="POST",
-                                              data={"cacheBlkSize": block_size, "demandFlushAmount": threshold, "demandFlushThreshold": threshold})
+            rc, cache_settings = \
+                self.request("storage-systems/%s/symbol/setSACacheParams?verboseErrorResponse=true" % self.ssid,
+                             method="POST",
+                             data={"cacheBlkSize": block_size,
+                                   "demandFlushAmount": threshold,
+                                   "demandFlushThreshold": threshold})
         except Exception as error:
-            self.module.fail_json(msg="Failed to set cache settings. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to set cache settings. Array [%s]. "
+                                      "Error [%s]." % (self.ssid, to_native(error)))
 
     def update_host_type(self):
         """Update default host type."""
         try:
-            rc, default_host_type = self.request("storage-systems/%s/symbol/setStorageArrayProperties?verboseErrorResponse=true" % self.ssid, method="POST",
-                                                 data={"settings": {"defaultHostTypeIndex": self.host_type_index}})
+            rc, default_host_type = \
+                self.request(
+                    "storage-systems/%s/symbol/setStorageArrayProperties?verboseErrorResponse=true" % self.ssid,
+                    method="POST",
+                    data={"settings": {"defaultHostTypeIndex": self.host_type_index}}
+                )
         except Exception as error:
-            self.module.fail_json(msg="Failed to set default host type. Array [%s]. Error [%s]" % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to set default host type. Array [%s]. "
+                                      "Error [%s]" % (self.ssid, to_native(error)))
 
     def update_autoload(self):
         """Update automatic load balancing state."""
         current_configuration = self.get_current_configuration()
         if self.autoload_enabled and not current_configuration["host_connectivity_reporting_enabled"]:
             try:
-                rc, host_connectivity_reporting = self.request("storage-systems/%s/symbol/setHostConnectivityReporting?verboseErrorResponse=true" % self.ssid,
-                                                               method="POST", data={"enableHostConnectivityReporting": self.autoload_enabled})
+                rc, host_connectivity_reporting = \
+                    self.request(
+                        "storage-systems/%s/symbol/setHostConnectivityReporting?verboseErrorResponse=true" % self.ssid,
+                        method="POST",
+                        data={"enableHostConnectivityReporting": self.autoload_enabled}
+                    )
             except Exception as error:
-                self.module.fail_json(msg="Failed to enable host connectivity reporting which is needed for automatic load balancing state."
-                                          " Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+                self.module.fail_json(msg="Failed to enable host connectivity reporting which is needed for "
+                                          "automatic load balancing state. Array [%s]. "
+                                          "Error [%s]." % (self.ssid, to_native(error)))
 
         try:
-            rc, autoload = self.request("storage-systems/%s/symbol/setAutoLoadBalancing?verboseErrorResponse=true" % self.ssid,
-                                        method="POST", data={"enableAutoLoadBalancing": self.autoload_enabled})
+            rc, autoload = \
+                self.request("storage-systems/%s/symbol/setAutoLoadBalancing?verboseErrorResponse=true" % self.ssid,
+                             method="POST", data={"enableAutoLoadBalancing": self.autoload_enabled})
         except Exception as error:
-            self.module.fail_json(msg="Failed to set automatic load balancing state. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to set automatic load balancing state. Array [%s]. "
+                                      "Error [%s]." % (self.ssid, to_native(error)))
 
     def update_host_connectivity_reporting_enabled(self):
         """Update automatic load balancing state."""
         try:
-            rc, host_connectivity_reporting = self.request("storage-systems/%s/symbol/setHostConnectivityReporting?verboseErrorResponse=true" % self.ssid,
-                                                           method="POST", data={"enableHostConnectivityReporting": self.host_connectivity_reporting_enabled})
+            rc, host_connectivity_reporting = \
+                self.request(
+                    "storage-systems/%s/symbol/setHostConnectivityReporting?verboseErrorResponse=true" % self.ssid,
+                    method="POST",
+                    data={"enableHostConnectivityReporting": self.host_connectivity_reporting_enabled}
+                )
         except Exception as error:
-            self.module.fail_json(msg="Failed to enable host connectivity reporting. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to enable host connectivity reporting. Array [%s]. "
+                                      "Error [%s]." % (self.ssid, to_native(error)))
 
     def update_name(self):
         """Update storage array's name."""
         try:
-            rc, result = self.request("storage-systems/%s/configuration" % self.ssid, method="POST", data={"name": self.name})
+            rc, result = \
+                self.request("storage-systems/%s/configuration" % self.ssid, method="POST", data={"name": self.name})
         except Exception as err:
-            self.module.fail_json(msg="Failed to set the storage array name! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+            self.module.fail_json(msg="Failed to set the storage array name! Array Id [%s]. "
+                                      "Error [%s]." % (self.ssid, to_native(err)))
 
     def update_login_banner_message(self):
         """Update storage login banner message."""
@@ -444,30 +502,44 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
             headers = {"Content-Type": "multipart/form-data; boundary=%s" % boundary, "Content-Length": str(len(data))}
 
             try:
-                rc, result = self.request("storage-systems/%s/login-banner" % self.ssid, method="POST", headers=headers, data=data)
+                rc, result = self.request("storage-systems/%s/login-banner" % self.ssid,
+                                          method="POST",
+                                          headers=headers,
+                                          data=data)
             except Exception as err:
-                self.module.fail_json(msg="Failed to set the storage system login banner message! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="Failed to set the storage system login banner message! Array Id [%s]. "
+                                          "Error [%s]." % (self.ssid, to_native(err)))
         else:
             try:
                 rc, result = self.request("storage-systems/%s/login-banner" % self.ssid, method="DELETE")
             except Exception as err:
-                self.module.fail_json(msg="Failed to clear the storage system login banner message! Array Id [%s]. Error [%s]." % (self.ssid, to_native(err)))
+                self.module.fail_json(msg="Failed to clear the storage system login banner message! Array Id [%s]. "
+                                          "Error [%s]." % (self.ssid, to_native(err)))
 
     def update_controller_shelf_id(self):
         """Update controller shelf tray identifier."""
         current_configuration = self.get_current_configuration()
         try:
-            rc, tray = self.request("storage-systems/%s/symbol/updateTray?verboseErrorResponse=true" % self.ssid, method="POST",
-                                    data={"ref": current_configuration["controller_shelf_reference"], "trayID": self.controller_shelf_id})
+            rc, tray = \
+                self.request("storage-systems/%s/symbol/updateTray?verboseErrorResponse=true" % self.ssid,
+                             method="POST",
+                             data={"ref": current_configuration["controller_shelf_reference"],
+                                   "trayID": self.controller_shelf_id})
         except Exception as error:
-            self.module.fail_json(msg="Failed to update controller shelf identifier. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+            self.module.fail_json(msg="Failed to update controller shelf identifier. Array [%s]. "
+                                      "Error [%s]." % (self.ssid, to_native(error)))
 
     def update(self):
         """Ensure the storage array's global setting are correctly set."""
         change_required = False
-        if (self.change_autoload_enabled_required() or self.change_cache_block_size_required() or self.change_cache_flush_threshold_required() or
-                self.change_host_type_required() or self.change_name_required() or self.change_host_connectivity_reporting_enabled_required() or
-                self.change_login_banner_message_required() or self.change_controller_shelf_id_required()):
+        if (self.change_autoload_enabled_required() or
+                self.change_cache_block_size_required() or
+                self.change_cache_flush_threshold_required() or
+                self.change_host_type_required() or
+                self.change_name_required() or
+                self.change_host_connectivity_reporting_enabled_required() or
+                self.change_login_banner_message_required() or
+                self.change_controller_shelf_id_required()):
             change_required = True
 
         if change_required and not self.module.check_mode:
@@ -487,11 +559,15 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
                 self.update_controller_shelf_id()
 
         current_configuration = self.get_current_configuration(update=True)
+        automatic_load_balancing = "enabled" if current_configuration["autoload_enabled"] else "disabled"
+        host_connectivity_reporting = "enabled" \
+            if current_configuration["host_connectivity_reporting_enabled"] else "disabled"
+
         self.module.exit_json(changed=change_required,
                               cache_settings=current_configuration["cache_settings"],
                               default_host_type_index=current_configuration["default_host_type_index"],
-                              automatic_load_balancing="enabled" if current_configuration["autoload_enabled"] else "disabled",
-                              host_connectivity_reporting="enabled" if current_configuration["host_connectivity_reporting_enabled"] else "disabled",
+                              automatic_load_balancing=automatic_load_balancing,
+                              host_connectivity_reporting=host_connectivity_reporting,
                               array_name=current_configuration["name"],
                               login_banner_message=current_configuration["login_banner_message"],
                               controller_shelf_id=current_configuration["controller_shelf_id"])

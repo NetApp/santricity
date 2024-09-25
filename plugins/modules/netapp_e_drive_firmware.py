@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2016, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -14,12 +14,13 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: netapp_e_drive_firmware
-version_added: "2.9"
+version_added: "2.9.0"
 short_description: NetApp E-Series manage drive firmware
 description:
     - Ensure drive firmware version is activated on specified drive model.
 author:
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries
 options:
@@ -28,6 +29,7 @@ options:
             - list of drive firmware file paths.
             - NetApp E-Series drives require special firmware which can be downloaded from https://mysupport.netapp.com/NOW/download/tools/diskfw_eseries/
         type: list
+        elements: str
         required: True
     wait_for_completion:
         description:
@@ -67,11 +69,10 @@ msg:
         { changed: True, upgrade_in_process: True }
 """
 import os
-import re
 
 from time import sleep
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.netapp import NetAppESeriesModule, create_multipart_formdata
-from ansible.module_utils._text import to_native, to_text, to_bytes
+from ansible.module_utils._text import to_native
 
 
 class NetAppESeriesDriveFirmware(NetAppESeriesModule):
@@ -79,7 +80,7 @@ class NetAppESeriesDriveFirmware(NetAppESeriesModule):
 
     def __init__(self):
         ansible_options = dict(
-            firmware=dict(type="list", required=True),
+            firmware=dict(type="list", elements="str", required=True),
             wait_for_completion=dict(type="bool", default=False),
             ignore_inaccessible_drives=dict(type="bool", default=False),
             upgrade_drives_online=dict(type="bool", default=True))

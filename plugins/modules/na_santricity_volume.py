@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -14,7 +14,8 @@ short_description: NetApp E-Series manage storage volumes (standard and thin)
 description:
     - Create or remove volumes (standard and thin) for NetApp E/EF-series storage arrays.
 author:
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -65,7 +66,8 @@ options:
             - All values are in kibibytes.
             - Some common choices include 8, 16, 32, 64, 128, 256, and 512 but options are system
               dependent.
-            - Retrieve the definitive system list from M(na_santricity_facts) under segment_sizes.
+            - Retrieve the definitive system list from M(netapp_eseries.santricity.na_santricity_facts)
+              under segment_sizes.
             - When the storage pool is a raidDiskPool then the segment size must be 128kb.
             - Segment size migrations are not allowed in this module
         type: int
@@ -171,7 +173,7 @@ options:
     cache_without_batteries:
         description:
             - Indicates whether caching should be used without battery backup.
-            - Warning, M(cache_without_batteries==true) and the storage system looses power and there is no battery backup, data will be lost!
+            - Warning, I(cache_without_batteries==true) and the storage system looses power and there is no battery backup, data will be lost!
         type: bool
         default: false
         required: false
@@ -182,7 +184,7 @@ options:
               array.
             - When I(workload_name) exists on the storage array but the metadata is different then the workload
               definition will be updated. (Changes will update all associated volumes!)
-            - Existing workloads can be retrieved using M(na_santricity_facts).
+            - Existing workloads can be retrieved using M(netapp_eseries.santricity.na_santricity_facts).
         type: str
         required: false
     workload_metadata:
@@ -321,7 +323,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             name=dict(required=True, type="str"),
             storage_pool_name=dict(type="str"),
             size_unit=dict(default="gb", choices=["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb", "pct"], type="str"),
-            size=dict(type="float"),
+            size=dict(type="float", required=True),
             size_tolerance_b=dict(type="int", required=False, default=10485760),
             segment_size_kb=dict(type="int", default=128, required=False),
             owning_controller=dict(type="str", choices=["A", "B"], required=False),
@@ -338,8 +340,8 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             write_cache_mirror_enable=dict(type="bool", default=True),
             cache_without_batteries=dict(type="bool", default=False),
             workload_name=dict(type="str", required=False),
-            workload_metadata=dict(type="dict", require=False, aliases=["metadata"]),
-            volume_metadata=dict(type="dict", require=False),
+            workload_metadata=dict(type="dict", required=False, aliases=["metadata"]),
+            volume_metadata=dict(type="dict", required=False),
             allow_expansion=dict(type="bool", default=False),
             wait_for_initialization=dict(type="bool", default=False))
 
@@ -887,7 +889,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
 
             elif self.state == 'present':
                 # Must check the property changes first as it makes sure the segment size has no change before
-                # using the size to determine if the volume expansion is needed which will cause an irrelevant 
+                # using the size to determine if the volume expansion is needed which will cause an irrelevant
                 # error message to show up.
                 if self.get_volume_property_changes() or self.get_expand_volume_changes():
                     change = True

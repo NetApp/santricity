@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = '''
 module: netapp_e_storage_system
-version_added: "2.2"
+version_added: "2.2.0"
 short_description: NetApp E-Series Web Services Proxy manage storage arrays
 description:
 - Manage the arrays accessible via a NetApp Web Services Proxy for NetApp E-series storage arrays.
@@ -54,6 +54,7 @@ options:
     description:
     - The list addresses for the out-of-band management adapter or the agent host. Mutually exclusive of array_wwn parameter.
     type: list
+    elements: str
     required: true
   array_wwn:
     description:
@@ -73,6 +74,7 @@ options:
     description:
     - Optional meta tags to associate to this storage system
     type: list
+    elements: str
   array_status_timeout_sec:
     description:
     - Array status timeout measured in seconds
@@ -178,14 +180,17 @@ def do_post(ssid, api_url, post_headers, api_usr, api_pwd, validate_certs, reque
 def main():
     argument_spec = basic_auth_argument_spec()
     argument_spec.update(dict(
+        api_username=dict(type='str', required=True),
+        api_password=dict(type='str', required=True, no_log=True),
+        api_url=dict(type='str', required=True),
         state=dict(required=True, choices=['present', 'absent']),
         ssid=dict(required=True, type='str'),
-        controller_addresses=dict(type='list'),
+        controller_addresses=dict(type='list', elements='str', required=True),
         array_wwn=dict(required=False, type='str'),
         array_password=dict(required=False, type='str', no_log=True),
         array_status_timeout_sec=dict(default=60, type='int'),
         enable_trace=dict(default=False, type='bool'),
-        meta_tags=dict(type='list')
+        meta_tags=dict(type='list', elements="str")
     ))
     module = AnsibleModule(
         argument_spec=argument_spec,

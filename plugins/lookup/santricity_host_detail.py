@@ -1,11 +1,13 @@
-# (c) 2020, NetApp, Inc
-# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+# (c) 2024, NetApp, Inc
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = """
-    lookup: santricity_hosts_detail
-    author: Nathan Swartz
+    name: santricity_host_detail
+    author:
+        - Nathan Swartz (@swartzn)
+        - Vu Tran (@VuTran007)
     short_description: Expands the host information from santricity_host lookup
     description:
         - Expands the host information from santricity_host lookup to include system and port information
@@ -16,12 +18,14 @@ DOCUMENTATION = """
                 - Run na_santricity_facts prior to calling
             required: True
             type: list
+            elements: raw
         hosts_info:
             description:
                 - The registered results from the setup module from each expected_hosts, hosts_info['results'].
                 - Collected results from the setup module for each expected_hosts from the results of the santricity_host lookup plugin.
             required: True
             type: list
+            elements: raw
         host_interface_ports:
             description:
                 - List of dictionaries containing "stdout_lines" which is a list of iqn/wwpns for each expected_hosts from the results of
@@ -30,6 +34,7 @@ DOCUMENTATION = """
                   in a newline delineated list of iqns, nqns, or wwpns.
             required: True
             type: list
+            elements: raw
         protocol:
             description:
                 - Storage system interface protocol (iscsi, sas, fc, ib-iser, ib-srp, nvme_ib, nvme_fc, or nvme_roce)

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -13,7 +13,8 @@ short_description: NetApp E-Series manage SANtricity web services proxy storage 
 description:
     - Manage the arrays accessible via a NetApp Web Services Proxy for NetApp E-series storage arrays.
 author:
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_proxy_doc
 options:
@@ -30,6 +31,7 @@ options:
             - Note that the serial number will be used as the storage system identifier when an identifier is not specified.
             - When I(add_discovered_systems == False) and any system serial number not supplied that is discovered will be removed from the proxy.
         type: list
+        elements: dict
         required: False
         default: []
         suboptions:
@@ -51,6 +53,7 @@ options:
                     - List of storage system's IPv4 addresses.
                     - Mutually exclusive with the sub-option serial.
                 type: list
+                elements: str
                 required: false
             password:
                 description:
@@ -77,6 +80,7 @@ options:
             - The storage system admin password will be set on the device itself with the provided admin password if it is not set.
         type: str
         required: false
+        default: ""
     tags:
         description:
             - Default meta tags to associate with all storage systems if not otherwise specified in I(systems) sub-options.
@@ -85,7 +89,7 @@ options:
     accept_certificate:
         description:
             - Accept the storage system's certificate automatically even when it is self-signed.
-            - Use M(na_santricity_certificates) to add certificates to SANtricity Web Services Proxy.
+            - Use M(netapp_eseries.santricity.na_santricity_certificates) to add certificates to SANtricity Web Services Proxy.
             - SANtricity Web Services Proxy will fail to add any untrusted storage system.
         type: bool
         required: false
@@ -178,11 +182,7 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
                                password=dict(type="str", required=False, default="", no_log=True),
                                tags=dict(type="dict", required=False),
                                accept_certificate=dict(type="bool", required=False, default=True),
-                               systems=dict(type="list", required=False, default=[], suboptions=dict(ssid=dict(type="str", required=False),
-                                                                                                     serial=dict(type="str", required=False),
-                                                                                                     addresses=dict(type="list", required=False),
-                                                                                                     password=dict(type="str", required=False, no_log=True),
-                                                                                                     tags=dict(type="dict", required=False))))
+                               systems=dict(type="list", elements="dict", required=False, default=[]))
 
         super(NetAppESeriesProxySystems, self).__init__(ansible_options=ansible_options,
                                                         web_services_version="04.10.0000.0000",
@@ -322,7 +322,7 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
                     for discovered_system in discovered_systems["storageSystems"]:
                         if (system["serial"] == discovered_system["serialNumber"] or
                                 (system["controller_addresses"] and
-                                 all([address in discovered_system["ipAddresses"] for address in system["controller_addresses"]]))):
+                                 all(address in discovered_system["ipAddresses"] for address in system["controller_addresses"]))):
                             system["controller_addresses"] = sorted(discovered_system["ipAddresses"])
                             system["embedded_available"] = "https" in discovered_system["supportedManagementPorts"]
                             system["accept_certificate"] = system["embedded_available"] and self.accept_certificate
@@ -432,7 +432,7 @@ class NetAppESeriesProxySystems(NetAppESeriesModule):
                         break
 
             # Check whether CA certificate should be accepted
-            if system["accept_certificate"] and not all([controller["certificateStatus"] == "trusted" for controller in system["current_info"]["controllers"]]):
+            if system["accept_certificate"] and not all(controller["certificateStatus"] == "trusted" for controller in system["current_info"]["controllers"]):
                 system["changes"].update({"acceptCertificate": True})
 
         if system["id"] not in self.undiscovered_systems and system["changes"]:

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 
@@ -10,7 +10,9 @@ DOCUMENTATION = """
 module: na_santricity_snapshot
 short_description: NetApp E-Series storage system's snapshots.
 description: Manage NetApp E-Series manage the storage system's snapshots.
-author: Nathan Swartz (@ndswartz)
+author:
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -58,6 +60,7 @@ options:
       - Views are created from images from a single point-in-time so once created they cannot be modified.
       - When I(state==rollback) then I(volumes) can be used to specify which base volumes to rollback; otherwise all consistency group volumes will rollback.
     type: list
+    elements: dict
     required: false
     suboptions:
       volume:
@@ -95,6 +98,11 @@ options:
         description:
           - Host or host group to map snapshot volume.
         type: str
+        required: false
+      snapshot_volume_lun:
+        description:
+          - LUN ID for snapshot volume.
+        type: int
         required: false
   maximum_snapshots:
     description:
@@ -326,14 +334,14 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
         ansible_options = dict(state=dict(type="str", default="present", choices=["absent", "present", "rollback"], required=False),
                                type=dict(type="str", default="group", choices=["group", "pit", "view"], required=False),
                                group_name=dict(type="str", required=True),
-                               volumes=dict(type="list", required=False,
-                                            suboptions=dict(volume=dict(type="str", required=True),
-                                                            reserve_capacity_pct=dict(type="int", default=40, required=False),
-                                                            preferred_reserve_storage_pool=dict(type="str", required=False),
-                                                            snapshot_volume_writable=dict(type="bool", default=True, required=False),
-                                                            snapshot_volume_validate=dict(type="bool", default=False, required=False),
-                                                            snapshot_volume_host=dict(type="str", default=None, required=False),
-                                                            snapshot_volume_lun=dict(type="int", default=None, required=False))),
+                               volumes=dict(type="list", elements="dict", required=False,
+                                            options=dict(volume=dict(type="str", required=True),
+                                                         reserve_capacity_pct=dict(type="int", default=40, required=False),
+                                                         preferred_reserve_storage_pool=dict(type="str", required=False),
+                                                         snapshot_volume_writable=dict(type="bool", default=True, required=False),
+                                                         snapshot_volume_validate=dict(type="bool", default=False, required=False),
+                                                         snapshot_volume_host=dict(type="str", default=None, required=False),
+                                                         snapshot_volume_lun=dict(type="int", default=None, required=False))),
                                maximum_snapshots=dict(type="int", default=32, required=False),
                                reserve_capacity_pct=dict(type="int", default=40, required=False),
                                preferred_reserve_storage_pool=dict(type="str", required=False),
@@ -1148,7 +1156,7 @@ class NetAppESeriesSnapshot(NetAppESeriesModule):
                                     method="POST", data=member_volume_request)
         except Exception as error:
             self.module.fail_json(msg="Failed to add reserve capacity volume! Base volumes %s. Group [%s]. Error [%s]."
-                                      " Array [%s]." % (", ".join([volume for volume in member_volume_request.keys()]), self.group_name, error, self.ssid))
+                                      " Array [%s]." % (", ".join(volume for volume in member_volume_request.keys()), self.group_name, error, self.ssid))
 
     def remove_base_volumes(self, volume_info_list):
         """Add base volume(s) to the consistency group."""

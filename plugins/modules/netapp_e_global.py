@@ -17,7 +17,7 @@ module: netapp_e_global
 short_description: NetApp E-Series manage global settings configuration
 description:
     - Allow the user to configure several of the global settings associated with an E-Series storage-system
-version_added: '2.7'
+version_added: '2.7.0'
 author: Michael Price (@lmprice)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -10,7 +10,9 @@ DOCUMENTATION = """
 module: na_santricity_client_certificate
 short_description: NetApp E-Series manage remote server certificates.
 description: Manage NetApp E-Series storage array's remote server certificates.
-author: Nathan Swartz (@ndswartz)
+author:
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -19,6 +21,7 @@ options:
       - List of certificate files
       - Each item must include the path to the file
     type: list
+    elements: str
     required: false
   remove_unspecified_user_certificates:
     description:
@@ -93,7 +96,7 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
     RELOAD_TIMEOUT_SEC = 3 * 60
 
     def __init__(self):
-        ansible_options = dict(certificates=dict(type="list", required=False),
+        ansible_options = dict(certificates=dict(type="list", elements="str", required=False),
                                remove_unspecified_user_certificates=dict(type="bool", default=False, required=False),
                                reload_certificates=dict(type="bool", default=True, required=False))
 
@@ -177,8 +180,8 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
                                issuer_dn=[re.sub(r".*=", "", item) for item in current_certificate["issuerDN"].split(", ")],
                                start_date=datetime.strptime(current_certificate["start"].split(".")[0], "%Y-%m-%dT%H:%M:%S"),
                                expire_date=datetime.strptime(current_certificate["expire"].split(".")[0], "%Y-%m-%dT%H:%M:%S"))
-                    if (all([attr in info["subject_dn"] for attr in tmp["subject_dn"]]) and
-                            all([attr in info["issuer_dn"] for attr in tmp["issuer_dn"]]) and
+                    if (all((attr in info["subject_dn"] for attr in tmp["subject_dn"])) and
+                            all((attr in info["issuer_dn"] for attr in tmp["issuer_dn"])) and
                             tmp["start_date"] == info["start_date"] and
                             tmp["expire_date"] == info["expire_date"]):
                         existing_certificates.append(current_certificate)

@@ -4,8 +4,10 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_lun_mapping import NetAppESeriesLunMapping
-from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class NetAppLunMappingTest(ModuleTestCase):
@@ -62,7 +64,7 @@ class NetAppLunMappingTest(ModuleTestCase):
         with mock.patch(self.REQ_FUNC, return_value=(200, self.GRAPH_RESPONSE)):
             mapping.update_mapping_info()
             print("%s" % mapping.mapping_info)
-            self.assertEquals(mapping.mapping_info, self.MAPPING_INFO)
+            self.assertEqual(mapping.mapping_info, self.MAPPING_INFO)
 
     def test_update_mapping_info_fail(self):
         """Verify update_mapping_info throws the expected exceptions."""
@@ -76,7 +78,7 @@ class NetAppLunMappingTest(ModuleTestCase):
         self._set_args(options)
         mapping = NetAppESeriesLunMapping()
         with mock.patch(self.REQ_FUNC, return_value=(200, response)):
-            with self.assertRaisesRegexp(AnsibleFailJson, "Ambiguous target type: target name is used for both host and group targets!"):
+            with self.assertRaisesRegex(AnsibleFailJson, "Ambiguous target type: target name is used for both host and group targets!"):
                 mapping.update_mapping_info()
 
     def test_get_lun_mapping_pass(self):
@@ -86,21 +88,21 @@ class NetAppLunMappingTest(ModuleTestCase):
         mapping = NetAppESeriesLunMapping()
         mapping.update_mapping_info = lambda: None
         mapping.mapping_info = self.MAPPING_INFO
-        self.assertEquals(mapping.get_lun_mapping(), (True, "100001", 5))
+        self.assertEqual(mapping.get_lun_mapping(), (True, "100001", 5))
 
         options = {"target": "host1", "volume": "volume1", "lun": 5}
         self._set_args(options)
         mapping = NetAppESeriesLunMapping()
         mapping.update_mapping_info = lambda: None
         mapping.mapping_info = self.MAPPING_INFO
-        self.assertEquals(mapping.get_lun_mapping(), (True, "100001", 5))
+        self.assertEqual(mapping.get_lun_mapping(), (True, "100001", 5))
 
         options = {"target": "host1", "volume": "volume3", "lun": 10}
         self._set_args(options)
         mapping = NetAppESeriesLunMapping()
         mapping.update_mapping_info = lambda: None
         mapping.mapping_info = self.MAPPING_INFO
-        self.assertEquals(mapping.get_lun_mapping(), (False, None, None))
+        self.assertEqual(mapping.get_lun_mapping(), (False, None, None))
 
     def test_get_lun_mapping_fail(self):
         """Verify get_lun_mapping throws the expected exceptions."""
@@ -109,7 +111,7 @@ class NetAppLunMappingTest(ModuleTestCase):
         mapping = NetAppESeriesLunMapping()
         mapping.update_mapping_info = lambda: None
         mapping.mapping_info = self.MAPPING_INFO
-        with self.assertRaisesRegexp(AnsibleFailJson, "Option lun value is already in use for target!"):
+        with self.assertRaisesRegex(AnsibleFailJson, "Option lun value is already in use for target!"):
             mapping.get_lun_mapping()
 
         options = {"target": "host10", "volume": "volume3"}
@@ -117,7 +119,7 @@ class NetAppLunMappingTest(ModuleTestCase):
         mapping = NetAppESeriesLunMapping()
         mapping.update_mapping_info = lambda: None
         mapping.mapping_info = self.MAPPING_INFO
-        with self.assertRaisesRegexp(AnsibleFailJson, "Target does not exist."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Target does not exist."):
             mapping.get_lun_mapping()
 
         options = {"target": "host1", "volume": "volume10"}
@@ -125,7 +127,7 @@ class NetAppLunMappingTest(ModuleTestCase):
         mapping = NetAppESeriesLunMapping()
         mapping.update_mapping_info = lambda: None
         mapping.mapping_info = self.MAPPING_INFO
-        with self.assertRaisesRegexp(AnsibleFailJson, "Volume does not exist."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Volume does not exist."):
             mapping.get_lun_mapping()
 
     def test_update_pass(self):
@@ -163,7 +165,7 @@ class NetAppLunMappingTest(ModuleTestCase):
         mapping.update_mapping_info = lambda: None
         mapping.mapping_info = self.MAPPING_INFO
         with mock.patch(self.REQ_FUNC, return_value=Exception()):
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to update storage array lun mapping."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to update storage array lun mapping."):
                 mapping.update()
 
     def test_update_fail(self):
@@ -174,7 +176,7 @@ class NetAppLunMappingTest(ModuleTestCase):
         mapping.update_mapping_info = lambda: None
         mapping.mapping_info = self.MAPPING_INFO
         with mock.patch(self.REQ_FUNC, return_value=Exception()):
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to update storage array lun mapping."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to update storage array lun mapping."):
                 mapping.update()
 
         options = {"state": "absent", "target": "host1", "volume": "volume1"}
@@ -183,7 +185,7 @@ class NetAppLunMappingTest(ModuleTestCase):
         mapping.update_mapping_info = lambda: None
         mapping.mapping_info = self.MAPPING_INFO
         with mock.patch(self.REQ_FUNC, return_value=Exception()):
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to update storage array lun mapping."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to update storage array lun mapping."):
                 mapping.update()
 
         options = {"target": "host3", "volume": "volume3", "lun": 15}
@@ -192,5 +194,5 @@ class NetAppLunMappingTest(ModuleTestCase):
         mapping.update_mapping_info = lambda: None
         mapping.mapping_info = self.MAPPING_INFO
         with mock.patch(self.REQ_FUNC, return_value=Exception()):
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to update storage array lun mapping."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to update storage array lun mapping."):
                 mapping.update()

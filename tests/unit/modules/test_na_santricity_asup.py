@@ -1,12 +1,14 @@
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import time
-from units.compat import mock
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_asup import NetAppESeriesAsup
-from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class AsupTest(ModuleTestCase):
@@ -79,25 +81,25 @@ class AsupTest(ModuleTestCase):
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
             asup = NetAppESeriesAsup()
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
-                with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve ASUP configuration!"):
+                with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve ASUP configuration!"):
                     asup.get_configuration()
         self._set_args({"state": "disabled", "active": False})
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
             asup = NetAppESeriesAsup()
             with mock.patch(self.REQ_FUNC, return_value=(200, {"asupCapable": False, "onDemandCapable": True})):
-                with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve ASUP configuration!"):
+                with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve ASUP configuration!"):
                     asup.get_configuration()
         self._set_args({"state": "disabled", "active": False})
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
             asup = NetAppESeriesAsup()
             with mock.patch(self.REQ_FUNC, return_value=(200, {"asupCapable": True, "onDemandCapable": False})):
-                with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve ASUP configuration!"):
+                with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve ASUP configuration!"):
                     asup.get_configuration()
         self._set_args({"state": "disabled", "active": False})
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
             asup = NetAppESeriesAsup()
             with mock.patch(self.REQ_FUNC, return_value=(200, {"asupCapable": False, "onDemandCapable": False})):
-                with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve ASUP configuration!"):
+                with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve ASUP configuration!"):
                     asup.get_configuration()
 
     def test_in_maintenance_mode_pass(self):
@@ -120,7 +122,7 @@ class AsupTest(ModuleTestCase):
         self._set_args({"state": "disabled", "active": False})
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
             asup = NetAppESeriesAsup()
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve maintenance windows information!"):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve maintenance windows information!"):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
                     asup.in_maintenance_mode()
 
@@ -245,7 +247,7 @@ class AsupTest(ModuleTestCase):
             asup.get_configuration = lambda: asup_config
             asup.in_maintenance_mode = lambda: False
             asup.validate = lambda: True
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to validate ASUP configuration!"):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to validate ASUP configuration!"):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
                     asup.update_configuration()
         self._set_args({"state": "disabled", "active": False})
@@ -254,7 +256,7 @@ class AsupTest(ModuleTestCase):
             asup.get_configuration = lambda: asup_config
             asup.in_maintenance_mode = lambda: False
             asup.validate = lambda: False
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to change ASUP configuration!"):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to change ASUP configuration!"):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
                     asup.update_configuration()
 
@@ -264,14 +266,14 @@ class AsupTest(ModuleTestCase):
             asup = NetAppESeriesAsup()
             asup.get_configuration = lambda: {"asupEnabled": False}
             asup.in_maintenance_mode = lambda: False
-            with self.assertRaisesRegexp(AnsibleFailJson, "AutoSupport must be enabled before enabling or disabling maintenance mode."):
+            with self.assertRaisesRegex(AnsibleFailJson, "AutoSupport must be enabled before enabling or disabling maintenance mode."):
                 asup.update_configuration()
         self._set_args({"state": "maintenance_enabled", "maintenance_duration": 24, "maintenance_emails": ["janey@netapp.com", "joe@netapp.com"]})
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
             asup = NetAppESeriesAsup()
             asup.get_configuration = lambda: {"asupEnabled": True}
             asup.in_maintenance_mode = lambda: False
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to enabled ASUP maintenance window."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to enabled ASUP maintenance window."):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
                     asup.update_configuration()
         self._set_args({"state": "maintenance_enabled", "maintenance_duration": 24, "maintenance_emails": ["janey@netapp.com", "joe@netapp.com"]})
@@ -279,7 +281,7 @@ class AsupTest(ModuleTestCase):
             asup = NetAppESeriesAsup()
             asup.get_configuration = lambda: {"asupEnabled": True}
             asup.in_maintenance_mode = lambda: False
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to store maintenance information."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to store maintenance information."):
                 with mock.patch(self.REQ_FUNC, side_effect=[(200, None), Exception()]):
                     asup.update_configuration()
         self._set_args({"state": "maintenance_enabled", "maintenance_duration": 24, "maintenance_emails": ["janey@netapp.com", "joe@netapp.com"]})
@@ -287,7 +289,7 @@ class AsupTest(ModuleTestCase):
             asup = NetAppESeriesAsup()
             asup.get_configuration = lambda: {"asupEnabled": True}
             asup.in_maintenance_mode = lambda: False
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to store maintenance information."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to store maintenance information."):
                 with mock.patch(self.REQ_FUNC, side_effect=[(200, None), (200, None), Exception()]):
                     asup.update_configuration()
 
@@ -297,7 +299,7 @@ class AsupTest(ModuleTestCase):
             asup = NetAppESeriesAsup()
             asup.get_configuration = lambda: {"asupEnabled": True}
             asup.in_maintenance_mode = lambda: True
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to disable ASUP maintenance window."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to disable ASUP maintenance window."):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
                     asup.update_configuration()
         self._set_args({"state": "maintenance_disabled"})
@@ -305,7 +307,7 @@ class AsupTest(ModuleTestCase):
             asup = NetAppESeriesAsup()
             asup.get_configuration = lambda: {"asupEnabled": True}
             asup.in_maintenance_mode = lambda: True
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to store maintenance information."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to store maintenance information."):
                 with mock.patch(self.REQ_FUNC, side_effect=[(200, None), Exception()]):
                     asup.update_configuration()
         self._set_args({"state": "maintenance_disabled"})
@@ -313,6 +315,6 @@ class AsupTest(ModuleTestCase):
             asup = NetAppESeriesAsup()
             asup.get_configuration = lambda: {"asupEnabled": True}
             asup.in_maintenance_mode = lambda: True
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to store maintenance information."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to store maintenance information."):
                 with mock.patch(self.REQ_FUNC, side_effect=[(200, None), (200, None), Exception()]):
                     asup.update_configuration()

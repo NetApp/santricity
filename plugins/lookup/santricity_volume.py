@@ -1,7 +1,24 @@
-# (c) 2020, NetApp, Inc
-# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+# (c) 2024, NetApp, Inc
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
+
+DOCUMENTATION = """
+    name: santricity_volume
+    author:
+        - Nathan Swartz (@swartzn)
+        - Vu Tran (@VuTran007)
+    short_description: NetApp E-Series manage storage volumes
+    description:
+        - Collect volumes from NetApp E/EF-series storage array for defined host.
+"""
+
+EXAMPLES = r"""
+- name: Collect volume information for defined host
+  ansible.builtin.set_fact:
+    volumes: "{{ lookup('netapp_eseries.santricity.santricity_volume', hostvars[inventory_hostname])) }}"
+"""
 
 import re
 from ansible.plugins.lookup import LookupBase

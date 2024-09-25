@@ -4,8 +4,10 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_nvme_interface import NetAppESeriesNvmeInterface
-from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class NvmeInterfaceTest(ModuleTestCase):
@@ -66,7 +68,7 @@ class NvmeInterfaceTest(ModuleTestCase):
         self._set_args(options)
         nvme = NetAppESeriesNvmeInterface()
         with mock.patch(self.REQ_FUNC, return_value=(200, response)):
-            self.assertEquals(nvme.get_nvmeof_interfaces(), [
+            self.assertEqual(nvme.get_nvmeof_interfaces(), [
                 {"properties": {"provider": "providerInfiniband", "ibProperties": {
                     "ipAddressData": {"addressType": "ipv4",
                                       "ipv4Data": {"configState": "configured", "ipv4Address": "192.168.1.100"}}}},
@@ -80,7 +82,7 @@ class NvmeInterfaceTest(ModuleTestCase):
         options = {"address": "192.168.1.100"}
         self._set_args(options)
         nvme = NetAppESeriesNvmeInterface()
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve defined host interfaces."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve defined host interfaces."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 nvme.get_nvmeof_interfaces()
 
@@ -137,7 +139,7 @@ class NvmeInterfaceTest(ModuleTestCase):
                                 "linkState": "up"}, "controller_id": "070000000000000000000001",
              "link_status": "up"}]
         nvme.get_controllers = lambda: {"A": "070000000000000000000001", "B": "070000000000000000000002"}
-        with self.assertRaisesRegexp(AnsibleFailJson, "Invalid controller .*? NVMe channel."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Invalid controller .*? NVMe channel."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 nvme.get_target_interface()
 
@@ -153,7 +155,7 @@ class NvmeInterfaceTest(ModuleTestCase):
                                 "linkState": "up"}, "controller_id": "070000000000000000000001",
              "link_status": "up"}]
         nvme.get_controllers = lambda: {"A": "070000000000000000000001", "B": "070000000000000000000002"}
-        with self.assertRaisesRegexp(AnsibleFailJson, "Invalid controller .*? NVMe channel."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Invalid controller .*? NVMe channel."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 nvme.get_target_interface()
 
@@ -170,7 +172,7 @@ class NvmeInterfaceTest(ModuleTestCase):
         self._set_args(options)
         nvme = NetAppESeriesNvmeInterface()
         nvme.get_target_interface = lambda: iface
-        with self.assertRaisesRegexp(AnsibleExitJson, "NVMeoF interface settings have been updated."):
+        with self.assertRaisesRegex(AnsibleExitJson, "NVMeoF interface settings have been updated."):
             with mock.patch(self.REQ_FUNC, return_value=(200, None)):
                 nvme.update()
 
@@ -184,7 +186,7 @@ class NvmeInterfaceTest(ModuleTestCase):
         nvme = NetAppESeriesNvmeInterface()
         nvme.module.check_mode = True
         nvme.get_target_interface = lambda: iface
-        with self.assertRaisesRegexp(AnsibleExitJson, "No changes have been made."):
+        with self.assertRaisesRegex(AnsibleExitJson, "No changes have been made."):
             with mock.patch(self.REQ_FUNC, return_value=(200, None)):
                 nvme.update()
 
@@ -198,7 +200,7 @@ class NvmeInterfaceTest(ModuleTestCase):
         nvme = NetAppESeriesNvmeInterface()
         nvme.get_target_interface = lambda: iface
 
-        with self.assertRaisesRegexp(AnsibleExitJson, "No changes have been made."):
+        with self.assertRaisesRegex(AnsibleExitJson, "No changes have been made."):
             with mock.patch(self.REQ_FUNC, return_value=(200, None)):
                 nvme.update()
 
@@ -215,6 +217,6 @@ class NvmeInterfaceTest(ModuleTestCase):
         self._set_args(options)
         nvme = NetAppESeriesNvmeInterface()
         nvme.get_target_interface = lambda: iface
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to configure interface."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to configure interface."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 nvme.update()

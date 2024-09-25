@@ -18,7 +18,7 @@ short_description: NetApp E-Series set or update the password for a storage arra
 description:
     - Sets or updates the password for a storage array.  When the password is updated on the storage array, it must be updated on the SANtricity Web
       Services proxy. Note, all storage arrays do not have a Monitor or RO role.
-version_added: "2.2"
+version_added: "2.2.0"
 author: Kevin Hulquest (@hulquest)
 options:
     validate_certs:
@@ -41,6 +41,7 @@ options:
     set_admin:
       description:
         - Boolean value on whether to update the admin password. If set to false then the RO account is updated.
+      required: False
       type: bool
       default: False
     current_password:
@@ -143,6 +144,7 @@ def request(url, data=None, headers=None, method='GET', use_proxy=True,
 
 def get_ssid(module, name, api_url, user, pwd):
     count = 0
+    ssid = None
     all_systems = 'storage-systems'
     systems_url = api_url + all_systems
     rc, data = request(systems_url, headers=HEADERS, url_username=user, url_password=pwd,
@@ -236,8 +238,8 @@ def main():
         ssid=dict(required=False, type='str'),
         current_password=dict(required=False, no_log=True),
         new_password=dict(required=True, no_log=True),
-        set_admin=dict(required=True, type='bool'),
-        api_url=dict(required=True),
+        set_admin=dict(required=False, type='bool', default=False),
+        api_url=dict(required=False),
         api_username=dict(required=False),
         api_password=dict(required=False, no_log=True)
     )

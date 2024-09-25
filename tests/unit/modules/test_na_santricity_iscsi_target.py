@@ -4,8 +4,10 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_iscsi_target import NetAppESeriesIscsiTarget
-from units.modules.utils import AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class IscsiTargetTest(ModuleTestCase):
@@ -75,7 +77,7 @@ class IscsiTargetTest(ModuleTestCase):
 
     def test_invalid_chap_secret(self):
         for secret in [11 * 'a', 58 * 'a']:
-            with self.assertRaisesRegexp(AnsibleFailJson, r'.*?CHAP secret is not valid.*') as result:
+            with self.assertRaisesRegex(AnsibleFailJson, r'.*?CHAP secret is not valid.*') as result:
                 self._set_args(dict(chap=secret))
                 tgt = NetAppESeriesIscsiTarget()
 
@@ -88,22 +90,22 @@ class IscsiTargetTest(ModuleTestCase):
         iscsi_target = NetAppESeriesIscsiTarget()
 
         with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
-            self.assertEquals(iscsi_target.target, expected_response)
+            self.assertEqual(iscsi_target.target, expected_response)
 
     def test_target_fail(self):
         """Ensure target property returns the expected data structure."""
         self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": True})
         iscsi_target = NetAppESeriesIscsiTarget()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to retrieve the iSCSI target information."):
+        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to retrieve the iSCSI target information."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 result = iscsi_target.target
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to retrieve the iSCSI target information."):
+        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to retrieve the iSCSI target information."):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), Exception()]):
                 result = iscsi_target.target
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"This storage-system does not appear to have iSCSI interfaces."):
+        with self.assertRaisesRegex(AnsibleFailJson, r"This storage-system does not appear to have iSCSI interfaces."):
             with mock.patch(self.REQ_FUNC, return_value=(200, [])):
                 result = iscsi_target.target
 
@@ -123,7 +125,7 @@ class IscsiTargetTest(ModuleTestCase):
         """Ensure apply_iscsi_settings fails properly."""
         self._set_args({"name": "not_target_name"})
         iscsi_target = NetAppESeriesIscsiTarget()
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to update the iSCSI target settings."):
+        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to update the iSCSI target settings."):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), Exception()]):
                 self.assertTrue(iscsi_target.apply_iscsi_settings())
 
@@ -154,7 +156,7 @@ class IscsiTargetTest(ModuleTestCase):
         self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": True})
         iscsi_target = NetAppESeriesIscsiTarget()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to update the iSCSI target settings."):
+        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to update the iSCSI target settings."):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), Exception()]):
                 iscsi_target.apply_target_changes()
 
@@ -165,24 +167,24 @@ class IscsiTargetTest(ModuleTestCase):
 
         iscsi_target.apply_iscsi_settings = lambda: True
         iscsi_target.apply_target_changes = lambda: True
-        with self.assertRaisesRegexp(AnsibleExitJson, r"\'changed\': True"):
+        with self.assertRaisesRegex(AnsibleExitJson, r"\'changed\': True"):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
                 iscsi_target.update()
 
         iscsi_target.apply_iscsi_settings = lambda: False
         iscsi_target.apply_target_changes = lambda: True
-        with self.assertRaisesRegexp(AnsibleExitJson, r"\'changed\': True"):
+        with self.assertRaisesRegex(AnsibleExitJson, r"\'changed\': True"):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
                 iscsi_target.update()
 
         iscsi_target.apply_iscsi_settings = lambda: True
         iscsi_target.apply_target_changes = lambda: False
-        with self.assertRaisesRegexp(AnsibleExitJson, r"\'changed\': True"):
+        with self.assertRaisesRegex(AnsibleExitJson, r"\'changed\': True"):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
                 iscsi_target.update()
 
         iscsi_target.apply_iscsi_settings = lambda: False
         iscsi_target.apply_target_changes = lambda: False
-        with self.assertRaisesRegexp(AnsibleExitJson, r"\'changed\': False"):
+        with self.assertRaisesRegex(AnsibleExitJson, r"\'changed\': False"):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
                 iscsi_target.update()

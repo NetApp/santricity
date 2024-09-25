@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -14,7 +14,8 @@ description:
     - Configure settings of an E-Series InfiniBand iSER interface IPv4 address configuration.
 author:
     - Michael Price (@lmprice)
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -81,7 +82,7 @@ from ansible.module_utils._text import to_native
 class NetAppESeriesIbIserInterface(NetAppESeriesModule):
     def __init__(self):
         ansible_options = dict(controller=dict(type="str", required=True, choices=["A", "B"]),
-                               channel=dict(type="int"),
+                               channel=dict(type="int", required=True),
                                address=dict(type="str", required=True))
 
         super(NetAppESeriesIbIserInterface, self).__init__(ansible_options=ansible_options,

@@ -4,8 +4,10 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_auditlog import NetAppESeriesAuditLog
-from units.modules.utils import AnsibleFailJson, ModuleTestCase, set_module_args
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class NetAppESeriesAuditLogTests(ModuleTestCase):
@@ -48,7 +50,7 @@ class NetAppESeriesAuditLogTests(ModuleTestCase):
         max_records_set = (self.MAX_RECORDS_MINIMUM - 1, self.MAX_RECORDS_MAXIMUM + 1)
 
         for max_records in max_records_set:
-            with self.assertRaisesRegexp(AnsibleFailJson, r"Audit-log max_records count must be between 100 and 50000"):
+            with self.assertRaisesRegex(AnsibleFailJson, r"Audit-log max_records count must be between 100 and 50000"):
                 initial["max_records"] = max_records
                 self._set_args(**initial)
                 NetAppESeriesAuditLog()
@@ -77,7 +79,7 @@ class NetAppESeriesAuditLogTests(ModuleTestCase):
         threshold_set = (59, 91)
 
         for threshold in threshold_set:
-            with self.assertRaisesRegexp(AnsibleFailJson, r"Audit-log percent threshold must be between 60 and 90"):
+            with self.assertRaisesRegex(AnsibleFailJson, r"Audit-log percent threshold must be between 60 and 90"):
                 initial["threshold"] = threshold
                 self._set_args(**initial)
                 with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
@@ -113,7 +115,7 @@ class NetAppESeriesAuditLogTests(ModuleTestCase):
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
             audit_log = NetAppESeriesAuditLog()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to retrieve the audit-log configuration!"):
+        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to retrieve the audit-log configuration!"):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 audit_log.get_configuration()
 
@@ -154,7 +156,7 @@ class NetAppESeriesAuditLogTests(ModuleTestCase):
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
             audit_log = NetAppESeriesAuditLog()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to delete audit-log messages!"):
+        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to delete audit-log messages!"):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 audit_log.delete_log_messages()
 
@@ -199,7 +201,7 @@ class NetAppESeriesAuditLogTests(ModuleTestCase):
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
             audit_log = NetAppESeriesAuditLog()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to update audit-log configuration!"):
+        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to update audit-log configuration!"):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, body), Exception(422, {"errorMessage": "error"}),
                                                         (200, None), (200, None)]):
                 audit_log.update_configuration()

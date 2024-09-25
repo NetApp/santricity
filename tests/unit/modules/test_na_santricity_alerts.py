@@ -4,8 +4,10 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_alerts import NetAppESeriesAlerts
-from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class AlertsTest(ModuleTestCase):
@@ -74,8 +76,8 @@ class AlertsTest(ModuleTestCase):
         # Expecting an update
         with mock.patch(self.REQ_FUNC, return_value=(200, expected)) as req:
             actual = alerts.get_configuration()
-            self.assertEquals(expected, actual)
-            self.assertEquals(req.call_count, 1)
+            self.assertEqual(expected, actual)
+            self.assertEqual(req.call_count, 1)
 
     def test_update_configuration(self):
         """Validate updating the configuration"""
@@ -150,7 +152,7 @@ class AlertsTest(ModuleTestCase):
         alerts.is_embedded_available = lambda: False
 
         ret_msg = 'fail'
-        with self.assertRaisesRegexp(AnsibleFailJson, ret_msg):
+        with self.assertRaisesRegex(AnsibleFailJson, ret_msg):
             with mock.patch(self.REQ_FUNC, return_value=(200, dict(response=ret_msg))) as req:
                 alerts.send_test_email()
                 self.assertTrue(req.called)
@@ -162,7 +164,7 @@ class AlertsTest(ModuleTestCase):
         alerts.is_proxy = lambda: False
         alerts.is_embedded_available = lambda: False
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"failed to send"):
+        with self.assertRaisesRegex(AnsibleFailJson, r"failed to send"):
             with mock.patch(self.REQ_FUNC, side_effect=Exception) as req:
                 alerts.send_test_email()
                 self.assertTrue(req.called)
@@ -171,14 +173,14 @@ class AlertsTest(ModuleTestCase):
         # Ensure that when test is enabled and alerting is enabled, we run the test
         self._set_args(state='enabled', server='localhost', sender='x@y.z', recipients=['a@b.c'], test=True)
         alerts = NetAppESeriesAlerts()
-        with self.assertRaisesRegexp(AnsibleExitJson, r"enabled"):
+        with self.assertRaisesRegex(AnsibleExitJson, r"enabled"):
             with mock.patch.object(alerts, 'update_configuration', return_value=True):
                 with mock.patch.object(alerts, 'send_test_email') as test:
                     alerts.update()
                     self.assertTrue(test.called)
 
         # Ensure we don't run a test when changed=False
-        with self.assertRaisesRegexp(AnsibleExitJson, r"enabled"):
+        with self.assertRaisesRegex(AnsibleExitJson, r"enabled"):
             with mock.patch.object(alerts, 'update_configuration', return_value=False):
                 with mock.patch.object(alerts, 'send_test_email') as test:
                     alerts.update()
@@ -187,7 +189,7 @@ class AlertsTest(ModuleTestCase):
         # Ensure that test is not called when we have alerting disabled
         self._set_args(state='disabled')
         alerts = NetAppESeriesAlerts()
-        with self.assertRaisesRegexp(AnsibleExitJson, r"disabled"):
+        with self.assertRaisesRegex(AnsibleExitJson, r"disabled"):
             with mock.patch.object(alerts, 'update_configuration', return_value=True):
                 with mock.patch.object(alerts, 'send_test_email') as test:
                     alerts.update()

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -12,7 +12,9 @@ module: na_santricity_syslog
 short_description: NetApp E-Series manage syslog settings
 description:
     - Allow the syslog settings to be configured for an individual E-Series storage-system
-author: Nathan Swartz (@ndswartz)
+author:
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -55,6 +57,7 @@ options:
             - The e-series logging components define the specific logs to transfer to the syslog server.
             - At the time of writing, 'auditLog' is the only logging component but more may become available.
         type: list
+        elements: str
         default: ["auditLog"]
         required: false
     test:
@@ -112,11 +115,12 @@ class NetAppESeriesSyslog(NetAppESeriesModule):
             address=dict(type="str", required=False),
             port=dict(type="int", default=514, required=False),
             protocol=dict(choices=["tcp", "tls", "udp"], default="udp", required=False),
-            components=dict(type="list", required=False, default=["auditLog"]),
-            test=dict(type="bool", default=False, require=False))
+            components=dict(type="list", elements="str", required=False, default=["auditLog"]),
+            test=dict(type="bool", default=False, required=False))
 
         required_if = [["state", "present", ["address", "port", "protocol", "components"]]]
-        mutually_exclusive = [["test", "absent"]]
+        mutually_exclusive = None
+
         super(NetAppESeriesSyslog, self).__init__(ansible_options=ansible_options,
                                                   web_services_version="02.00.0000.0000",
                                                   mutually_exclusive=mutually_exclusive,
@@ -178,7 +182,7 @@ class NetAppESeriesSyslog(NetAppESeriesModule):
                     config_match = config
                     if (config["port"] == self.port and config["protocol"] == self.protocol and
                             len(config["components"]) == len(self.components) and
-                            all([component["type"] in self.components for component in config["components"]])):
+                            all(component["type"] in self.components for component in config["components"])):
                         perfect_match = config_match
                         break
 

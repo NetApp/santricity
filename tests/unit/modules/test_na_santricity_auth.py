@@ -4,8 +4,10 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_auth import NetAppESeriesAuth
-from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class AuthTest(ModuleTestCase):
@@ -72,14 +74,14 @@ class AuthTest(ModuleTestCase):
         self._set_args({"ssid": "Proxy", "user": "admin", "password": "adminpass", "minimum_password_length": 10})
         auth = NetAppESeriesAuth()
         auth.is_proxy = lambda: False
-        with self.assertRaisesRegexp(AnsibleFailJson, "Password does not meet the length requirement"):
+        with self.assertRaisesRegex(AnsibleFailJson, "Password does not meet the length requirement"):
             with mock.patch(self.REQ_FUNC, return_value=(200, {"adminPasswordSet": False, "minimumPasswordLength": 8})):
                 auth.minimum_password_length_change_required()
 
         self._set_args({"ssid": "Proxy", "user": "admin", "password": "adminpass"})
         auth = NetAppESeriesAuth()
         auth.is_proxy = lambda: False
-        with self.assertRaisesRegexp(AnsibleFailJson, "Password does not meet the length requirement"):
+        with self.assertRaisesRegex(AnsibleFailJson, "Password does not meet the length requirement"):
             with mock.patch(self.REQ_FUNC, return_value=(200, {"adminPasswordSet": True, "minimumPasswordLength": 10})):
                 auth.minimum_password_length_change_required()
 
@@ -144,7 +146,7 @@ class AuthTest(ModuleTestCase):
         auth.is_proxy = lambda: True
         auth.is_embedded_available = lambda: False
         auth.is_admin_password_set = False
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to set minimum password length."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to set minimum password length."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 auth.update_minimum_password_length()
 
@@ -153,7 +155,7 @@ class AuthTest(ModuleTestCase):
         auth.is_proxy = lambda: True
         auth.is_embedded_available = lambda: True
         auth.is_admin_password_set = False
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to set minimum password length."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to set minimum password length."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 auth.update_minimum_password_length()
 
@@ -162,7 +164,7 @@ class AuthTest(ModuleTestCase):
         auth.is_proxy = lambda: False
         auth.is_embedded_available = lambda: True
         auth.is_admin_password_set = False
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to set minimum password length."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to set minimum password length."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 auth.update_minimum_password_length()
 
@@ -241,7 +243,7 @@ class AuthTest(ModuleTestCase):
         auth.logout_system = lambda: None
         with mock.patch(self.REQ_FUNC, side_effect=[(200, {"minimumPasswordLength": 8, "adminPasswordSet": True}), (200, None)]):
             self.assertFalse(auth.password_change_required())
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, {"minimumPasswordLength": 8, "adminPasswordSet": True}), (401, None)]):
+        with mock.patch(self.REQ_FUNC, side_effect=[(401, None)]):
             self.assertTrue(auth.password_change_required())
 
         self._set_args({"ssid": "10", "user": "admin", "password": "adminpass"})
@@ -271,7 +273,7 @@ class AuthTest(ModuleTestCase):
         auth.is_proxy = lambda: True
         auth.is_embedded_available = lambda: False
         auth.logout_system = lambda: None
-        with self.assertRaisesRegexp(AnsibleFailJson, "SAML enabled! SAML disables default role based login."):
+        with self.assertRaisesRegex(AnsibleFailJson, "SAML enabled! SAML disables default role based login."):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, {"minimumPasswordLength": 8, "adminPasswordSet": True}), (422, None)]):
                 auth.password_change_required()
 
@@ -281,14 +283,14 @@ class AuthTest(ModuleTestCase):
         auth.is_embedded_available = lambda: False
         auth.logout_system = lambda: None
         auth.is_web_services_version_met = lambda x: True
-        with self.assertRaisesRegexp(AnsibleFailJson, "For platforms before E2800 use SANtricity Web Services Proxy 4.1 or later!"):
+        with self.assertRaisesRegex(AnsibleFailJson, "For platforms before E2800 use SANtricity Web Services Proxy 4.1 or later!"):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, {"minimumPasswordLength": 8, "adminPasswordSet": True}), (404, None)]):
                 self.assertFalse(auth.password_change_required())
         auth.is_web_services_version_met = lambda x: False
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to validate stored password!"):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to validate stored password!"):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, {"minimumPasswordLength": 8, "adminPasswordSet": True}), (404, None)]):
                 self.assertFalse(auth.password_change_required())
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to validate stored password!"):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to validate stored password!"):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, {"minimumPasswordLength": 8, "adminPasswordSet": True}), (422, None)]):
                 self.assertFalse(auth.password_change_required())
 
@@ -298,7 +300,7 @@ class AuthTest(ModuleTestCase):
         auth.is_embedded_available = lambda: False
         auth.logout_system = lambda: None
         auth.is_web_services_version_met = lambda x: True
-        with self.assertRaisesRegexp(AnsibleFailJson, "Role based login not available! Only storage system password can be set for storage systems prior to"):
+        with self.assertRaisesRegex(AnsibleFailJson, "Role based login not available! Only storage system password can be set for storage systems prior to"):
             with mock.patch(self.REQ_FUNC, side_effect=[(200, {"minimumPasswordLength": 8, "adminPasswordSet": True})]):
                 self.assertFalse(auth.password_change_required())
 
@@ -336,7 +338,7 @@ class AuthTest(ModuleTestCase):
         auth = NetAppESeriesAuth()
         auth.is_proxy = lambda: True
         auth.is_embedded_available = lambda: False
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to set proxy's admin password."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to set proxy's admin password."):
             with mock.patch(self.REQ_FUNC, side_effect=[Exception(), Exception()]):
                 auth.set_array_admin_password()
 
@@ -344,7 +346,7 @@ class AuthTest(ModuleTestCase):
         auth = NetAppESeriesAuth()
         auth.is_proxy = lambda: True
         auth.is_embedded_available = lambda: False
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to set storage system's admin password."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to set storage system's admin password."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 auth.set_array_admin_password()
 
@@ -352,7 +354,7 @@ class AuthTest(ModuleTestCase):
         auth = NetAppESeriesAuth()
         auth.is_proxy = lambda: False
         auth.is_embedded_available = lambda: True
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to set embedded storage system's admin password."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to set embedded storage system's admin password."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 auth.set_array_admin_password()
 
@@ -389,7 +391,7 @@ class AuthTest(ModuleTestCase):
         auth.is_proxy = lambda: True
         auth.is_embedded_available = lambda: False
         auth.is_admin_password_set = False
-        with self.assertRaisesRegexp(AnsibleFailJson, "Admin password not set! Set admin password before changing non-admin user passwords."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Admin password not set! Set admin password before changing non-admin user passwords."):
             auth.set_array_password()
 
         self._set_args({"ssid": "Proxy", "user": "admin", "password": "adminpass"})
@@ -397,7 +399,7 @@ class AuthTest(ModuleTestCase):
         auth.is_proxy = lambda: True
         auth.is_embedded_available = lambda: False
         auth.is_admin_password_set = True
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to set proxy password."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to set proxy password."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 auth.set_array_password()
 
@@ -406,7 +408,7 @@ class AuthTest(ModuleTestCase):
         auth.is_proxy = lambda: True
         auth.is_embedded_available = lambda: True
         auth.is_admin_password_set = True
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to set embedded user password."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to set embedded user password."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 auth.set_array_password()
 
@@ -415,7 +417,7 @@ class AuthTest(ModuleTestCase):
         auth.is_proxy = lambda: False
         auth.is_embedded_available = lambda: True
         auth.is_admin_password_set = True
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to set embedded user password."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to set embedded user password."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 auth.set_array_password()
 
@@ -429,7 +431,7 @@ class AuthTest(ModuleTestCase):
         auth.update_minimum_password_length = lambda: None
         auth.set_array_admin_password = lambda: None
         auth.set_array_password = lambda: None
-        with self.assertRaisesRegexp(AnsibleExitJson, "'admin' password and required password length has been changed."):
+        with self.assertRaisesRegex(AnsibleExitJson, "'admin' password and required password length has been changed."):
             auth.apply()
 
         self._set_args({"ssid": "1", "user": "admin", "password": "adminpass"})
@@ -440,7 +442,7 @@ class AuthTest(ModuleTestCase):
         auth.update_minimum_password_length = lambda: None
         auth.set_array_admin_password = lambda: None
         auth.set_array_password = lambda: None
-        with self.assertRaisesRegexp(AnsibleExitJson, "'admin' password and required password length has been changed."):
+        with self.assertRaisesRegex(AnsibleExitJson, "'admin' password and required password length has been changed."):
             auth.apply()
 
         self._set_args({"ssid": "1", "user": "monitor", "password": "adminpass"})
@@ -451,7 +453,7 @@ class AuthTest(ModuleTestCase):
         auth.update_minimum_password_length = lambda: None
         auth.set_array_admin_password = lambda: None
         auth.set_array_password = lambda: None
-        with self.assertRaisesRegexp(AnsibleExitJson, "'monitor' password and required password length has been changed."):
+        with self.assertRaisesRegex(AnsibleExitJson, "'monitor' password and required password length has been changed."):
             auth.apply()
 
         self._set_args({"ssid": "1", "user": "admin", "password": "adminpass"})
@@ -462,7 +464,7 @@ class AuthTest(ModuleTestCase):
         auth.update_minimum_password_length = lambda: None
         auth.set_array_admin_password = lambda: None
         auth.set_array_password = lambda: None
-        with self.assertRaisesRegexp(AnsibleExitJson, "'admin' password has been changed."):
+        with self.assertRaisesRegex(AnsibleExitJson, "'admin' password has been changed."):
             auth.apply()
 
         self._set_args({"ssid": "1", "user": "admin", "password": "adminpass"})
@@ -473,7 +475,7 @@ class AuthTest(ModuleTestCase):
         auth.update_minimum_password_length = lambda: None
         auth.set_array_admin_password = lambda: None
         auth.set_array_password = lambda: None
-        with self.assertRaisesRegexp(AnsibleExitJson, "Required password length has been changed."):
+        with self.assertRaisesRegex(AnsibleExitJson, "Required password length has been changed."):
             auth.apply()
 
         self._set_args({"ssid": "1", "user": "admin", "password": "adminpass"})
@@ -484,5 +486,5 @@ class AuthTest(ModuleTestCase):
         auth.update_minimum_password_length = lambda: None
         auth.set_array_admin_password = lambda: None
         auth.set_array_password = lambda: None
-        with self.assertRaisesRegexp(AnsibleExitJson, "No changes have been made."):
+        with self.assertRaisesRegex(AnsibleExitJson, "No changes have been made."):
             auth.apply()

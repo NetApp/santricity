@@ -17,7 +17,7 @@ module: netapp_e_asup
 short_description: NetApp E-Series manage auto-support settings
 description:
     - Allow the auto-support settings to be configured for an individual E-Series storage-system
-version_added: '2.7'
+version_added: '2.7.0'
 author: Michael Price (@lmprice)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries
@@ -78,6 +78,7 @@ options:
             - sunday
         required: no
         type: list
+        elements: str
         aliases:
             - days_of_week
             - schedule_days
@@ -179,7 +180,7 @@ class Asup(object):
             state=dict(type='str', required=False, default='enabled', aliases=['asup', 'auto_support', 'autosupport'],
                        choices=['enabled', 'disabled']),
             active=dict(type='bool', required=False, default=True, ),
-            days=dict(type='list', required=False, aliases=['schedule_days', 'days_of_week'],
+            days=dict(type='list', elements='str', required=False, aliases=['schedule_days', 'days_of_week'],
                       choices=self.DAYS_OPTIONS),
             start=dict(type='int', required=False, default=0, aliases=['start_time']),
             end=dict(type='int', required=False, default=24, aliases=['end_time']),

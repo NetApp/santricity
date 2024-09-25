@@ -5,6 +5,15 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v1.4.1
+======
+
+Bugfixes
+--------
+
+- Fixed pep8, pylint, and validate-modules issues found by ansible-test.
+- Updated outdated command in unit tests.
+
 v1.4.0
 ======
 

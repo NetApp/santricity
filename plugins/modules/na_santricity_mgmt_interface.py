@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 
@@ -14,7 +14,8 @@ description:
     - Configure the E-Series management interfaces
 author:
     - Michael Price (@lmprice)
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -127,8 +128,9 @@ options:
 notes:
     - Check mode is supported.
     - It is highly recommended to have a minimum of one up management port on each controller.
-    - When using SANtricity Web Services Proxy, use M(na_santricity_storage_system) to update management paths. This is required because of a known issue
-      and will be addressed in the proxy version 4.1. After the resolution the management ports should automatically be updated.
+    - When using SANtricity Web Services Proxy, use M(netapp_eseries.santricity.na_santricity_storage_system) to update
+      management paths. This is required because of a known issue and will be addressed in the proxy version 4.1. After
+      the resolution the management ports should automatically be updated.
     - The interface settings are applied synchronously, but changes to the interface itself (receiving a new IP address
       via dhcp, etc), can take seconds or minutes longer to take effect.
 """
@@ -343,7 +345,7 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
         controller_ssh = controller_info["ssh"]
         controller_dns = None
         controller_ntp = None
-        dummy_interface_id = None # Needed for when a specific interface is not required (ie dns/ntp/ssh changes only)
+        dummy_interface_id = None  # Needed for when a specific interface is not required (ie dns/ntp/ssh changes only)
         for net in net_interfaces:
             if net["controllerRef"] == controller_ref:
                 channels.update({net["channel"]: net["linkStatus"]})
@@ -369,14 +371,18 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
             "dns_config_method": controller_dns["acquisitionProperties"]["dnsAcquisitionType"],
             "dns_servers": controller_dns["acquisitionProperties"]["dnsServers"],
             "ntp_config_method": controller_ntp["acquisitionProperties"]["ntpAcquisitionType"],
-            "ntp_servers": controller_ntp["acquisitionProperties"]["ntpServers"],})
+            "ntp_servers": controller_ntp["acquisitionProperties"]["ntpServers"],
+        })
 
         # Add interface specific information when configuring IP address.
         if self.config_method is not None:
             if iface is None:
                 available_controllers = ["%s (%s)" % (channel, status) for channel, status in channels.items()]
-                self.module.fail_json(msg="Invalid port number! Controller %s ports: [%s]. Array [%s]"
-                                        % (self.controller, ",".join(available_controllers), self.ssid))
+                self.module.fail_json(
+                    msg="Invalid port number! Controller %s ports: [%s]. Array [%s]" % (
+                        self.controller, ",".join(available_controllers), self.ssid
+                    )
+                )
             else:
                 self.interface_info.update({
                     "id": iface["interfaceRef"],
@@ -388,7 +394,8 @@ class NetAppESeriesMgmtInterface(NetAppESeriesModule):
                     "address": iface["ipv4Address"],
                     "subnet_mask": iface["ipv4SubnetMask"],
                     "gateway": iface["ipv4GatewayAddress"],
-                    "ipv6_enabled": iface["ipv6Enabled"],})
+                    "ipv6_enabled": iface["ipv6Enabled"],
+                })
 
     def update_body_enable_interface_setting(self):
         """Enable or disable the IPv4 network interface."""

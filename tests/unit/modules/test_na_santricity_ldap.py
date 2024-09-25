@@ -4,8 +4,10 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_ldap import NetAppESeriesLdap
-from units.modules.utils import ModuleTestCase, set_module_args, AnsibleFailJson, AnsibleExitJson
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class LdapTest(ModuleTestCase):
@@ -74,7 +76,7 @@ class LdapTest(ModuleTestCase):
             with mock.patch(self.REQ_FUNC, return_value=(200, self.GET_DOMAINS)):
                 self._set_args(options)
                 ldap = NetAppESeriesLdap()
-                self.assertEquals(ldap.get_domains(), self.GET_DOMAINS["ldapDomains"])
+                self.assertEqual(ldap.get_domains(), self.GET_DOMAINS["ldapDomains"])
 
     def test_get_domain_fail(self):
         """Verify get_domain throws expected exceptions."""
@@ -83,7 +85,7 @@ class LdapTest(ModuleTestCase):
                    "names": ["name1", "name2"], "group_attributes": ["group_attr1", "group_attr1"], "user_attribute": "user_attr"}
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
-                with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve current LDAP configuration."):
+                with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve current LDAP configuration."):
                     self._set_args(options)
                     ldap = NetAppESeriesLdap()
                     ldap.get_domains()
@@ -110,7 +112,7 @@ class LdapTest(ModuleTestCase):
                 self._set_args(options_list[index])
                 ldap = NetAppESeriesLdap()
                 ldap.build_request_body()
-                self.assertEquals(ldap.body, expectation_list[index])
+                self.assertEqual(ldap.body, expectation_list[index])
 
     def test_are_changes_required_pass(self):
         """Verify build_request_body builds expected data structure."""
@@ -134,7 +136,7 @@ class LdapTest(ModuleTestCase):
             ldap = NetAppESeriesLdap()
             ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
             self.assertTrue(ldap.are_changes_required())
-            self.assertEquals(ldap.existing_domain_ids, ["test1", "test2"])
+            self.assertEqual(ldap.existing_domain_ids, ["test1", "test2"])
 
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
             self._set_args({"state": "absent", "identifier": "test_domain"})
@@ -184,7 +186,7 @@ class LdapTest(ModuleTestCase):
             ldap.build_request_body()
             ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
             ldap.add_domain = lambda temporary, skip_test: {"id": "ANSIBLE_TMP_DOMAIN"}
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to authenticate bind credentials!"):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to authenticate bind credentials!"):
                 with mock.patch(self.REQ_FUNC, return_value=(200, [{"id": "test2", "result": {"authenticationTestResult": "fail"}},
                                                                    {"id": "ANSIBLE_TMP_DOMAIN", "result": {"authenticationTestResult": "fail"}}])):
                     ldap.are_changes_required()
@@ -199,7 +201,7 @@ class LdapTest(ModuleTestCase):
             ldap.build_request_body()
             ldap.get_domains = lambda: self.GET_DOMAINS["ldapDomains"]
             ldap.add_domain = lambda temporary, skip_test: {"id": "ANSIBLE_TMP_DOMAIN"}
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to authenticate bind credentials!"):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to authenticate bind credentials!"):
                 with mock.patch(self.REQ_FUNC, return_value=(200, [{"id": "test2", "result": {"authenticationTestResult": "ok"}},
                                                                    {"id": "ANSIBLE_TMP_DOMAIN", "result": {"authenticationTestResult": "fail"}}])):
                     ldap.are_changes_required()
@@ -216,7 +218,7 @@ class LdapTest(ModuleTestCase):
             ldap = NetAppESeriesLdap()
             ldap.build_request_body()
             with mock.patch(self.REQ_FUNC, return_value=(200, {"ldapDomains": [{"id": "test2"}]})):
-                self.assertEquals(ldap.add_domain(), {"id": "test2"})
+                self.assertEqual(ldap.add_domain(), {"id": "test2"})
 
     def test_add_domain_fail(self):
         """Verify add_domain returns expected data."""
@@ -229,7 +231,7 @@ class LdapTest(ModuleTestCase):
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
             ldap = NetAppESeriesLdap()
             ldap.build_request_body()
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to create LDAP domain."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to create LDAP domain."):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
                     ldap.add_domain()
 
@@ -260,7 +262,7 @@ class LdapTest(ModuleTestCase):
             ldap = NetAppESeriesLdap()
             ldap.build_request_body()
             ldap.domain = {"id": "test2"}
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to update LDAP domain."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to update LDAP domain."):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
                     ldap.update_domain()
 
@@ -287,7 +289,7 @@ class LdapTest(ModuleTestCase):
 
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.10.0000.0001"}), (200, {"runningAsProxy": True})]):
             ldap = NetAppESeriesLdap()
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to delete LDAP domain."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to delete LDAP domain."):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
                     ldap.delete_domain("test2")
 
@@ -317,7 +319,7 @@ class LdapTest(ModuleTestCase):
             ldap = NetAppESeriesLdap()
             ldap.build_request_body = lambda: None
             ldap.are_changes_required = lambda: False
-            with self.assertRaisesRegexp(AnsibleExitJson, "No changes have been made to the LDAP configuration."):
+            with self.assertRaisesRegex(AnsibleExitJson, "No changes have been made to the LDAP configuration."):
                 ldap.apply()
 
         self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
@@ -332,7 +334,7 @@ class LdapTest(ModuleTestCase):
             ldap.are_changes_required = lambda: True
             ldap.add_domain = lambda: None
             ldap.domain = {}
-            with self.assertRaisesRegexp(AnsibleExitJson, "LDAP domain has been added."):
+            with self.assertRaisesRegex(AnsibleExitJson, "LDAP domain has been added."):
                 ldap.apply()
 
         self._set_args({"state": "present", "identifier": "test2", "server_url": "ldap://test2.example.com:389",
@@ -347,7 +349,7 @@ class LdapTest(ModuleTestCase):
             ldap.are_changes_required = lambda: True
             ldap.update_domain = lambda: None
             ldap.domain = {"id": "test"}
-            with self.assertRaisesRegexp(AnsibleExitJson, "LDAP domain has been updated."):
+            with self.assertRaisesRegex(AnsibleExitJson, "LDAP domain has been updated."):
                 ldap.apply()
 
         self._set_args({"state": "absent", "identifier": "test2"})
@@ -357,7 +359,7 @@ class LdapTest(ModuleTestCase):
             ldap.are_changes_required = lambda: True
             ldap.delete_domain = lambda x: None
             ldap.domain = {"id": "test"}
-            with self.assertRaisesRegexp(AnsibleExitJson, "LDAP domain has been removed."):
+            with self.assertRaisesRegex(AnsibleExitJson, "LDAP domain has been removed."):
                 ldap.apply()
 
         self._set_args({"state": "disabled"})
@@ -367,5 +369,5 @@ class LdapTest(ModuleTestCase):
             ldap.are_changes_required = lambda: True
             ldap.disable_domain = lambda: None
             ldap.domain = {"id": "test"}
-            with self.assertRaisesRegexp(AnsibleExitJson, "All LDAP domains have been removed."):
+            with self.assertRaisesRegex(AnsibleExitJson, "All LDAP domains have been removed."):
                 ldap.apply()

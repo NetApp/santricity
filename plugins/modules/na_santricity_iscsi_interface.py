@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -14,7 +14,8 @@ description:
     - Configure settings of an E-Series iSCSI interface
 author:
     - Michael Price (@lmprice)
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -22,9 +23,9 @@ options:
         description:
             - The controller that owns the port you want to configure.
             - Controller names are presented alphabetically, with the first controller as A,
-             the second as B, and so on.
+              the second as B, and so on.
             - Current hardware models have either 1 or 2 available controllers, but that is not a guaranteed hard
-             limitation and could change in the future.
+              limitation and could change in the future.
         type: str
         required: true
         choices:
@@ -93,7 +94,7 @@ options:
         description:
             - The option will change the interface port speed.
             - Only supported speeds will be accepted and must be in the form [0-9]+[gm] (i.e. 25g)
-            - 'Down' interfaces will report 'Unknown' speed until they are set to an accepted network speed.
+            - Down interfaces will report as Unknown speed until they are set to an accepted network speed.
             - Do not use this option when the port's speed is automatically configured as it will fail. See System
               Manager for the port's capability.
         type: str
@@ -164,6 +165,7 @@ import re
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 from ansible.module_utils._text import to_native
 
+
 def strip_interface_speed(speed):
     """Converts symbol interface speeds to a more common notation. Example: 'speed10gig' -> '10g'"""
     if isinstance(speed, list):
@@ -175,6 +177,7 @@ def strip_interface_speed(speed):
         result = result.group().replace("speed", "") if result else "unknown"
         result = "auto" if re.match(r"auto", result.lower()) else result
     return result
+
 
 class NetAppESeriesIscsiInterface(NetAppESeriesModule):
     def __init__(self):
@@ -260,7 +263,6 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
                 self.get_host_board_id_cache.update({iface_board_map["interfaceRef"]: iface_board_map["hostBoardRef"]})
 
         return self.get_host_board_id_cache[iface_ref]
-
 
     def get_controllers(self):
         """Retrieve a mapping of controller labels to their references
@@ -357,25 +359,31 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
             return False, dict()
         else:
             if target_iface["interfaceData"]["ethernetData"]["autoconfigSupport"]:
-               self.module.warn("This interface's HIC speed is autoconfigured!")
-               return False, dict()
-            if self.speed == strip_interface_speed(target_iface["interfaceData"]["ethernetData"]["currentInterfaceSpeed"]):
+                self.module.warn("This interface's HIC speed is autoconfigured!")
                 return False, dict()
 
-        # Create a dictionary containing supported HIC speeds keyed by simplified value to the complete value (ie. {"10g": "speed10gig"})
+            target_current_iface_speed = target_iface["interfaceData"]["ethernetData"]["currentInterfaceSpeed"]
+            if self.speed == strip_interface_speed(target_current_iface_speed):
+                return False, dict()
+
+        # Create a dictionary containing supported HIC speeds keyed by simplified value to the complete value
+        # (ie. {"10g": "speed10gig"})
         supported_speeds = dict()
         for supported_speed in target_iface["interfaceData"]["ethernetData"]["supportedInterfaceSpeeds"]:
             supported_speeds.update({strip_interface_speed(supported_speed): supported_speed})
 
         if self.speed not in supported_speeds:
-            self.module.fail_json(msg="The host interface card (HIC) does not support the provided speed. Array Id [%s]. Supported speeds [%s]" % (self.ssid, ", ".join(supported_speeds.keys())))
+            self.module.fail_json(
+                msg="The host interface card (HIC) does not support the provided speed. "
+                    "Array Id [%s]. Supported speeds [%s]" % (self.ssid, ", ".join(supported_speeds.keys()))
+            )
 
         body = {"settings": {"maximumInterfaceSpeed": [supported_speeds[self.speed]]}, "portsRef": {}}
         hic_ref = self.get_host_board_id(target_iface["id"])
         if hic_ref == "0000000000000000000000000000000000000000":
             body.update({"portsRef": {"portRefType": "baseBoard", "baseBoardRef": target_iface["id"], "hicRef": ""}})
         else:
-            body.update({"portsRef":{"portRefType": "hic", "hicRef": hic_ref, "baseBoardRef": ""}})
+            body.update({"portsRef": {"portRefType": "hic", "hicRef": hic_ref, "baseBoardRef": ""}})
 
         return True, body
 
@@ -392,8 +400,9 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
                 # We could potentially retry this a few times, but it's probably a rare enough case (unless a playbook
                 #  is cancelled mid-flight), that it isn't worth the complexity.
                 if rc == 422 and result["retcode"] in ["busy", "3"]:
-                    self.module.fail_json(msg="The interface is currently busy (probably processing a previously requested modification request)."
-                                              " This operation cannot currently be completed. Array Id [%s]. Error [%s]." % (self.ssid, result))
+                    self.module.fail_json(msg="The interface is currently busy (probably processing a previously "
+                                              "requested modification request). This operation cannot currently be "
+                                              "completed. Array Id [%s]. Error [%s]." % (self.ssid, result))
                 # Handle authentication issues, etc.
                 elif rc != 200:
                     self.module.fail_json(msg="Failed to modify the interface! Array Id [%s]. Error [%s]." % (self.ssid, to_native(result)))
@@ -404,10 +413,14 @@ class NetAppESeriesIscsiInterface(NetAppESeriesModule):
         update_speed_required, speed_body = self.make_update_speed_body(iface_before)
         if update_speed_required and not self.check_mode:
             try:
-
-                rc, result = self.request("storage-systems/%s/symbol/setHostPortsAttributes?verboseErrorResponse=true" % self.ssid, method="POST", data=speed_body)
+                rc, result = self.request(
+                    "storage-systems/%s/symbol/setHostPortsAttributes?verboseErrorResponse=true" % self.ssid,
+                    method="POST",
+                    data=speed_body
+                )
             except Exception as err:
-                self.module.fail_json(msg="Failed to update host interface card speed. Array Id [%s], Body [%s]. Error [%s]." % (self.ssid, speed_body, to_native(err)))
+                self.module.fail_json(msg="Failed to update host interface card speed. Array Id [%s], Body [%s]. "
+                                          "Error [%s]." % (self.ssid, speed_body, to_native(err)))
 
         if update_required or update_speed_required:
             self.module.exit_json(msg="The interface settings have been updated.", changed=True)

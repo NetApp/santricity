@@ -269,3 +269,9 @@ releases:
     - fix_global_management_interface_configuration.yml
     - fix_nvme_roce_mtu_default.yml
     release_date: '2023-01-30'
+  1.4.1:
+    changes:
+      bugfixes:
+      - Fixed pep8, pylint, and validate-modules issues found by ansible-test.
+      - Updated outdated command in unit tests.
+    release_date: '2024-09-30'

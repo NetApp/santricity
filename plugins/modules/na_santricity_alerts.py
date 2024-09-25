@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2018, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -13,7 +13,9 @@ short_description: NetApp E-Series manage email notification settings
 description:
     - Certain E-Series systems have the capability to send email notifications on potentially critical events.
     - This module will allow the owner of the system to specify email recipients for these messages.
-author: Michael Price (@lmprice)
+author:
+    - Michael Price (@lmprice)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -30,7 +32,7 @@ options:
         description:
             - A fully qualified domain name, IPv4 address, or IPv6 address of a mail server.
             - To use a fully qualified domain name, you must configure a DNS server on both controllers using
-             M(na_santricity_mgmt_interface).
+             M(netapp_eseries.santricity.na_santricity_mgmt_interface).
              - Required when I(state=enabled).
         type: str
         required: false
@@ -51,6 +53,7 @@ options:
             - The email addresses that will receive the email notifications.
             - Required when I(state=enabled).
         type: list
+        elements: str
         required: false
     test:
         description:
@@ -58,6 +61,7 @@ options:
             - This may take a few minutes to process.
             - Only applicable if I(state=enabled).
         type: bool
+        required: false
         default: false
 notes:
     - Check mode is supported.
@@ -108,7 +112,7 @@ class NetAppESeriesAlerts(NetAppESeriesModule):
                                server=dict(type='str', required=False),
                                sender=dict(type='str', required=False),
                                contact=dict(type='str', required=False),
-                               recipients=dict(type='list', required=False),
+                               recipients=dict(type='list', elements='str', required=False),
                                test=dict(type='bool', required=False, default=False))
 
         required_if = [['state', 'enabled', ['server', 'sender', 'recipients']]]

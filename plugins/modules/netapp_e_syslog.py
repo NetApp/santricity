@@ -17,7 +17,7 @@ module: netapp_e_syslog
 short_description: NetApp E-Series manage syslog settings
 description:
     - Allow the syslog settings to be configured for an individual E-Series storage-system
-version_added: '2.7'
+version_added: '2.7.0'
 author: Nathan Swartz (@ndswartz)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries
@@ -58,6 +58,7 @@ options:
             - At the time of writing, 'auditLog' is the only logging component but more may become available.
         default: ["auditLog"]
         type: list
+        elements: str
     test:
         description:
             - This forces a test syslog message to be sent to the stated syslog server.
@@ -126,8 +127,8 @@ class Syslog(object):
             address=dict(type="str", required=False),
             port=dict(type="int", default=514, required=False),
             protocol=dict(choices=["tcp", "tls", "udp"], default="udp", required=False),
-            components=dict(type="list", required=False, default=["auditLog"]),
-            test=dict(type="bool", default=False, require=False),
+            components=dict(type="list", elements="str", required=False, default=["auditLog"]),
+            test=dict(type="bool", default=False, required=False),
             log_path=dict(type="str", required=False),
         ))
 
@@ -135,9 +136,7 @@ class Syslog(object):
             ["state", "present", ["address", "port", "protocol", "components"]],
         ]
 
-        mutually_exclusive = [
-            ["test", "absent"],
-        ]
+        mutually_exclusive = None
 
         self.module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True, required_if=required_if,
                                     mutually_exclusive=mutually_exclusive)
@@ -208,7 +207,7 @@ class Syslog(object):
                     config_match = config
                     if (config["port"] == self.port and config["protocol"] == self.protocol and
                             len(config["components"]) == len(self.components) and
-                            all([component["type"] in self.components for component in config["components"]])):
+                            all(component["type"] in self.components for component in config["components"])):
                         perfect_match = config_match
                         break
 

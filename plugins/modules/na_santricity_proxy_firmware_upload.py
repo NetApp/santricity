@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -13,7 +13,8 @@ short_description: NetApp E-Series manage proxy firmware uploads.
 description:
     - Ensure specific firmware versions are available on SANtricity Web Services Proxy.
 author:
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_proxy_doc
 options:
@@ -22,6 +23,7 @@ options:
             - List of paths and/or directories containing firmware/NVSRAM files.
             - All firmware/NVSRAM files that are not specified will be removed from the proxy if they exist.
         type: list
+        elements: str
         required: false
 """
 EXAMPLES = """
@@ -45,12 +47,12 @@ msg:
 """
 import os
 
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata, request
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata
 
 
 class NetAppESeriesProxyFirmwareUpload(NetAppESeriesModule):
     def __init__(self):
-        ansible_options = dict(firmware=dict(type="list", required=False))
+        ansible_options = dict(firmware=dict(type="list", elements="str", required=False))
         super(NetAppESeriesProxyFirmwareUpload, self).__init__(ansible_options=ansible_options,
                                                                web_services_version="02.00.0000.0000",
                                                                supports_check_mode=True,

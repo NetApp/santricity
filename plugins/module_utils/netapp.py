@@ -37,7 +37,7 @@ import mimetypes
 from pprint import pformat
 from ansible.module_utils import six
 from ansible.module_utils.basic import AnsibleModule, missing_required_lib
-from ansible.module_utils.six.moves.urllib.error import HTTPError, URLError
+from ansible.module_utils.six.moves.urllib.error import HTTPError
 from ansible.module_utils.urls import open_url
 from ansible.module_utils.api import basic_auth_argument_spec
 from ansible.module_utils._text import to_native
@@ -61,9 +61,9 @@ except ImportError:
 
 import ssl
 try:
-    from urlparse import urlparse, urlunparse
+    from urlparse import urlparse
 except ImportError:
-    from urllib.parse import urlparse, urlunparse
+    from urllib.parse import urlparse
 
 
 HAS_SF_SDK = False
@@ -97,8 +97,6 @@ POW2_BYTE_MAP = dict(
 
 try:
     from solidfire.factory import ElementFactory
-    from solidfire.custom.models import TimeIntervalFrequency
-    from solidfire.models import Schedule, ScheduleInfo
 
     HAS_SF_SDK = True
 except Exception:
@@ -382,7 +380,7 @@ class NetAppESeriesModule(object):
             path = path[1:]
         request_url = self.url + self.DEFAULT_REST_API_PATH + path
 
-        if self.log_requests or True:
+        if self.log_requests is True:
             self.module.log(pformat(dict(url=request_url, data=data, method=method)))
 
         return request(url=request_url, data=data, method=method, headers=headers, use_proxy=True, force=False, last_mod_time=None,

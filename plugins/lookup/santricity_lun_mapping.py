@@ -1,13 +1,37 @@
-# (c) 2020, NetApp, Inc
-# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+# (c) 2024, NetApp, Inc
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
+
+DOCUMENTATION = """
+    name: santricity_lun_mapping
+    author:
+        - Nathan Swartz (@swartzn)
+        - Vu Tran (@VuTran007)
+    short_description: NetApp E-Series manage lun mappings
+    description:
+        - Create, delete, or modify mappings between a volume and a targeted host/host+ group.
+    options:
+        array_facts:
+            description:
+                - E-Series storage array facts
+                - Run na_santricity_facts prior to calling
+            required: True
+            type: raw
+        volumes:
+            description:
+                - Volume information returned from santricity_volume lookup plugin which expands
+            type: raw
+"""
 
 from ansible.plugins.lookup import LookupBase
 from ansible.errors import AnsibleError
 
 
 class LookupModule(LookupBase):
+
+    # pylint: disable=arguments-renamed
     def run(self, array_facts, volumes, **kwargs):
         if isinstance(array_facts, list):
             array_facts = array_facts[0]

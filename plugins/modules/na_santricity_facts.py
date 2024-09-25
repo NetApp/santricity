@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -13,7 +13,8 @@ description:
     - The na_santricity_facts module returns a collection of facts regarding NetApp E-Series storage arrays.
 author:
     - Kevin Hulquest (@hulquest)
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 '''
@@ -45,13 +46,13 @@ RETURN = """
         contains:
             netapp_controllers:
                 description: storage array controller list that contains basic controller identification and status
-                type: complex
+                type: list
                 sample:
                     - [{"name": "A", "serial": "021632007299", "status": "optimal"},
                        {"name": "B", "serial": "021632007300", "status": "failed"}]
             netapp_disks:
                 description: drive list that contains identification, type, and status information for each drive
-                type: complex
+                type: list
                 sample:
                     - [{"available": false,
                         "firmware_version": "MS02",
@@ -64,26 +65,26 @@ RETURN = """
                         "usable_bytes": "799629205504" }]
             netapp_driveside_interfaces:
                 description: drive side interface list that contains identification, type, and speed for each interface
-                type: complex
+                type: list
                 sample:
                     - [{ "controller": "A", "interface_speed": "12g", "interface_type": "sas" }]
                     - [{ "controller": "B", "interface_speed": "10g", "interface_type": "iscsi" }]
             netapp_enabled_features:
                 description: specifies the enabled features on the storage array.
                 returned: on success
-                type: complex
+                type: list
                 sample:
                     - [ "flashReadCache", "performanceTier", "protectionInformation", "secureVolume" ]
             netapp_host_groups:
                 description: specifies the host groups on the storage arrays.
                 returned: on success
-                type: complex
+                type: list
                 sample:
                     - [{ "id": "85000000600A098000A4B28D003610705C40B964", "name": "group1" }]
             netapp_hosts:
                 description: specifies the hosts on the storage arrays.
                 returned: on success
-                type: complex
+                type: list
                 sample:
                     - [{ "id": "8203800000000000000000000000000000000000",
                          "name": "host1",
@@ -94,7 +95,7 @@ RETURN = """
             netapp_host_types:
                 description: lists the available host types on the storage array.
                 returned: on success
-                type: complex
+                type: list
                 sample:
                     - [{ "index": 0, "type": "FactoryDefault" },
                        { "index": 1, "type": "W2KNETNCL"},
@@ -119,7 +120,7 @@ RETURN = """
             netapp_hostside_interfaces:
                 description: host side interface list that contains identification, configuration, type, speed, and
                              status information for each interface
-                type: complex
+                type: list
                 sample:
                     - [{"iscsi":
                         [{ "controller": "A",
@@ -136,7 +137,7 @@ RETURN = """
             netapp_management_interfaces:
                 description: management interface list that contains identification, configuration, and status for
                              each interface
-                type: complex
+                type: list
                 sample:
                     - [{"alias": "ict-2800-A",
                         "channel": 1,
@@ -176,7 +177,7 @@ RETURN = """
                                              524288]}
             netapp_storage_pools:
                 description: storage pool list that contains identification and capacity information for each pool
-                type: complex
+                type: list
                 sample:
                     - [{"available_capacity": "3490353782784",
                         "id": "04000000600A098000A81B5D000002B45A953A61",
@@ -185,7 +186,7 @@ RETURN = """
                         "used_capacity": "1909112963072" }]
             netapp_volumes:
                 description: storage volume list that contains identification and capacity information for each volume
-                type: complex
+                type: list
                 sample:
                     - [{"capacity": "5368709120",
                         "id": "02000000600A098000AAC0C3000002C45A952BAA",
@@ -194,7 +195,7 @@ RETURN = """
                         "parent_storage_pool_id": "04000000600A098000A81B5D000002B45A953A61" }]
             netapp_workload_tags:
                 description: workload tag list
-                type: complex
+                type: list
                 sample:
                     - [{"id": "87e19568-43fb-4d8d-99ea-2811daaa2b38",
                         "name": "ftp_server",
@@ -202,7 +203,7 @@ RETURN = """
                                                 "value": "general"}]}]
             netapp_volumes_by_initiators:
                 description: list of available volumes keyed by the mapped initiators.
-                type: complex
+                type: dict
                 sample:
                    - {"beegfs_host": [{"id": "02000000600A098000A4B9D1000015FD5C8F7F9E",
                                       "meta_data": {"filetype": "ext4", "public": true},
@@ -219,7 +220,7 @@ RETURN = """
             snapshot_images:
                 description: snapshot image list that contains identification, capacity, and status information for each
                              snapshot image
-                type: complex
+                type: list
                 sample:
                     - [{"active_cow": true,
                         "creation_method": "user",
@@ -252,7 +253,7 @@ RETURN = """
             controller:
                 description: controller list that contains identification, ip addresses, and certificate information for
                              each controller
-                type: complex
+                type: list
                 sample: [{"certificateStatus": "selfSigned",
                           "controllerId": "070000000000000000000001",
                           "ipAddresses": ["172.17.0.5", "3.3.3.3"]}]
@@ -297,11 +298,6 @@ try:
     from ansible.module_utils.ansible_release import __version__ as ansible_version
 except ImportError:
     ansible_version = 'unknown'
-
-try:
-    from urlparse import urlparse, urlunparse
-except ImportError:
-    from urllib.parse import urlparse, urlunparse
 
 
 class Facts(NetAppESeriesModule):
@@ -865,7 +861,6 @@ class Facts(NetAppESeriesModule):
                                                                             "subnet": ipv4_data["ipv4AddressData"]["ipv4SubnetMask"],
                                                                             "gateway": ipv4_data["ipv4AddressData"]["ipv4GatewayAddress"]}})
 
-
                     facts['netapp_hostside_io_interfaces'].append(interface_info)
 
         # Gather information from controller->hostInterfaces if available (This is a deprecated data structure. Prefer information from ioInterface.
@@ -1143,7 +1138,7 @@ class Facts(NetAppESeriesModule):
                                                                  "eui": pit_view_volume['extendedUniqueIdentifier']})
                                     facts['netapp_volumes_by_initiators'][host['name']].append(pit_view_volume_info)
 
-        features = [feature for feature in array_facts['sa']['capabilities']]
+        features = list(feature for feature in array_facts['sa']['capabilities'])
         features.extend([feature['capability'] for feature in array_facts['sa']['premiumFeatures']
                          if feature['isEnabled']])
         features = list(set(features))  # ensure unique

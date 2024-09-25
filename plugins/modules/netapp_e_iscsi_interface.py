@@ -17,7 +17,7 @@ module: netapp_e_iscsi_interface
 short_description: NetApp E-Series manage iSCSI interface configuration
 description:
     - Configure settings of an E-Series iSCSI interface
-version_added: '2.7'
+version_added: '2.7.0'
 author: Michael Price (@lmprice)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries
@@ -183,7 +183,7 @@ class IscsiInterface(object):
         argument_spec = eseries_host_argument_spec()
         argument_spec.update(dict(
             controller=dict(type='str', required=True, choices=['A', 'B']),
-            name=dict(type='int', aliases=['channel']),
+            name=dict(type='int', required=True, aliases=['channel']),
             state=dict(type='str', required=False, default='enabled', choices=['enabled', 'disabled']),
             address=dict(type='str', required=False),
             subnet_mask=dict(type='str', required=False),

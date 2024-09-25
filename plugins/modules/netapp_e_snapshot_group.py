@@ -18,13 +18,14 @@ module: netapp_e_snapshot_group
 short_description: NetApp E-Series manage snapshot groups
 description:
     - Create, update, delete snapshot groups for NetApp E-series storage arrays
-version_added: '2.2'
+version_added: '2.2.0'
 author: Kevin Hulquest (@hulquest)
 options:
     ssid:
         description:
         - Storage system identifier
         type: str
+        required: true
     api_username:
         required: true
         description:
@@ -195,7 +196,7 @@ class SnapshotGroup(object):
             delete_limit=dict(default=30, type='int'),
             full_policy=dict(default='purgepit', choices=['unknown', 'failbasewrites', 'purgepit']),
             rollback_priority=dict(default='medium', choices=['highest', 'high', 'medium', 'low', 'lowest']),
-            storage_pool_name=dict(type='str'),
+            storage_pool_name=dict(type='str', required=True),
             ssid=dict(required=True),
         )
 
@@ -242,6 +243,7 @@ class SnapshotGroup(object):
 
     @property
     def volume_id(self):
+        Id = None
         volumes = 'storage-systems/%s/volumes' % self.ssid
         url = self.url + volumes
         try:
