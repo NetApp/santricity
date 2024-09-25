@@ -865,7 +865,6 @@ Maintainer Information
 ------------------
     - Nathan Swartz (@ndswartz)
     - Joe McCormick (@iamjoemccormick)
-    - Tracy Cummins (@tracycummins)
 
 =============
 Release Notes
