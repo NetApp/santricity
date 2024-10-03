@@ -18,7 +18,7 @@ module: netapp_e_amg_role
 short_description: NetApp E-Series update the role of a storage array within an Asynchronous Mirror Group (AMG).
 description:
     - Update a storage array to become the primary or secondary instance in an asynchronous mirror group
-version_added: '2.2'
+version_added: '2.2.0'
 author: Kevin Hulquest (@hulquest)
 options:
     api_username:
@@ -202,14 +202,14 @@ def update_amg(module, ssid, api_url, api_usr, api_pwd, body, amg_id):
 def main():
     argument_spec = basic_auth_argument_spec()
     argument_spec.update(dict(
+        api_username=dict(required=True, type='str'),
+        api_password=dict(required=True, type='str', no_log=True),
         name=dict(required=True, type='str'),
         role=dict(required=True, choices=['primary', 'secondary']),
         noSync=dict(required=False, type='bool', default=False),
         force=dict(required=False, type='bool', default=False),
         ssid=dict(required=True, type='str'),
         api_url=dict(required=True),
-        api_username=dict(required=False),
-        api_password=dict(required=False, no_log=True),
     ))
 
     module = AnsibleModule(argument_spec=argument_spec)

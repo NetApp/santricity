@@ -17,7 +17,7 @@ module: netapp_e_auditlog
 short_description: NetApp E-Series manage audit-log configuration
 description:
     - This module allows an e-series storage system owner to set audit-log configuration parameters.
-version_added: '2.7'
+version_added: '2.7.0'
 author: Nathan Swartz (@ndswartz)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries

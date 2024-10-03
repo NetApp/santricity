@@ -16,7 +16,7 @@ DOCUMENTATION = """
 module: netapp_e_storagepool
 short_description: NetApp E-Series manage volume groups and disk pools
 description: Create or remove volume groups and disk pools for NetApp E-series storage arrays.
-version_added: '2.2'
+version_added: '2.2.0'
 author:
   - Kevin Hulquest (@hulquest)
   - Nathan Swartz (@ndswartz)
@@ -80,7 +80,7 @@ options:
       - Only available for new storage pools; existing storage pools cannot be converted.
     default: false
     type: bool
-    version_added: '2.9'
+    version_added: '2.9.0'
   criteria_drive_require_fde:
     description:
      - Whether full disk encryption ability is required for drives to be added to the storage pool
@@ -109,6 +109,7 @@ options:
       - Warning, once security is enabled it is impossible to disable without erasing the drives.
     required: false
     type: bool
+    default: false
   reserve_drive_count:
     description:
       - Set the number of drives reserved by the storage pool for reconstruction operations.
@@ -200,8 +201,8 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
                                                type="str"),
             criteria_drive_type=dict(choices=["ssd", "hdd"], type="str", required=False),
             criteria_drive_min_size=dict(type="float"),
-            criteria_drive_require_da=dict(type="bool", required=False),
-            criteria_drive_require_fde=dict(type="bool", required=False),
+            criteria_drive_require_da=dict(type="bool", required=False, default=False),
+            criteria_drive_require_fde=dict(type="bool", required=False, default=False),
             criteria_min_usable_capacity=dict(type="float"),
             raid_level=dict(choices=["raidAll", "raid0", "raid1", "raid3", "raid5", "raid6", "raidDiskPool"],
                             default="raidDiskPool"),
@@ -434,8 +435,8 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
         else:
             drive_count = len(expansion_drive_list)
 
-        drive_usable_capacity = min(min(self.get_available_drive_capacities()),
-                                    min(self.get_available_drive_capacities(expansion_drive_list)))
+        drive_usable_capacity = min(*self.get_available_drive_capacities(),
+                                    *self.get_available_drive_capacities(expansion_drive_list))
         drive_data_extents = ((drive_usable_capacity - 8053063680) / 536870912)
         maximum_stripe_count = (drive_count * drive_data_extents) / 10
 

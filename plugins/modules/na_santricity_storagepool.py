@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -12,7 +12,8 @@ module: na_santricity_storagepool
 short_description: NetApp E-Series manage volume groups and disk pools
 description: Create or remove volume groups and disk pools for NetApp E-series storage arrays.
 author:
-  - Nathan Swartz (@ndswartz)
+  - Nathan Swartz (@swartzn)
+  - Vu Tran (@VuTran007)
 extends_documentation_fragment:
   - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -120,6 +121,7 @@ options:
       - Will only work if all drives in the pool are security capable (FDE, FIPS, or mix)
       - Warning, once security is enabled it is impossible to disable without erasing the drives.
     type: bool
+    default: false
     required: false
   reserve_drive_count:
     description:
@@ -154,7 +156,7 @@ options:
       - Only applicable when I(raid_level=="raidDiskPool").
       - Set I(ddp_warning_threshold_pct==0) to disable alert.
     type: int
-    default: 85
+    default: 0
     required: false
 notes:
   - The expansion operations are non-blocking due to the time consuming nature of expanding volume groups
@@ -231,8 +233,8 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
             criteria_drive_type=dict(choices=["ssd", "hdd"], type="str", required=False),
             criteria_drive_min_size=dict(type="float"),
             criteria_drive_max_size=dict(type="float"),
-            criteria_drive_require_da=dict(type="bool", required=False),
-            criteria_drive_require_fde=dict(type="bool", required=False),
+            criteria_drive_require_da=dict(type="bool", required=False, default=False),
+            criteria_drive_require_fde=dict(type="bool", required=False, default=False),
             criteria_min_usable_capacity=dict(type="float"),
             usable_drives=dict(type="str", required=False),
             raid_level=dict(choices=["raidAll", "raid0", "raid1", "raid3", "raid5", "raid6", "raidDiskPool"],
@@ -519,8 +521,9 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
         else:
             drive_count = len(expansion_drive_list)
 
-        drive_usable_capacity = min(min(self.get_available_drive_capacities()),
-                                    min(self.get_available_drive_capacities(expansion_drive_list)))
+        drive_usable_capacity = min(*self.get_available_drive_capacities(),
+                                    *self.get_available_drive_capacities(expansion_drive_list))
+
         drive_data_extents = ((drive_usable_capacity - 8053063680) / 536870912)
         maximum_stripe_count = (drive_count * drive_data_extents) / 10
 
@@ -979,7 +982,7 @@ class NetAppESeriesStoragePool(NetAppESeriesModule):
                     self.module.fail_json(msg="Failed! It is not possible to modify storage pool media type."
                                               " Array [%s]. Pool [%s]." % (self.ssid, self.pool_detail["id"]))
 
-                if (self.criteria_drive_require_da is not None and self.criteria_drive_require_da !=
+                if (self.criteria_drive_require_da is not False and self.criteria_drive_require_da !=
                         self.pool_detail["protectionInformationCapabilities"]["protectionInformationCapable"]):
                     self.module.fail_json(msg="Failed! It is not possible to modify DA-capability. Array [%s]."
                                               " Pool [%s]." % (self.ssid, self.pool_detail["id"]))

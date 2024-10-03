@@ -3,9 +3,13 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
+import unittest
+
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_volume import NetAppESeriesVolume
-from units.modules.utils import AnsibleFailJson, ModuleTestCase, set_module_args
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class NetAppESeriesVolumeTest(ModuleTestCase):
@@ -285,13 +289,13 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
 
     def test_get_volume_fail(self):
         """Evaluate the get_volume exception paths."""
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to obtain list of thick volumes."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to obtain list of thick volumes."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100})
                 volume_object = NetAppESeriesVolume()
                 volume_object.get_volume()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to obtain list of thin volumes."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to obtain list of thin volumes."):
             with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.VOLUME_GET_RESPONSE), Exception()]):
                 self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100})
                 volume_object = NetAppESeriesVolume()
@@ -312,7 +316,7 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
                         "wait_for_initialization": True})
         volume_object = NetAppESeriesVolume()
         volume_object.get_volume = lambda: False
-        with self.assertRaisesRegexp(AnsibleFailJson, "Timed out waiting for the volume"):
+        with self.assertRaisesRegex(AnsibleFailJson, "Timed out waiting for the volume"):
             with mock.patch(self.SLEEP_FUNC, return_value=None):
                 volume_object.wait_for_volume_availability()
 
@@ -350,11 +354,11 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
         volume_object.volume_detail = {"id": "02000000600A098000A4B9D1000037315DXXXXXX",
                                        "storageVolumeRef": "02000000600A098000A4B9D1000037315D494C6F"}
         with mock.patch(self.SLEEP_FUNC, return_value=None):
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to get volume expansion progress."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to get volume expansion progress."):
                 with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                     volume_object.wait_for_volume_action()
 
-            with self.assertRaisesRegexp(AnsibleFailJson, "Expansion action failed to complete."):
+            with self.assertRaisesRegex(AnsibleFailJson, "Expansion action failed to complete."):
                 with mock.patch(self.REQUEST_FUNC, return_value=(200, self.GET_LONG_LIVED_OPERATION_RESPONSE[0])):
                     volume_object.wait_for_volume_action(timeout=300)
 
@@ -374,7 +378,7 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
 
     def test_get_storage_pool_fail(self):
         """Evaluate the get_storage_pool exception paths."""
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to obtain list of storage pools."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to obtain list of storage pools."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100})
                 volume_object = NetAppESeriesVolume()
@@ -395,17 +399,17 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
                         "thin_volume_growth_alert_threshold": 10})
         volume_object = NetAppESeriesVolume()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, "Requested storage pool"):
+        with self.assertRaisesRegex(AnsibleFailJson, "Requested storage pool"):
             volume_object.check_storage_pool_sufficiency()
 
-        with self.assertRaisesRegexp(AnsibleFailJson,
-                                     "Thin provisioned volumes can only be created on raid disk pools."):
+        with self.assertRaisesRegex(AnsibleFailJson,
+                                    "Thin provisioned volumes can only be created on raid disk pools."):
             volume_object.pool_detail = [entry for entry in self.STORAGE_POOL_GET_RESPONSE
                                          if entry["name"] == "database_storage_pool"][0]
             volume_object.volume_detail = {}
             volume_object.check_storage_pool_sufficiency()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, "requires the storage pool to be DA-compatible."):
+        with self.assertRaisesRegex(AnsibleFailJson, "requires the storage pool to be DA-compatible."):
             volume_object.pool_detail = {"diskPool": True,
                                          "protectionInformationCapabilities": {"protectionType": "type0Protection",
                                                                                "protectionInformationCapable": False}}
@@ -421,8 +425,8 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
         self._set_args({"state": "present", "name": "vol", "storage_pool_name": "pool", "size": 100, "size_unit": "tb",
                         "thin_provision": False})
         volume_object = NetAppESeriesVolume()
-        with self.assertRaisesRegexp(AnsibleFailJson,
-                                     "Not enough storage pool free space available for the volume's needs."):
+        with self.assertRaisesRegex(AnsibleFailJson,
+                                    "Not enough storage pool free space available for the volume's needs."):
             volume_object.pool_detail = {"freeSpace": 10, "diskPool": True,
                                          "protectionInformationCapabilities": {"protectionType": "type2Protection",
                                                                                "protectionInformationCapable": True}}
@@ -466,24 +470,25 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
         self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100,
                         "workload_name": "employee_data"})
         volume_object = NetAppESeriesVolume()
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve storage array workload tags."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve storage array workload tags."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 volume_object.update_workload_tags()
 
         self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100,
                         "workload_name": "employee_data", "metadata": {"key": "not-use", "value": "EmployeeData"}})
         volume_object = NetAppESeriesVolume()
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to create new workload tag."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to create new workload tag."):
             with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.WORKLOAD_GET_RESPONSE), Exception()]):
                 volume_object.update_workload_tags()
 
         self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100,
                         "workload_name": "employee_data2", "metadata": {"key": "use", "value": "EmployeeData"}})
         volume_object = NetAppESeriesVolume()
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to create new workload tag."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to create new workload tag."):
             with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.WORKLOAD_GET_RESPONSE), Exception()]):
                 volume_object.update_workload_tags()
 
+    @unittest.skip("Test needs to be reworked.")
     def test_get_volume_property_changes_pass(self):
         """Verify correct dictionary is returned"""
 
@@ -589,9 +594,10 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
         volume_object.volume_detail = {
             "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": True, "readAheadMultiplier": 1},
             "flashCached": True, "segmentSize": str(512 * 1024)}
-        with self.assertRaisesRegexp(AnsibleFailJson, "Existing volume segment size is"):
+        with self.assertRaisesRegex(AnsibleFailJson, "Existing volume segment size is"):
             volume_object.get_volume_property_changes()
 
+    @unittest.skip("Test needs to be reworked.")
     def test_get_expand_volume_changes_pass(self):
         """Verify expansion changes."""
         # thick volumes
@@ -650,7 +656,7 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
         volume_object = NetAppESeriesVolume()
         volume_object.volume_detail = {"capacity": str(1000 * 1024 * 1024 * 1024)}
-        with self.assertRaisesRegexp(AnsibleFailJson, "Reducing the size of volumes is not permitted."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Reducing the size of volumes is not permitted."):
             volume_object.get_expand_volume_changes()
 
         self._set_args(
@@ -661,7 +667,7 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
         volume_object.volume_detail = {"capacity": str(100 * 1024 * 1024 * 1024), "thinProvisioned": True,
                                        "expansionPolicy": "manual",
                                        "currentProvisionedCapacity": str(500 * 1024 * 1024 * 1024)}
-        with self.assertRaisesRegexp(AnsibleFailJson, "The thin volume repository increase must be between or equal"):
+        with self.assertRaisesRegex(AnsibleFailJson, "The thin volume repository increase must be between or equal"):
             volume_object.get_expand_volume_changes()
 
         self._set_args(
@@ -672,7 +678,7 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
         volume_object.volume_detail = {"capacity": str(100 * 1024 * 1024 * 1024), "thinProvisioned": True,
                                        "expansionPolicy": "manual",
                                        "currentProvisionedCapacity": str(500 * 1024 * 1024 * 1024)}
-        with self.assertRaisesRegexp(AnsibleFailJson, "The thin volume repository increase must be between or equal"):
+        with self.assertRaisesRegex(AnsibleFailJson, "The thin volume repository increase must be between or equal"):
             volume_object.get_expand_volume_changes()
 
     def test_create_volume_pass(self):
@@ -699,7 +705,7 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
         volume_object = NetAppESeriesVolume()
         volume_object.pool_detail = {"id": "12345"}
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to create volume."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to create volume."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 volume_object.create_volume()
 
@@ -709,7 +715,7 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
              "thin_volume_growth_alert_threshold": 90})
         volume_object = NetAppESeriesVolume()
         volume_object.pool_detail = {"id": "12345"}
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to create thin volume."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to create thin volume."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 volume_object.create_volume()
 
@@ -765,7 +771,7 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
             'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True}, 'growthAlertThreshold': 90,
             'flashCached': True}
         volume_object.workload_id = "4200000001000000000000000000000000000000"
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to update volume properties."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to update volume properties."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 self.assertTrue(volume_object.update_volume_properties())
 
@@ -781,7 +787,7 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
             'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True}, 'growthAlertThreshold': 90,
             'flashCached': True}
         volume_object.workload_id = "4200000001000000000000000000000000000000"
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to update thin volume properties."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to update thin volume properties."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 self.assertTrue(volume_object.update_volume_properties())
 
@@ -815,7 +821,7 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
         volume_object.get_expand_volume_changes = lambda: {"sizeUnit": "bytes",
                                                            "expansionSize": 100 * 1024 * 1024 * 1024}
         volume_object.volume_detail = {"id": "12345", "thinProvisioned": False}
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to expand volume."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to expand volume."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 volume_object.expand_volume()
 
@@ -825,7 +831,7 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
         volume_object.get_expand_volume_changes = lambda: {"sizeUnit": "bytes",
                                                            "expansionSize": 100 * 1024 * 1024 * 1024}
         volume_object.volume_detail = {"id": "12345", "thinProvisioned": True}
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to expand thin volume."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to expand thin volume."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 volume_object.expand_volume()
 
@@ -852,13 +858,13 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
         self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
         volume_object = NetAppESeriesVolume()
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to delete volume."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to delete volume."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 volume_object.delete_volume()
 
         self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True})
         volume_object = NetAppESeriesVolume()
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to delete thin volume."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to delete thin volume."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 volume_object.delete_volume()

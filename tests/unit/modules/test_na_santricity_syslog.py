@@ -4,8 +4,10 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_syslog import NetAppESeriesSyslog
-from units.modules.utils import AnsibleFailJson, ModuleTestCase, set_module_args
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class AsupTest(ModuleTestCase):
@@ -35,7 +37,7 @@ class AsupTest(ModuleTestCase):
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
             syslog = NetAppESeriesSyslog()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"We failed to send test message!"):
+        with self.assertRaisesRegex(AnsibleFailJson, r"We failed to send test message!"):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 syslog.test_configuration(self.REQUIRED_PARAMS)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -14,7 +14,8 @@ description:
     - Allow the auto-support settings to be configured for an individual E-Series storage-system
 author:
     - Michael Price (@lmprice)
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -62,6 +63,7 @@ options:
             - A list of days of the week that ASUP bundles will be sent. A larger, weekly bundle will be sent on one
               of the provided days.
         type: list
+        elements: str
         choices:
             - monday
             - tuesday
@@ -87,7 +89,7 @@ options:
     routing_type:
         description:
             - AutoSupport routing
-            - Required when M(method==https or method==http).
+            - Required when I(method==https or method==http).
         choices:
             - direct
             - proxy
@@ -98,26 +100,26 @@ options:
     proxy:
         description:
             - Information particular to the proxy delivery method.
-            - Required when M((method==https or method==http) and routing_type==proxy).
+            - Required when I((method==https or method==http) and routing_type==proxy).
         type: dict
         required: false
         suboptions:
             host:
                 description:
                     - Proxy host IP address or fully qualified domain name.
-                    - Required when M(method==http or method==https) and M(routing_type==proxy).
+                    - Required when I(method==http or method==https) and I(routing_type==proxy).
                 type: str
                 required: false
             port:
                 description:
                     - Proxy host port.
-                    - Required when M(method==http or method==https) and M(routing_type==proxy).
+                    - Required when I(method==http or method==https) and I(routing_type==proxy).
                 type: int
                 required: false
             script:
                 description:
                     - Path to the AutoSupport routing script file.
-                    - Required when M(method==http or method==https) and M(routing_type==script).
+                    - Required when I(method==http or method==https) and I(routing_type==script).
                 type: str
                 required: false
             username:
@@ -134,26 +136,26 @@ options:
         description:
             - Information particular to the e-mail delivery method.
             - Uses the SMTP protocol.
-            - Required when M(method==email).
+            - Required when I(method==email).
         type: dict
         required: false
         suboptions:
             server:
                 description:
                     - Mail server's IP address or fully qualified domain name.
-                    - Required when M(routing_type==email).
+                    - Required when I(routing_type==email).
                 type: str
                 required: false
             sender:
                 description:
                     - Sender's email account
-                    - Required when M(routing_type==email).
+                    - Required when I(routing_type==email).
                 type: str
                 required: false
             test_recipient:
                 description:
                     - Test verification email
-                    - Required when M(routing_type==email).
+                    - Required when I(routing_type==email).
                 type: str
                 required: false
     maintenance_duration:
@@ -169,6 +171,7 @@ options:
             - List of email addresses for maintenance notifications.
             - Required when I(state==maintenance_enabled).
         type: list
+        elements: str
         required: false
     validate:
         description:
@@ -276,7 +279,7 @@ class NetAppESeriesAsup(NetAppESeriesModule):
         ansible_options = dict(
             state=dict(type="str", required=False, default="enabled", choices=["enabled", "disabled", "maintenance_enabled", "maintenance_disabled"]),
             active=dict(type="bool", required=False, default=True),
-            days=dict(type="list", required=False, aliases=["schedule_days", "days_of_week"], choices=self.DAYS_OPTIONS),
+            days=dict(type="list", elements="str", required=False, aliases=["schedule_days", "days_of_week"], choices=self.DAYS_OPTIONS),
             start=dict(type="int", required=False, default=0),
             end=dict(type="int", required=False, default=24),
             method=dict(type="str", required=False, choices=["https", "http", "email"], default="https"),
@@ -290,11 +293,13 @@ class NetAppESeriesAsup(NetAppESeriesModule):
                                                                  sender=dict(type="str", required=False),
                                                                  test_recipient=dict(type="str", required=False))),
             maintenance_duration=dict(type="int", required=False, default=24),
-            maintenance_emails=dict(type="list", required=False),
-            validate=dict(type="bool", require=False, default=False))
+            maintenance_emails=dict(type="list", elements="str", required=False),
+            validate=dict(type="bool", required=False, default=False))
 
-        mutually_exclusive = [["host", "script"],
-                              ["port", "script"]]
+        # # mutually_exclusive did not work with suboptions. Comment out this for now.
+        # mutually_exclusive = [["host", "script"],
+        #                       ["port", "script"]]
+        mutually_exclusive = None
 
         required_if = [["method", "https", ["routing_type"]],
                        ["method", "http", ["routing_type"]],

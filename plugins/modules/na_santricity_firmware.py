@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -13,7 +13,8 @@ short_description: NetApp E-Series manage firmware.
 description:
     - Ensure specific firmware versions are activated on E-Series storage system.
 author:
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -21,15 +22,17 @@ options:
         description:
             - Path to the NVSRAM file.
             - NetApp recommends upgrading the NVSRAM when upgrading firmware.
-            - Due to concurrency issues, use M(na_santricity_proxy_firmware_upload) to upload firmware and nvsram to SANtricity Web Services Proxy when
-              upgrading multiple systems at the same time on the same instance of the proxy.
+            - Due to concurrency issues, use M(netapp_eseries.santricity.na_santricity_proxy_firmware_upload) to upload
+              firmware and nvsram to SANtricity Web Services Proxy when upgrading multiple systems at the same time on
+              the same instance of the proxy.
         type: str
         required: false
     firmware:
         description:
             - Path to the firmware file.
-            - Due to concurrency issues, use M(na_santricity_proxy_firmware_upload) to upload firmware and nvsram to SANtricity Web Services Proxy when
-              upgrading multiple systems at the same time on the same instance of the proxy.
+            - Due to concurrency issues, use M(netapp_eseries.santricity.na_santricity_proxy_firmware_upload) to upload
+              firmware and nvsram to SANtricity Web Services Proxy when upgrading multiple systems at the same time on
+              the same instance of the proxy.
         type: str
         required: True
     wait_for_completion:
@@ -76,12 +79,11 @@ msg:
     sample:
 """
 import os
-import multiprocessing
 import threading
 
 from time import sleep
 from ansible.module_utils import six
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata, request
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata
 from ansible.module_utils._text import to_native
 
 
@@ -504,7 +506,7 @@ class NetAppESeriesFirmware(NetAppESeriesModule):
             new_firmware_version = self.firmware_version()
             if current_firmware_version != new_firmware_version:
                 self.upgrade_required = True
-                
+
             # Build the modules information for logging purposes
             self.module_info.update({"bundleDisplay": {"onboard_version": current_firmware_version, "bundled_version": new_firmware_version}})
 

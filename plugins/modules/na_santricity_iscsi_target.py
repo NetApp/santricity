@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -14,6 +14,7 @@ description:
     - Configure the settings of an E-Series iSCSI target
 author:
     - Michael Price (@lmprice)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -55,7 +56,7 @@ options:
 notes:
     - Check mode is supported.
     - Some of the settings are dependent on the settings applied to the iSCSI interfaces. These can be configured using
-      M(na_santricity_iscsi_interface).
+      M(netapp_eseries.santricity.na_santricity_iscsi_interface).
     - This module requires a Web Services API version of >= 1.3.
 """
 
@@ -164,7 +165,7 @@ class NetAppESeriesIscsiTarget(NetAppESeriesModule):
                 self.module.fail_json(msg="This storage-system does not appear to have iSCSI interfaces. Array Id [%s]." % self.ssid)
 
             data = data[0]
-            chap = any([auth for auth in data["configuredAuthMethods"]["authMethodData"] if auth["authMethod"] == "chap"])
+            chap = any(auth for auth in data["configuredAuthMethods"]["authMethodData"] if auth["authMethod"] == "chap")
             target.update(dict(alias=data["alias"]["iscsiAlias"], iqn=data["nodeName"]["iscsiNodeName"], chap=chap))
 
             rc, data = self.request("storage-systems/%s/graph/xpath-filter?query=/sa/iscsiEntityData" % self.ssid)

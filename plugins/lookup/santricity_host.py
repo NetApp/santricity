@@ -1,11 +1,13 @@
-# (c) 2020, NetApp, Inc
-# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+# (c) 2024, NetApp, Inc
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = """
-    lookup: santricity_hosts
-    author: Nathan Swartz
+    name: santricity_host
+    author:
+        - Nathan Swartz (@swartzn)
+        - Vu Tran (@VuTran007)
     short_description: Collects host information
     description:
         - Collects current host, expected host and host group inventory definitions.
@@ -15,10 +17,11 @@ DOCUMENTATION = """
                 - E-Series storage array inventory, hostvars[inventory_hostname].
                 - Run na_santricity_facts prior to calling
             required: True
-            type: complex
+            type: raw
         volumes:
             description:
                 - Volume information returned from santricity_volume lookup plugin which expands
+            type: raw
 """
 from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
@@ -26,6 +29,7 @@ from ansible.plugins.lookup import LookupBase
 
 class LookupModule(LookupBase):
 
+    # pylint: disable=arguments-renamed
     def run(self, inventory, volumes, **kwargs):
         if isinstance(inventory, list):
             inventory = inventory[0]

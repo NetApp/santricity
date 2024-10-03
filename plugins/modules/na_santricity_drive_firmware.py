@@ -22,6 +22,7 @@ options:
             - list of drive firmware file paths.
             - NetApp E-Series drives require special firmware which can be downloaded from https://mysupport.netapp.com/NOW/download/tools/diskfw_eseries/
         type: list
+        elements: str
         required: True
     wait_for_completion:
         description:
@@ -48,7 +49,7 @@ EXAMPLES = """
     api_username: "admin"
     api_password: "adminpass"
     validate_certs: true
-    firmware: "path/to/drive_firmware"
+    firmware: ["path/to/drive_firmware"]
     wait_for_completion: true
     ignore_inaccessible_drives: false
 """
@@ -61,10 +62,9 @@ msg:
         { changed: True, upgrade_in_process: True }
 """
 import os
-import re
 
 from time import sleep
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata, request
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata
 from ansible.module_utils._text import to_native
 
 
@@ -73,7 +73,7 @@ class NetAppESeriesDriveFirmware(NetAppESeriesModule):
 
     def __init__(self):
         ansible_options = dict(
-            firmware=dict(type="list", required=True),
+            firmware=dict(type="list", elements="str", required=True),
             wait_for_completion=dict(type="bool", default=False),
             ignore_inaccessible_drives=dict(type="bool", default=False),
             upgrade_drives_online=dict(type="bool", default=True))

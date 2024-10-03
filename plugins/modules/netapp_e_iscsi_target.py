@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2018, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -17,7 +17,7 @@ module: netapp_e_iscsi_target
 short_description: NetApp E-Series manage iSCSI target configuration
 description:
     - Configure the settings of an E-Series iSCSI target
-version_added: '2.7'
+version_added: '2.7.0'
 author: Michael Price (@lmprice)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries
@@ -61,7 +61,7 @@ options:
 notes:
     - Check mode is supported.
     - Some of the settings are dependent on the settings applied to the iSCSI interfaces. These can be configured using
-      M(netapp_e_iscsi_interface).
+      M(netapp_eseries.santricity.netapp_e_iscsi_interface).
     - This module requires a Web Services API version of >= 1.3.
 """
 
@@ -197,8 +197,7 @@ class IscsiTarget(object):
 
             data = data[0]
 
-            chap = any(
-                [auth for auth in data['configuredAuthMethods']['authMethodData'] if auth['authMethod'] == 'chap'])
+            chap = any(auth for auth in data['configuredAuthMethods']['authMethodData'] if auth['authMethod'] == 'chap')
 
             target.update(dict(alias=data['alias']['iscsiAlias'],
                                iqn=data['nodeName']['iscsiNodeName'],

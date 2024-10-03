@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2016, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -16,11 +16,12 @@ DOCUMENTATION = '''
 module: netapp_e_lun_mapping
 author:
     - Kevin Hulquest (@hulquest)
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 short_description: NetApp E-Series create, delete, or modify lun mappings
 description:
      - Create, delete, or modify mappings between a volume and a targeted host/host+ group.
-version_added: "2.2"
+version_added: "2.2.0"
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries
 options:
@@ -49,7 +50,7 @@ options:
       - The LUN value you wish to give the mapping.
       - If the supplied I(volume_name) is associated with a different LUN, it will be updated to what is supplied here.
       - LUN value will be determine by the storage-system when not specified.
-    version_added: 2.7
+    version_added: 2.7.0
     type: int
     required: no
   target_type:
@@ -59,7 +60,7 @@ options:
     choices:
       - host
       - group
-    version_added: 2.7
+    version_added: 2.7.0
     type: str
     required: no
 '''
@@ -95,8 +96,6 @@ msg:
     sample: Lun mapping is complete
 '''
 import json
-import logging
-from pprint import pformat
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.netapp_eseries.santricity.plugins.module_utils.netapp import request, eseries_host_argument_spec

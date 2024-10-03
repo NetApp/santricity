@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -12,7 +12,8 @@ module: na_santricity_hostgroup
 short_description: NetApp E-Series manage array host groups
 author:
     - Kevin Hulquest (@hulquest)
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 description: Create, update or destroy host groups on a NetApp E-Series storage array.
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
@@ -27,11 +28,12 @@ options:
         description:
             - Name of the host group to manage
         type: str
-        required: false
+        required: true
     hosts:
         description:
             - List of host names/labels to add to the group
         type: list
+        elements: str
         required: false
 """
 EXAMPLES = """
@@ -93,7 +95,7 @@ protectionInformationCapableAccessMethod:
     sample: true
 """
 from ansible.module_utils._text import to_native
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata, request
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule
 
 
 class NetAppESeriesHostGroup(NetAppESeriesModule):
@@ -105,7 +107,7 @@ class NetAppESeriesHostGroup(NetAppESeriesModule):
         ansible_options = dict(
             state=dict(choices=["present", "absent"], type="str", default="present"),
             name=dict(required=True, type="str"),
-            hosts=dict(required=False, type="list"))
+            hosts=dict(required=False, type="list", elements="str"))
         super(NetAppESeriesHostGroup, self).__init__(ansible_options=ansible_options,
                                                      web_services_version=version,
                                                      supports_check_mode=True)

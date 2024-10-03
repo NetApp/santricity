@@ -1,11 +1,13 @@
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_proxy_drive_firmware_upload import NetAppESeriesProxyDriveFirmwareUpload
-from units.compat.mock import patch, mock_open
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat.mock import patch
 
 
 class StoragePoolTest(ModuleTestCase):
@@ -46,7 +48,7 @@ class StoragePoolTest(ModuleTestCase):
         self._set_args({"firmware": ["/path/to/firmware1.dlp", "/path/to/firmware/directory"]})
         firmware = NetAppESeriesProxyDriveFirmwareUpload()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Drive firmware file does not exist!"):
+        with self.assertRaisesRegex(AnsibleFailJson, r"Drive firmware file does not exist!"):
             with patch(self.OS_PATH_EXISTS_FUNC, side_effect=[True, False]):
                 firmware.determine_file_paths()
 
@@ -69,7 +71,7 @@ class StoragePoolTest(ModuleTestCase):
         self._set_args({"firmware": ["/path/to/firmware1.dlp", "/path/to/firmware/directory"]})
         firmware = NetAppESeriesProxyDriveFirmwareUpload()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to retrieve proxy drive firmware file list."):
+        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to retrieve proxy drive firmware file list."):
             with patch(self.REQUEST_FUNC, return_value=Exception()):
                 firmware.determine_changes()
 
@@ -109,22 +111,22 @@ class StoragePoolTest(ModuleTestCase):
 
         firmware.add_files = ["firmware1.dlp", "firmware2.dlp"]
         firmware.remove_files = ["firmware3.dlp", "firmware4.dlp"]
-        with self.assertRaisesRegexp(AnsibleExitJson, r"'changed': True"):
+        with self.assertRaisesRegex(AnsibleExitJson, r"'changed': True"):
             firmware.apply()
 
         firmware.add_files = ["firmware1.dlp", "firmware2.dlp"]
         firmware.remove_files = []
-        with self.assertRaisesRegexp(AnsibleExitJson, r"'changed': True"):
+        with self.assertRaisesRegex(AnsibleExitJson, r"'changed': True"):
             firmware.apply()
 
         firmware.add_files = []
         firmware.remove_files = ["firmware3.dlp", "firmware4.dlp"]
-        with self.assertRaisesRegexp(AnsibleExitJson, r"'changed': True"):
+        with self.assertRaisesRegex(AnsibleExitJson, r"'changed': True"):
             firmware.apply()
 
         firmware.add_files = []
         firmware.remove_files = []
-        with self.assertRaisesRegexp(AnsibleExitJson, r"'changed': False"):
+        with self.assertRaisesRegex(AnsibleExitJson, r"'changed': False"):
             firmware.apply()
 
     def test_apply_fail(self):
@@ -133,5 +135,5 @@ class StoragePoolTest(ModuleTestCase):
         firmware = NetAppESeriesProxyDriveFirmwareUpload()
         firmware.is_proxy = lambda: False
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Module can only be executed against SANtricity Web Services Proxy."):
+        with self.assertRaisesRegex(AnsibleFailJson, r"Module can only be executed against SANtricity Web Services Proxy."):
             firmware.apply()

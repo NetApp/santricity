@@ -4,8 +4,10 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_alerts_syslog import NetAppESeriesAlertsSyslog
-from units.modules.utils import AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class NetAppESeriesAlertSyslogTest(ModuleTestCase):
@@ -48,7 +50,7 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
 
         for options in options_list:
             self._set_args(options)
-            with self.assertRaisesRegexp(AnsibleFailJson, "Maximum number of syslog servers is 5!"):
+            with self.assertRaisesRegex(AnsibleFailJson, "Maximum number of syslog servers is 5!"):
                 with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
                     syslog = NetAppESeriesAlertsSyslog()
 
@@ -79,7 +81,7 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
             syslog = NetAppESeriesAlertsSyslog()
 
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve syslog configuration!"):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve syslog configuration!"):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
                     syslog.get_current_configuration()
 
@@ -121,7 +123,7 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
         with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
             syslog = NetAppESeriesAlertsSyslog()
 
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to send test message!"):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to send test message!"):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
                     syslog.test_configuration()
 
@@ -146,6 +148,6 @@ class NetAppESeriesAlertSyslogTest(ModuleTestCase):
             syslog.is_change_required = lambda: True
             syslog.make_request_body = lambda: {}
 
-            with self.assertRaisesRegexp(AnsibleFailJson, "Failed to add syslog server!"):
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to add syslog server!"):
                 with mock.patch(self.REQ_FUNC, return_value=Exception()):
                     syslog.update()

@@ -17,7 +17,7 @@ module: netapp_e_amg
 short_description: NetApp E-Series create, remove, and update asynchronous mirror groups
 description:
     - Allows for the creation, removal and updating of Asynchronous Mirror Groups for NetApp E-series storage arrays
-version_added: '2.2'
+version_added: '2.2.0'
 author: Kevin Hulquest (@hulquest)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries
@@ -213,6 +213,8 @@ def remove_amg(module, ssid, api_url, pwd, user, async_id):
 def main():
     argument_spec = eseries_host_argument_spec()
     argument_spec.update(dict(
+        api_username=dict(required=True, type='str'),
+        api_password=dict(required=True, type='str', no_log=True),
         name=dict(required=True, type='str'),
         new_name=dict(required=False, type='str'),
         secondaryArrayId=dict(required=True, type='str'),

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -13,7 +13,8 @@ short_description: NetApp E-Series manage eseries hosts
 description: Create, update, remove hosts on NetApp E-series storage arrays
 author:
     - Kevin Hulquest (@hulquest)
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -65,6 +66,7 @@ options:
             - Host ports are uniquely identified by their WWN or IQN. Their assignments to a particular host are
              uniquely identified by a label and these must be unique.
         type: list
+        elements: dict
         required: False
         suboptions:
             type:
@@ -91,6 +93,7 @@ options:
             - Allow ports that are already assigned to be re-assigned to your current host
         required: false
         type: bool
+        default: false
 """
 
 EXAMPLES = """
@@ -163,7 +166,7 @@ class NetAppESeriesHost(NetAppESeriesModule):
 
     def __init__(self):
         ansible_options = dict(state=dict(type="str", default="present", choices=["absent", "present"]),
-                               ports=dict(type="list", required=False),
+                               ports=dict(type="list", elements="dict", required=False),
                                force_port=dict(type="bool", default=False),
                                name=dict(type="str", required=True, aliases=["label"]),
                                host_type=dict(type="str", required=False, aliases=["host_type_index"]))

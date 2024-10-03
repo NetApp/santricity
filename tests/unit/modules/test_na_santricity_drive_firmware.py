@@ -1,11 +1,13 @@
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_drive_firmware import NetAppESeriesDriveFirmware
-from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class HostTest(ModuleTestCase):
@@ -50,7 +52,7 @@ class HostTest(ModuleTestCase):
         self._set_args({"firmware": ["path_to_test_drive_firmware_1", "path_to_test_drive_firmware_2"]})
         firmware_object = NetAppESeriesDriveFirmware()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to upload drive firmware"):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to upload drive firmware"):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 with mock.patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
                     firmware_object.upload_firmware()
@@ -81,7 +83,7 @@ class HostTest(ModuleTestCase):
         """Verify upgrade_list method throws expected exceptions."""
         self._set_args({"firmware": ["path_to_test_drive_firmware_1"]})
         firmware_object = NetAppESeriesDriveFirmware()
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to complete compatibility and health check."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to complete compatibility and health check."):
             with mock.patch(self.REQUEST_FUNC, response=Exception()):
                 firmware_object.upgrade_list()
 
@@ -91,7 +93,7 @@ class HostTest(ModuleTestCase):
                         Exception()]
         self._set_args({"firmware": ["path/to/test_drive_firmware_1"]})
         firmware_object = NetAppESeriesDriveFirmware()
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve drive information."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve drive information."):
             with mock.patch(self.REQUEST_FUNC, side_effect=side_effects):
                 firmware_object.upgrade_list()
 
@@ -101,7 +103,7 @@ class HostTest(ModuleTestCase):
                         (200, {"offline": False, "available": True, "firmwareVersion": "MS00"})]
         self._set_args({"firmware": ["path/to/test_drive_firmware_2"], "upgrade_drives_online": True})
         firmware_object = NetAppESeriesDriveFirmware()
-        with self.assertRaisesRegexp(AnsibleFailJson, "Drive is not capable of online upgrade."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Drive is not capable of online upgrade."):
             with mock.patch(self.REQUEST_FUNC, side_effect=side_effects):
                 firmware_object.upgrade_list()
 
@@ -158,12 +160,12 @@ class HostTest(ModuleTestCase):
                                           {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "notAttempted"},
                                           {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
                                           {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]})
-        with self.assertRaisesRegexp(AnsibleFailJson, "Timed out waiting for drive firmware upgrade."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Timed out waiting for drive firmware upgrade."):
             with mock.patch(self.SLEEP_FUNC, return_value=None):
                 with mock.patch(self.REQUEST_FUNC, return_value=response):
                     firmware_object.wait_for_upgrade_completion()
 
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to retrieve drive status."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve drive status."):
             with mock.patch(self.SLEEP_FUNC, return_value=None):
                 with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                     firmware_object.wait_for_upgrade_completion()
@@ -174,7 +176,7 @@ class HostTest(ModuleTestCase):
                                           {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "notAttempted"},
                                           {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
                                           {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]})
-        with self.assertRaisesRegexp(AnsibleFailJson, "Drive firmware upgrade failed."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Drive firmware upgrade failed."):
             with mock.patch(self.SLEEP_FUNC, return_value=None):
                 with mock.patch(self.REQUEST_FUNC, return_value=response):
                     firmware_object.wait_for_upgrade_completion()
@@ -207,6 +209,6 @@ class HostTest(ModuleTestCase):
         """Verify upgrade method exceptions."""
         self._set_args({"firmware": ["path_to_test_drive_firmware_1", "path_to_test_drive_firmware_2"]})
         firmware_object = NetAppESeriesDriveFirmware()
-        with self.assertRaisesRegexp(AnsibleFailJson, "Failed to upgrade drive firmware."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Failed to upgrade drive firmware."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
                 firmware_object.upgrade()

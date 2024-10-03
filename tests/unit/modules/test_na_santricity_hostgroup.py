@@ -4,8 +4,10 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_hostgroup import NetAppESeriesHostGroup
-from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class HostTest(ModuleTestCase):
@@ -48,7 +50,7 @@ class HostTest(ModuleTestCase):
         self._set_args({"state": "present", "name": "hostgroup1", "hosts": ["host1", "host2"]})
         hostgroup_object = NetAppESeriesHostGroup()
         with mock.patch(self.REQ_FUNC, return_value=(200, [])):
-            with self.assertRaisesRegexp(AnsibleFailJson, "Expected host does not exist"):
+            with self.assertRaisesRegex(AnsibleFailJson, "Expected host does not exist"):
                 hosts = hostgroup_object.hosts
 
     def test_hosts_pass(self):

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -11,7 +11,9 @@ DOCUMENTATION = """
 module: na_santricity_nvme_interface
 short_description: NetApp E-Series manage NVMe interface configuration
 description: Configure settings of an E-Series NVMe interface
-author: Nathan Swartz (@ndswartz)
+author:
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -86,13 +88,13 @@ options:
             - The numerical value represents the number of the channel (typically from left to right on the HIC),
               beginning with a value of 1.
         type: int
-        required: false
+        required: true
     controller:
         description:
             - The controller that owns the port you want to configure.
             - Controller names are presented alphabetically, with the first controller as A and the second as B.
         type: str
-        required: false
+        required: true
         choices: [A, B]
 """
 EXAMPLES = """

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -14,7 +14,8 @@ description:
     - Configure an E-Series system to allow authentication via an LDAP server
 author:
     - Michael Price (@lmprice)
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -61,6 +62,7 @@ options:
             - The only requirement is that the name[s] be resolvable.
             - "Example: user@example.com"
         type: list
+        elements: str
         required: false
     search_base:
         description:
@@ -91,6 +93,7 @@ options:
             - Typically this is used with something like "memberOf", and a user"s access is tested against group
               membership or lack thereof.
         type: list
+        elements: str
         default: ["memberOf"]
         required: false
     user_attribute:
@@ -177,11 +180,11 @@ class NetAppESeriesLdap(NetAppESeriesModule):
                                identifier=dict(type="str", required=False, default="default"),
                                bind_user=dict(type="str", required=False),
                                bind_password=dict(type="str", required=False, no_log=True),
-                               names=dict(type="list", required=False),
+                               names=dict(type="list", elements="str", required=False),
                                server_url=dict(type="str", required=False),
                                search_base=dict(type="str", required=False),
                                role_mappings=dict(type="dict", required=False, no_log=True),
-                               group_attributes=dict(type="list", default=["memberOf"], required=False),
+                               group_attributes=dict(type="list", elements="str", default=["memberOf"], required=False),
                                user_attribute=dict(type="str", required=False, default="sAMAccountName"))
 
         required_if = [["state", "present", ["server_url"]]]
@@ -262,7 +265,7 @@ class NetAppESeriesLdap(NetAppESeriesModule):
                     if self.state == "absent":
                         change_required = True
                     elif (len(self.group_attributes) != len(domain["groupAttributes"]) or
-                          any([a not in domain["groupAttributes"] for a in self.group_attributes])):
+                          any(a not in domain["groupAttributes"] for a in self.group_attributes)):
                         change_required = True
                     elif self.user_attribute != domain["userAttribute"]:
                         change_required = True

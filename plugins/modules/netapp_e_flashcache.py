@@ -15,7 +15,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = '''
 module: netapp_e_flashcache
 author: Kevin Hulquest (@hulquest)
-version_added: '2.2'
+version_added: '2.2.0'
 short_description: NetApp E-Series manage SSD caches
 description:
 - Create or remove SSD caches on a NetApp E-Series storage array.
@@ -52,7 +52,6 @@ options:
     description:
     - Whether the specified SSD cache should exist or not.
     choices: ['present', 'absent']
-    default: present
   name:
     required: true
     type: str
@@ -72,6 +71,7 @@ options:
     description:
     - List of disk references
     type: list
+    elements: str
   size_unit:
     description:
     - The unit to be applied to size arguments
@@ -193,11 +193,11 @@ class NetAppESeriesFlashCache(object):
             api_username=dict(type='str', required=True),
             api_password=dict(type='str', required=True, no_log=True),
             api_url=dict(type='str', required=True),
-            state=dict(default='present', choices=['present', 'absent'], type='str'),
+            state=dict(required=True, choices=['present', 'absent'], type='str'),
             ssid=dict(required=True, type='str'),
             name=dict(required=True, type='str'),
             disk_count=dict(type='int'),
-            disk_refs=dict(type='list'),
+            disk_refs=dict(type='list', elements="str"),
             cache_size_min=dict(type='int'),
             io_type=dict(default='filesystem', choices=['filesystem', 'database', 'media']),
             size_unit=dict(default='gb', choices=['bytes', 'b', 'kb', 'mb', 'gb', 'tb', 'pb', 'eb', 'zb', 'yb'],

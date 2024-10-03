@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -11,7 +11,9 @@ DOCUMENTATION = """
 module: na_santricity_discover
 short_description: NetApp E-Series discover E-Series storage systems
 description: Module searches a subnet range and returns any available E-Series storage systems.
-author: Nathan Swartz (@ndswartz)
+author:
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 options:
     subnet_mask:
         description:
@@ -25,6 +27,7 @@ options:
             - This option specifies which ports to be tested during the discovery process.
             - The first usable port will be used in the returned API url.
         type: list
+        elements: int
         default: [8443]
         required: false
     proxy_url:
@@ -121,7 +124,7 @@ class NetAppESeriesDiscover:
 
     def __init__(self):
         ansible_options = dict(subnet_mask=dict(type="str", required=True),
-                               ports=dict(type="list", required=False, default=[8443]),
+                               ports=dict(type="list", elements="int", required=False, default=[8443]),
                                proxy_url=dict(type="str", required=False),
                                proxy_username=dict(type="str", required=False),
                                proxy_password=dict(type="str", required=False, no_log=True),
@@ -300,10 +303,10 @@ class NetAppESeriesDiscover:
             self.module.fail_json(msg="Failed to ascertain storage systems added to Web Services Proxy.")
 
         for system_key, system_info in self.systems_found.items():
-            if self.systems_found[system_key]["proxy_required"]:
+            if system_info["proxy_required"]:
                 for system in systems:
                     if system_key == system["chassisSerialNumber"]:
-                        self.systems_found[system_key]["proxy_ssid"] = system["id"]
+                        system_info["proxy_ssid"] = system["id"]
 
     def discover(self):
         """Discover E-Series storage systems."""

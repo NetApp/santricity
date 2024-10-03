@@ -18,7 +18,7 @@ short_description: NetApp E-Series manage email notification settings
 description:
     - Certain E-Series systems have the capability to send email notifications on potentially critical events.
     - This module will allow the owner of the system to specify email recipients for these messages.
-version_added: '2.7'
+version_added: '2.7.0'
 author: Michael Price (@lmprice)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries
@@ -36,8 +36,8 @@ options:
         description:
             - A fully qualified domain name, IPv4 address, or IPv6 address of a mail server.
             - To use a fully qualified domain name, you must configure a DNS server on both controllers using
-             M(netapp_e_mgmt_interface).
-             - Required when I(state=enabled).
+              M(netapp_eseries.santricity.netapp_e_mgmt_interface).
+            - Required when I(state=enabled).
         type: str
         required: no
     sender:
@@ -57,6 +57,7 @@ options:
             - The email addresses that will receive the email notifications.
             - Required when I(state=enabled).
         type: list
+        elements: str
         required: no
     test:
         description:
@@ -132,7 +133,7 @@ class Alerts(object):
             server=dict(type='str', required=False, ),
             sender=dict(type='str', required=False, ),
             contact=dict(type='str', required=False, ),
-            recipients=dict(type='list', required=False, ),
+            recipients=dict(type='list', elements="str", required=False, ),
             test=dict(type='bool', required=False, default=False, ),
             log_path=dict(type='str', required=False),
         ))

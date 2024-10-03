@@ -4,8 +4,10 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_mgmt_interface import NetAppESeriesMgmtInterface
-from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase, set_module_args
-from units.compat import mock
+from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+)
+from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
 
 class MgmtInterfaceTest(ModuleTestCase):
@@ -190,7 +192,7 @@ class MgmtInterfaceTest(ModuleTestCase):
 
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to retrieve the controller settings."):
+        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to retrieve the controller settings."):
             with mock.patch(self.REQ_FUNC, return_value=Exception):
                 response = mgmt_interface.get_controllers()
 
@@ -217,7 +219,7 @@ class MgmtInterfaceTest(ModuleTestCase):
 
         with mock.patch(self.REQ_FUNC, return_value=(200, self.TEST_DATA)):
             mgmt_interface.update_target_interface_info()
-            self.assertEquals(mgmt_interface.interface_info, expected)
+            self.assertEqual(mgmt_interface.interface_info, expected)
 
     def test_interface_property_request_exception_fail(self):
         """Verify ethernet-interfaces endpoint request failure results in AnsibleFailJson exception."""
@@ -235,7 +237,7 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.get_controllers = lambda: get_controller
 
-        with self.assertRaisesRegexp(AnsibleFailJson, r"Failed to retrieve defined management interfaces."):
+        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to retrieve defined management interfaces."):
             with mock.patch(self.REQ_FUNC, return_value=Exception()):
                 mgmt_interface.update_target_interface_info()
 
@@ -255,7 +257,7 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.get_controllers = lambda: get_controller
 
-        with self.assertRaisesRegexp(AnsibleFailJson, "Invalid port number! Controller .*? ports:"):
+        with self.assertRaisesRegex(AnsibleFailJson, "Invalid port number! Controller .*? ports:"):
             with mock.patch(self.REQ_FUNC, return_value=(200, self.TEST_DATA)):
                 mgmt_interface.update_target_interface_info()
 
@@ -300,7 +302,7 @@ class MgmtInterfaceTest(ModuleTestCase):
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
-        with self.assertRaisesRegexp(AnsibleFailJson, "Either IPv4 or IPv6 must be enabled."):
+        with self.assertRaisesRegex(AnsibleFailJson, "Either IPv4 or IPv6 must be enabled."):
             mgmt_interface.update_body_enable_interface_setting()
 
     def test_update_body_interface_settings_fail(self):
@@ -319,7 +321,7 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertTrue(mgmt_interface.update_body_interface_settings())
-        self.assertEquals(mgmt_interface.body, {"ipv4AddressConfigMethod": "configStatic", "ipv4Address": "192.168.1.1", "ipv4SubnetMask": "255.255.255.1"})
+        self.assertEqual(mgmt_interface.body, {"ipv4AddressConfigMethod": "configStatic", "ipv4Address": "192.168.1.1", "ipv4SubnetMask": "255.255.255.1"})
 
         initial = {"state": "enabled", "controller": "A", "port": "1", "address": "192.168.1.100", "subnet_mask": "255.255.255.1", "gateway": "192.168.1.1",
                    "config_method": "static"}
@@ -336,8 +338,10 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertTrue(mgmt_interface.update_body_interface_settings())
-        self.assertEquals(mgmt_interface.body, {"ipv4AddressConfigMethod": "configStatic", "ipv4Address": "192.168.1.100", "ipv4SubnetMask": "255.255.255.1",
-                                                "ipv4GatewayAddress": "192.168.1.1"})
+        self.assertEqual(mgmt_interface.body, {"ipv4AddressConfigMethod": "configStatic",
+                                               "ipv4Address": "192.168.1.100",
+                                               "ipv4SubnetMask": "255.255.255.1",
+                                               "ipv4GatewayAddress": "192.168.1.1"})
 
         initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp"}
         interface_info = {"channel": 1, "link_status": "up", "enabled": True, "address": "10.1.1.10", "gateway": "10.1.1.1",
@@ -353,7 +357,7 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertTrue(mgmt_interface.update_body_interface_settings())
-        self.assertEquals(mgmt_interface.body, {"ipv4AddressConfigMethod": "configDhcp"})
+        self.assertEqual(mgmt_interface.body, {"ipv4AddressConfigMethod": "configDhcp"})
 
         initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp"}
         interface_info = {"channel": 1, "link_status": "up", "enabled": True, "address": "10.1.1.10", "gateway": "10.1.1.1",
@@ -369,7 +373,7 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertFalse(mgmt_interface.update_body_interface_settings())
-        self.assertEquals(mgmt_interface.body, {"ipv4AddressConfigMethod": "configDhcp"})
+        self.assertEqual(mgmt_interface.body, {"ipv4AddressConfigMethod": "configDhcp"})
 
     def test_update_body_dns_server_settings_pass(self):
         """Validate update_body_dns_server_settings throws expected exception"""
@@ -387,15 +391,15 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertTrue(mgmt_interface.update_body_dns_server_settings())
-        self.assertEquals(mgmt_interface.body, {"dnsAcquisitionDescriptor": {"dnsAcquisitionType": "dhcp"}})
+        self.assertEqual(mgmt_interface.body, {"dnsAcquisitionDescriptor": {"dnsAcquisitionType": "dhcp"}})
 
         initial = {"state": "enabled", "controller": "A", "port": "1", "dns_config_method": "static", "dns_address": "192.168.1.100"}
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertTrue(mgmt_interface.update_body_dns_server_settings())
-        self.assertEquals(mgmt_interface.body, {"dnsAcquisitionDescriptor": {"dnsAcquisitionType": "stat",
-                                                                             "dnsServers": [{"addressType": "ipv4", "ipv4Address": "192.168.1.100"}]}})
+        self.assertEqual(mgmt_interface.body, {"dnsAcquisitionDescriptor": {"dnsAcquisitionType": "stat",
+                                                                            "dnsServers": [{"addressType": "ipv4", "ipv4Address": "192.168.1.100"}]}})
 
         initial = {"state": "enabled", "controller": "A", "port": "1", "dns_config_method": "static", "dns_address": "192.168.1.100",
                    "dns_address_backup": "192.168.1.102"}
@@ -403,9 +407,9 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertTrue(mgmt_interface.update_body_dns_server_settings())
-        self.assertEquals(mgmt_interface.body, {"dnsAcquisitionDescriptor": {"dnsAcquisitionType": "stat",
-                                                                             "dnsServers": [{"addressType": "ipv4", "ipv4Address": "192.168.1.100"},
-                                                                                            {"addressType": "ipv4", "ipv4Address": "192.168.1.102"}]}})
+        self.assertEqual(mgmt_interface.body, {"dnsAcquisitionDescriptor": {"dnsAcquisitionType": "stat",
+                                                                            "dnsServers": [{"addressType": "ipv4", "ipv4Address": "192.168.1.100"},
+                                                                                           {"addressType": "ipv4", "ipv4Address": "192.168.1.102"}]}})
 
     def test_update_body_ntp_server_settings_pass(self):
         """Validate update_body_ntp_server_settings throws expected exception"""
@@ -423,21 +427,21 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertTrue(mgmt_interface.update_body_ntp_server_settings())
-        self.assertEquals(mgmt_interface.body, {"ntpAcquisitionDescriptor": {"ntpAcquisitionType": "disabled"}})
+        self.assertEqual(mgmt_interface.body, {"ntpAcquisitionDescriptor": {"ntpAcquisitionType": "disabled"}})
 
         initial = {"state": "enabled", "controller": "A", "port": "1", "ntp_config_method": "dhcp"}
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertFalse(mgmt_interface.update_body_ntp_server_settings())
-        self.assertEquals(mgmt_interface.body, {"ntpAcquisitionDescriptor": {"ntpAcquisitionType": "dhcp"}})
+        self.assertEqual(mgmt_interface.body, {"ntpAcquisitionDescriptor": {"ntpAcquisitionType": "dhcp"}})
 
         initial = {"state": "enabled", "controller": "A", "port": "1", "ntp_config_method": "static", "ntp_address": "192.168.1.200"}
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertTrue(mgmt_interface.update_body_ntp_server_settings())
-        self.assertEquals(mgmt_interface.body, {"ntpAcquisitionDescriptor": {
+        self.assertEqual(mgmt_interface.body, {"ntpAcquisitionDescriptor": {
             "ntpAcquisitionType": "stat", "ntpServers": [{"addrType": "ipvx", "ipvxAddress": {"addressType": "ipv4", "ipv4Address": "192.168.1.200"}}]}})
 
         initial = {"state": "enabled", "controller": "A", "port": "1", "ntp_config_method": "static", "ntp_address": "192.168.1.200",
@@ -446,7 +450,7 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertTrue(mgmt_interface.update_body_ntp_server_settings())
-        self.assertEquals(mgmt_interface.body, {"ntpAcquisitionDescriptor": {
+        self.assertEqual(mgmt_interface.body, {"ntpAcquisitionDescriptor": {
             "ntpAcquisitionType": "stat", "ntpServers": [{"addrType": "ipvx", "ipvxAddress": {"addressType": "ipv4", "ipv4Address": "192.168.1.200"}},
                                                          {"addrType": "ipvx", "ipvxAddress": {"addressType": "ipv4", "ipv4Address": "192.168.1.202"}}]}})
 
@@ -466,14 +470,14 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertTrue(mgmt_interface.update_body_ssh_setting())
-        self.assertEquals(mgmt_interface.body, {"enableRemoteAccess": True})
+        self.assertEqual(mgmt_interface.body, {"enableRemoteAccess": True})
 
         initial = {"state": "enabled", "controller": "A", "port": "1", "config_method": "dhcp", "ssh": False}
         self._set_args(initial)
         mgmt_interface = NetAppESeriesMgmtInterface()
         mgmt_interface.interface_info = interface_info
         self.assertFalse(mgmt_interface.update_body_ssh_setting())
-        self.assertEquals(mgmt_interface.body, {"enableRemoteAccess": False})
+        self.assertEqual(mgmt_interface.body, {"enableRemoteAccess": False})
 
     def test_update_url_pass(self):
         """Verify update_url returns expected url."""
@@ -493,7 +497,7 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface.update_request_body = lambda: False
         mgmt_interface.is_embedded = lambda: False
         mgmt_interface.use_alternate_address = False
-        with self.assertRaisesRegexp(AnsibleExitJson, "No changes are required."):
+        with self.assertRaisesRegex(AnsibleExitJson, "No changes are required."):
             with mock.patch(self.REQ_FUNC, return_value=(200, None)):
                 mgmt_interface.update()
 
@@ -508,6 +512,6 @@ class MgmtInterfaceTest(ModuleTestCase):
         mgmt_interface.update_request_body = update_request_body
         mgmt_interface.is_embedded = lambda: True
         mgmt_interface.use_alternate_address = False
-        with self.assertRaisesRegexp(AnsibleExitJson, "The interface settings have been updated."):
+        with self.assertRaisesRegex(AnsibleExitJson, "The interface settings have been updated."):
             with mock.patch(self.REQ_FUNC, return_value=(200, None)):
                 mgmt_interface.update()

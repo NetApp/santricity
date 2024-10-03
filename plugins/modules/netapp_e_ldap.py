@@ -17,7 +17,7 @@ module: netapp_e_ldap
 short_description: NetApp E-Series manage LDAP integration to use for authentication
 description:
     - Configure an E-Series system to allow authentication via an LDAP server
-version_added: '2.7'
+version_added: '2.7.0'
 author: Michael Price (@lmprice)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.netapp.eseries
@@ -57,6 +57,7 @@ options:
               membership or lack thereof.
         default: memberOf
         type: list
+        elements: str
     server:
         description:
             - This is the LDAP server url.
@@ -74,6 +75,7 @@ options:
             - "Example: user@example.com"
         required: no
         type: list
+        elements: str
     search_base:
         description:
             - The search base is used to find group memberships of the user.
@@ -179,14 +181,14 @@ class Ldap(object):
             state=dict(type='str', required=False, default='present',
                        choices=['present', 'absent']),
             identifier=dict(type='str', required=False, ),
-            username=dict(type='str', required=False, aliases=['bind_username']),
-            password=dict(type='str', required=False, aliases=['bind_password'], no_log=True),
-            name=dict(type='list', required=False, ),
-            server=dict(type='str', required=False, aliases=['server_url']),
-            search_base=dict(type='str', required=False, ),
-            role_mappings=dict(type='dict', required=False, ),
+            username=dict(type='str', required=True, aliases=['bind_username']),
+            password=dict(type='str', required=True, aliases=['bind_password'], no_log=True),
+            name=dict(type='list', elements="str", required=False, ),
+            server=dict(type='str', required=True, aliases=['server_url']),
+            search_base=dict(type='str', required=True, ),
+            role_mappings=dict(type='dict', required=True, ),
             user_attribute=dict(type='str', required=False, default='sAMAccountName'),
-            attributes=dict(type='list', default=['memberOf'], required=False, ),
+            attributes=dict(type='list', elements="str", default=['memberOf'], required=False, ),
             log_path=dict(type='str', required=False),
         ))
 

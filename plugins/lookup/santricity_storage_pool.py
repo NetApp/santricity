@@ -1,15 +1,33 @@
-# (c) 2020, NetApp, Inc
-# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+# (c) 2024, NetApp, Inc
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = """
-    lookup: santricity_sp_config
-    author: Nathan Swartz
+    name: santricity_storage_pool
+    author:
+        - Nathan Swartz (@swartzn)
+        - Vu Tran (@VuTran007)
     short_description: Storage pool information
     description:
         - Retrieves storage pool information from the inventory
+    options:
+        state:
+            description:
+                - Define the state of storage pool.
+            choices:
+                - absent
+                - present
+            type: str
 """
+
+EXAMPLES = r"""
+- name: set facts for storage pool to be absent
+  ansible.builtin.set_fact:
+    absent_storage_pool: "{{ lookup('netapp_eseries.santricity.santricity_storage_pool', hostvars[inventory_hostname], state='absent') }}"
+"""
+
 import re
 from ansible.plugins.lookup import LookupBase
 from ansible.errors import AnsibleError
@@ -17,6 +35,8 @@ from itertools import product
 
 
 class LookupModule(LookupBase):
+
+    # pylint: disable=arguments-renamed
     def run(self, inventory, state, **kwargs):
         if isinstance(inventory, list):
             inventory = inventory[0]

@@ -10,7 +10,9 @@ DOCUMENTATION = """
 module: na_santricity_server_certificate
 short_description: NetApp E-Series manage the storage system's server SSL certificates.
 description: Manage NetApp E-Series storage system's server SSL certificates.
-author: Nathan Swartz (@ndswartz)
+author:
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_doc
 options:
@@ -30,6 +32,7 @@ options:
       - Unordered list of all server certificate files which include PEM and DER encoded certificates as well as private keys.
       - When I(certificates) is not defined then a self-signed certificate will be expected.
     type: list
+    elements: str
     required: false
   passphrase:
     description:
@@ -160,7 +163,7 @@ class NetAppESeriesServerCertificate(NetAppESeriesModule):
 
     def __init__(self):
         ansible_options = dict(controller=dict(type="str", required=False, choices=["A", "B"]),
-                               certificates=dict(type="list", required=False),
+                               certificates=dict(type="list", elements="str", required=False),
                                passphrase=dict(type="str", required=False, no_log=True))
 
         super(NetAppESeriesServerCertificate, self).__init__(ansible_options=ansible_options,

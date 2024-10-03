@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: netapp_e_volume
-version_added: "2.2"
+version_added: "2.2.0"
 short_description: NetApp E-Series manage storage volumes (standard and thin)
 description:
     - Create or remove volumes (standard and thin) for NetApp E/EF-series storage arrays.
@@ -62,7 +62,7 @@ options:
             - All values are in kibibytes.
             - Some common choices include '8', '16', '32', '64', '128', '256', and '512' but options are system
               dependent.
-            - Retrieve the definitive system list from M(netapp_e_facts) under segment_sizes.
+            - Retrieve the definitive system list from M(netapp_eseries.santricity.netapp_e_facts) under segment_sizes.
             - When the storage pool is a raidDiskPool then the segment size must be 128kb.
             - Segment size migrations are not allowed in this module
         type: int
@@ -106,7 +106,7 @@ options:
         choices: ["automatic", "manual"]
         default: "automatic"
         type: str
-        version_added: 2.8
+        version_added: 2.8.0
     thin_volume_growth_alert_threshold:
         description:
             - This is the thin provision repository utilization threshold (in percent).
@@ -115,7 +115,7 @@ options:
             - Values must be between or equal to 10 and 99.
         default: 95
         type: int
-        version_added: 2.8
+        version_added: 2.8.0
     owning_controller:
         description:
             - Specifies which controller will be the primary owner of the volume
@@ -123,7 +123,7 @@ options:
         required: false
         choices: ["A", "B"]
         type: str
-        version_added: 2.9
+        version_added: 2.9.0
     ssd_cache_enabled:
         description:
             - Whether an existing SSD cache should be enabled on the volume (fails if no SSD cache defined)
@@ -141,7 +141,7 @@ options:
             - Indicates whether read caching should be enabled for the volume.
         type: bool
         default: true
-        version_added: 2.8
+        version_added: 2.8.0
     read_ahead_enable:
         description:
             - Indicates whether or not automatic cache read-ahead is enabled.
@@ -149,20 +149,21 @@ options:
               benefit from read ahead caching.
         type: bool
         default: true
-        version_added: 2.8
+        version_added: 2.8.0
     write_cache_enable:
         description:
             - Indicates whether write-back caching should be enabled for the volume.
         type: bool
         default: true
-        version_added: 2.8
+        version_added: 2.8.0
     cache_without_batteries:
         description:
             - Indicates whether caching should be used without battery backup.
-            - Warning, M(cache_without_batteries==true) and the storage system looses power and there is no battery backup, data will be lost!
+            - Warning, I(cache_without_batteries==true) and the storage system looses power and there is
+              no battery backup, data will be lost!
         type: bool
         default: false
-        version_added: 2.9
+        version_added: 2.9.0
     workload_name:
         description:
             - Label for the workload defined by the metadata.
@@ -170,10 +171,10 @@ options:
               array.
             - When I(workload_name) exists on the storage array but the metadata is different then the workload
               definition will be updated. (Changes will update all associated volumes!)
-            - Existing workloads can be retrieved using M(netapp_e_facts).
+            - Existing workloads can be retrieved using M(netapp_eseries.santricity.netapp_e_facts).
         required: false
         type: str
-        version_added: 2.8
+        version_added: 2.8.0
     metadata:
         description:
             - Dictionary containing meta data for the use, user, location, etc of the volume (dictionary is arbitrarily
@@ -183,20 +184,20 @@ options:
             - I(workload_name) must be specified when I(metadata) are defined.
         type: dict
         required: false
-        version_added: 2.8
+        version_added: 2.8.0
     wait_for_initialization:
         description:
             - Forces the module to wait for expansion operations to complete before continuing.
         type: bool
         default: false
-        version_added: 2.8
+        version_added: 2.8.0
     initialization_timeout:
         description:
             - Duration in seconds before the wait_for_initialization operation will terminate.
-            - M(wait_for_initialization==True) to have any effect on module's operations.
+            - I(wait_for_initialization==True) to have any effect on module's operations.
         type: int
         required: false
-        version_added: 2.9
+        version_added: 2.9.0
 """
 EXAMPLES = """
 - name: Create simple volume with workload tags (volume meta data)
@@ -292,7 +293,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             storage_pool_name=dict(type="str"),
             size_unit=dict(default="gb", choices=["bytes", "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb"],
                            type="str"),
-            size=dict(type="float"),
+            size=dict(type="float", required=True),
             segment_size_kb=dict(type="int", default=128),
             owning_controller=dict(required=False, choices=['A', 'B']),
             ssd_cache_enabled=dict(type="bool", default=False),
@@ -307,7 +308,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             write_cache_enable=dict(type="bool", default=True),
             cache_without_batteries=dict(type="bool", default=False),
             workload_name=dict(type="str", required=False),
-            metadata=dict(type="dict", require=False),
+            metadata=dict(type="dict", required=False),
             wait_for_initialization=dict(type="bool", default=False),
             initialization_timeout=dict(type="int", required=False))
 

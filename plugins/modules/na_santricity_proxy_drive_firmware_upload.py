@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2020, NetApp, Inc
+# (c) 2024, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -13,7 +13,8 @@ short_description: NetApp E-Series manage proxy drive firmware files
 description:
     - Ensure drive firmware files are available on SANtricity Web Service Proxy.
 author:
-    - Nathan Swartz (@ndswartz)
+    - Nathan Swartz (@swartzn)
+    - Vu Tran (@VuTran007)
 extends_documentation_fragment:
     - netapp_eseries.santricity.santricity.santricity_proxy_doc
 options:
@@ -23,6 +24,7 @@ options:
             - Note that only files with the extension .dlp will be attempted to be added to the proxy; all other files will be ignored.
             - NetApp E-Series drives require special firmware which can be downloaded from https://mysupport.netapp.com/NOW/download/tools/diskfw_eseries/
         type: list
+        elements: str
         required: false
 """
 EXAMPLES = """
@@ -44,14 +46,14 @@ msg:
     returned: always
 """
 import os
-from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata, request
+from ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity import NetAppESeriesModule, create_multipart_formdata
 
 
 class NetAppESeriesProxyDriveFirmwareUpload(NetAppESeriesModule):
     WAIT_TIMEOUT_SEC = 60 * 15
 
     def __init__(self):
-        ansible_options = dict(firmware=dict(type="list", required=False))
+        ansible_options = dict(firmware=dict(type="list", elements="str", required=False))
 
         super(NetAppESeriesProxyDriveFirmwareUpload, self).__init__(ansible_options=ansible_options,
                                                                     web_services_version="02.00.0000.0000",

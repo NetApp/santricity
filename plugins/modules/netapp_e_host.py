@@ -16,7 +16,7 @@ DOCUMENTATION = """
 module: netapp_e_host
 short_description: NetApp E-Series manage eseries hosts
 description: Create, update, remove hosts on NetApp E-series storage arrays
-version_added: '2.2'
+version_added: '2.2.0'
 author:
     - Kevin Hulquest (@hulquest)
     - Nathan Swartz (@ndswartz)
@@ -40,13 +40,13 @@ options:
             - present
         default: present
         type: str
-        version_added: 2.7
+        version_added: "2.7.0"
     host_type:
         description:
             - This is the type of host to be mapped
             - Required when C(state=present)
             - Either one of the following names can be specified, Linux DM-MP, VMWare, Windows, Windows Clustered, or a
-              host type index which can be found in M(netapp_e_facts)
+              host type index which can be found in M(netapp_eseries.santricity.netapp_e_facts)
         type: str
         aliases:
             - host_type_index
@@ -57,6 +57,7 @@ options:
              uniquely identified by a label and these must be unique.
         required: False
         type: list
+        elements: dict
         suboptions:
             type:
                 description:
@@ -83,7 +84,8 @@ options:
             - Allow ports that are already assigned to be re-assigned to your current host
         required: false
         type: bool
-        version_added: 2.7
+        default: false
+        version_added: "2.7.0"
     group:
         description:
             - The unique identifier of the host-group you want the host to be a member of; this is used for clustering.
@@ -96,7 +98,7 @@ options:
             - A local path to a file to be used for debug logging
         required: False
         type: str
-        version_added: 2.7
+        version_added: "2.7.0"
 """
 
 EXAMPLES = """
@@ -143,7 +145,7 @@ id:
     returned: on success when state=present
     type: str
     sample: 00000000600A098000AAC0C3003004700AD86A52
-    version_added: "2.6"
+    version_added: "2.6.0"
 
 ssid:
     description:
@@ -151,7 +153,7 @@ ssid:
     returned: on success
     type: str
     sample: 1
-    version_added: "2.6"
+    version_added: "2.6.0"
 
 api_url:
     description:
@@ -159,7 +161,7 @@ api_url:
     returned: on success
     type: str
     sample: https://webservices.example.com:8443
-    version_added: "2.6"
+    version_added: "2.6.0"
 """
 import json
 import logging
@@ -184,8 +186,8 @@ class Host(object):
         argument_spec.update(dict(
             state=dict(type='str', default='present', choices=['absent', 'present']),
             group=dict(type='str', required=False, aliases=['cluster']),
-            ports=dict(type='list', required=False),
-            force_port=dict(type='bool', default=False),
+            ports=dict(type='list', elements="dict", required=False),
+            force_port=dict(type='bool', required=False, default=False),
             name=dict(type='str', required=True, aliases=['label']),
             host_type=dict(type='str', aliases=['host_type_index']),
             log_path=dict(type='str', required=False),
