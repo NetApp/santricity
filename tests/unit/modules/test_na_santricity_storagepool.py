@@ -4,10 +4,11 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import unittest
-
+from contextlib import contextmanager
+from ansible.module_utils.testing import patch_module_args
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_storagepool import NetAppESeriesStoragePool
 from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
-    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase
 )
 from ansible_collections.community.internal_test_tools.tests.unit.compat.mock import patch, PropertyMock
 
@@ -373,19 +374,21 @@ class StoragePoolTest(ModuleTestCase):
     DRIVES_PROPERTY = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_storagepool.NetAppESeriesStoragePool.drives"
     STORAGE_POOL_PROPERTY = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_storagepool.NetAppESeriesStoragePool.storage_pool"
 
+    @contextmanager
     def _set_args(self, args=None):
         module_args = self.REQUIRED_PARAMS.copy()
         if args is not None:
             module_args.update(args)
-        set_module_args(module_args)
+        with patch_module_args(module_args):
+            yield
 
     def _initialize_dummy_instance(self, alt_args=None):
         """Initialize a dummy instance of NetAppESeriesStoragePool for the purpose of testing individual methods."""
         args = {"state": "absent", "name": "storage_pool"}
         if alt_args:
             args.update(alt_args)
-        self._set_args(args)
-        return NetAppESeriesStoragePool()
+        with self._set_args(args):
+            return NetAppESeriesStoragePool()
 
     def test_drives_fail(self):
         """Verify exception is thrown."""

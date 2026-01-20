@@ -86,7 +86,7 @@ Requirements
 
 Tested Ansible Versions
 -----------------------
-    - Ansible 5.x (ansible-core 2.12)
+    - Ansible 12 (ansible-core 2.19)
 
 Example Playbook
 ----------------

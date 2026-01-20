@@ -5,6 +5,24 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v2.0.0
+======
+
+Minor Changes
+-------------
+
+- Require ansible-core 2.19 or later.
+- Improved code style and compliance with PEP8.
+- Updated unit test utilities import paths and context manager usage for better reliability.
+- Renamed variable to avoid using a reserved name.
+- Updated plugins to use ``dataDriveCount`` for pool drive count.
+
+Bugfixes
+--------
+
+- Refactored URL port validation logic.
+
+
 v1.4.1
 ======
 

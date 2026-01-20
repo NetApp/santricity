@@ -150,9 +150,13 @@ class NetAppESeriesDiscover:
             self.proxy_validate_certs = args["proxy_validate_certs"]
 
         for port in args["ports"]:
-            if str(port).isdigit() and 0 < port < 2 ** 16:
-                self.ports.append(str(port))
-            else:
+            try:
+                port_int = int(port)
+                if 0 < port_int < 2 ** 16:
+                    self.ports.append(str(port_int))
+                else:
+                    self.module.fail_json(msg="Invalid port! Ports must be positive numbers between 0 and 65536.")
+            except (ValueError, TypeError):
                 self.module.fail_json(msg="Invalid port! Ports must be positive numbers between 0 and 65536.")
 
         self.systems_found = {}

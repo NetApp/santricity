@@ -12,6 +12,7 @@
     size_unit: "{{ item['size_unit'] | default(eseries_volume_size_unit | default(omit)) }}"
     segment_size_kb: "{{ item['segment_size_kb'] | default(eseries_volume_segment_size_kb | default(omit)) }}"
     owning_controller: "{{ item['owning_controller'] | default(eseries_volume_owning_controller | default(omit)) }}"
+    raid_level: "{{ item['raid_level'] | default(omit) }}"
     thin_provision: "{{ item['thin_provision'] | default(eseries_volume_thin_provision | default(omit)) }}"
     thin_volume_repo_size: "{{ item['thin_volume_repo_size'] | default(eseries_volume_thin_volume_repo_size | default(omit)) }}"
     thin_volume_max_repo_size: "{{ item['thin_volume_max_repo_size'] | default(eseries_volume_thin_volume_max_repo_size | default(omit)) }}"

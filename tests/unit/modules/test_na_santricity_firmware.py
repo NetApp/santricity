@@ -4,11 +4,12 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import unittest
-
+from contextlib import contextmanager
+from ansible.module_utils.testing import patch_module_args
 from ansible.module_utils import six
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_firmware import NetAppESeriesFirmware
 from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
-    AnsibleFailJson, ModuleTestCase, set_module_args
+    AnsibleFailJson, ModuleTestCase
 )
 from ansible_collections.community.internal_test_tools.tests.unit.compat.mock import mock_open, patch
 
@@ -64,440 +65,450 @@ class FirmwareTest(ModuleTestCase):
                     b'\x00\x00\x00\x00\x00\x00Board\n    .Board Name                             = "NetApp RAID Controller"\n    .NVSRAM Configuration Number' \
                     b'            = "N280X-852834-D02"\n\nUserCfg\n    .Enable Synchronous Negotiation         = 0x00  \n'
 
+    @contextmanager
     def _set_args(self, args=None):
         module_args = self.REQUIRED_PARAMS.copy()
         if args is not None:
             module_args.update(args)
-        set_module_args(module_args)
+        with patch_module_args(module_args):
+            yield
 
     def test_is_firmware_bundled_pass(self):
         """Determine whether firmware file is bundled."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        with patch(builtin_path, mock_open(read_data=b"firmwarexxxxxxxx")) as mock_file:
-            firmware = NetAppESeriesFirmware()
-            self.assertEqual(firmware.is_firmware_bundled(), False)
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            with patch(builtin_path, mock_open(read_data=b"firmwarexxxxxxxx")) as mock_file:
+                firmware = NetAppESeriesFirmware()
+                self.assertEqual(firmware.is_firmware_bundled(), False)
 
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        with patch(builtin_path, mock_open(read_data=self.BUNDLE_HEADER[:16])) as mock_file:
-            firmware = NetAppESeriesFirmware()
-            self.assertEqual(firmware.is_firmware_bundled(), True)
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            with patch(builtin_path, mock_open(read_data=self.BUNDLE_HEADER[:16])) as mock_file:
+                firmware = NetAppESeriesFirmware()
+                self.assertEqual(firmware.is_firmware_bundled(), True)
 
     def test_is_firmware_bundles_fail(self):
         """Verify non-firmware fails."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        with patch(builtin_path, mock_open(read_data=b"xxxxxxxxxxxxxxxx")) as mock_file:
-            firmware = NetAppESeriesFirmware()
-            with self.assertRaisesRegex(AnsibleFailJson, "Firmware file is invalid."):
-                firmware.is_firmware_bundled()
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            with patch(builtin_path, mock_open(read_data=b"xxxxxxxxxxxxxxxx")) as mock_file:
+                firmware = NetAppESeriesFirmware()
+                with self.assertRaisesRegex(AnsibleFailJson, "Firmware file is invalid."):
+                    firmware.is_firmware_bundled()
 
     def test_firmware_version(self):
         """Verify correct firmware version is returned."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        firmware = NetAppESeriesFirmware()
-        firmware.is_firmware_bundled = lambda: True
-        with patch(builtin_path, mock_open_with_iter(read_data=self.BUNDLE_HEADER)) as mock_file:
-            self.assertEqual(firmware.firmware_version(), b"11.40.5")
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            firmware.is_firmware_bundled = lambda: True
+            with patch(builtin_path, mock_open_with_iter(read_data=self.BUNDLE_HEADER)) as mock_file:
+                self.assertEqual(firmware.firmware_version(), b"11.40.5")
 
     def test_nvsram_version(self):
         """Verify correct nvsram version is returned."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        firmware = NetAppESeriesFirmware()
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            firmware = NetAppESeriesFirmware()
 
-        with patch(builtin_path, mock_open_with_iter(read_data=self.NVSRAM_HEADER)) as mock_file:
-            self.assertEqual(firmware.nvsram_version(), b"N280X-852834-D02")
+            with patch(builtin_path, mock_open_with_iter(read_data=self.NVSRAM_HEADER)) as mock_file:
+                self.assertEqual(firmware.nvsram_version(), b"N280X-852834-D02")
 
     def test_check_system_health_pass(self):
         """Validate check_system_health method."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        firmware = NetAppESeriesFirmware()
-        with patch(self.REQUEST_FUNC, return_value=(200, {"successful": True})):
-            firmware.check_system_health()
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            with patch(self.REQUEST_FUNC, return_value=(200, {"successful": True})):
+                firmware.check_system_health()
 
     def test_check_system_health_fail(self):
         """Validate check_system_health method throws proper exceptions."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        firmware = NetAppESeriesFirmware()
-        with patch(self.SLEEP_FUNC, return_value=None):
-            with self.assertRaisesRegex(AnsibleFailJson, "Health check failed!"):
-                with patch(self.REQUEST_FUNC, return_value=(404, Exception())):
-                    firmware.check_system_health()
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            with patch(self.SLEEP_FUNC, return_value=None):
+                with self.assertRaisesRegex(AnsibleFailJson, "Health check failed!"):
+                    with patch(self.REQUEST_FUNC, return_value=(404, Exception())):
+                        firmware.check_system_health()
 
     def test_embedded_check_nvsram_compatibility_pass(self):
         """Verify embedded nvsram compatibility."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        firmware = NetAppESeriesFirmware()
-        with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
-            with patch(self.REQUEST_FUNC, return_value=(200, {"signatureTestingPassed": True,
-                                                              "fileCompatible": True,
-                                                              "versionContents": [{"module": "nvsram",
-                                                                                   "bundledVersion": "N280X-842834-D02",
-                                                                                   "onboardVersion": "N280X-842834-D02"}]})):
-                firmware.embedded_check_nvsram_compatibility()
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
+                with patch(self.REQUEST_FUNC, return_value=(200, {"signatureTestingPassed": True,
+                                                                  "fileCompatible": True,
+                                                                  "versionContents": [{"module": "nvsram",
+                                                                                       "bundledVersion": "N280X-842834-D02",
+                                                                                       "onboardVersion": "N280X-842834-D02"}]})):
+                    firmware.embedded_check_nvsram_compatibility()
 
     @unittest.skip("Test needs to be reworked.")
     def test_embedded_check_nvsram_compatibility_fail(self):
         """Verify embedded nvsram compatibility fails with expected exceptions."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        firmware = NetAppESeriesFirmware()
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            firmware = NetAppESeriesFirmware()
 
-        with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
-            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve NVSRAM compatibility results."):
-                with patch(self.REQUEST_FUNC, return_value=Exception()):
-                    firmware.embedded_check_nvsram_compatibility()
+            with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
+                with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve NVSRAM compatibility results."):
+                    with patch(self.REQUEST_FUNC, return_value=Exception()):
+                        firmware.embedded_check_nvsram_compatibility()
 
-            with self.assertRaisesRegex(AnsibleFailJson, "Invalid NVSRAM file."):
-                with patch(self.REQUEST_FUNC, return_value=(200, {"signatureTestingPassed": False,
-                                                                  "fileCompatible": False,
-                                                                  "versionContents": [{"module": "nvsram",
-                                                                                       "bundledVersion": "N280X-842834-D02",
-                                                                                       "onboardVersion": "N280X-842834-D02"}]})):
-                    firmware.embedded_check_nvsram_compatibility()
+                with self.assertRaisesRegex(AnsibleFailJson, "Invalid NVSRAM file."):
+                    with patch(self.REQUEST_FUNC, return_value=(200, {"signatureTestingPassed": False,
+                                                                      "fileCompatible": False,
+                                                                      "versionContents": [{"module": "nvsram",
+                                                                                           "bundledVersion": "N280X-842834-D02",
+                                                                                           "onboardVersion": "N280X-842834-D02"}]})):
+                        firmware.embedded_check_nvsram_compatibility()
 
-            with self.assertRaisesRegex(AnsibleFailJson, "Incompatible NVSRAM file."):
-                with patch(self.REQUEST_FUNC, return_value=(200, {"signatureTestingPassed": True,
-                                                                  "fileCompatible": False,
-                                                                  "versionContents": [{"module": "nvsram",
-                                                                                       "bundledVersion": "N280X-842834-D02",
-                                                                                       "onboardVersion": "N280X-842834-D02"}]})):
-                    firmware.embedded_check_nvsram_compatibility()
+                with self.assertRaisesRegex(AnsibleFailJson, "Incompatible NVSRAM file."):
+                    with patch(self.REQUEST_FUNC, return_value=(200, {"signatureTestingPassed": True,
+                                                                      "fileCompatible": False,
+                                                                      "versionContents": [{"module": "nvsram",
+                                                                                           "bundledVersion": "N280X-842834-D02",
+                                                                                           "onboardVersion": "N280X-842834-D02"}]})):
+                        firmware.embedded_check_nvsram_compatibility()
 
     def test_embedded_check_firmware_compatibility_pass(self):
         """Verify embedded firmware compatibility."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        firmware = NetAppESeriesFirmware()
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            firmware = NetAppESeriesFirmware()
 
-        with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
-            with patch(self.REQUEST_FUNC, return_value=(200, {
-                "signatureTestingPassed": True,
-                "fileCompatible": True,
-                "versionContents": [
-                    {"module": "bundle", "bundledVersion": "08.42.50.00.000", "onboardVersion": "08.42.30.05"},
-                    {"module": "bundleDisplay", "bundledVersion": "11.40.5", "onboardVersion": "11.40.3R2"},
-                    {"module": "hypervisor", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
-                    {"module": "raid", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
-                    {"module": "management", "bundledVersion": "11.42.0000.0028", "onboardVersion": "11.42.0000.0026"},
-                    {"module": "iom", "bundledVersion": "11.42.0G00.0003", "onboardVersion": "11.42.0G00.0001"}]})):
-                firmware.embedded_check_bundle_compatibility()
+            with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
+                with patch(self.REQUEST_FUNC, return_value=(200, {
+                    "signatureTestingPassed": True,
+                    "fileCompatible": True,
+                    "versionContents": [
+                        {"module": "bundle", "bundledVersion": "08.42.50.00.000", "onboardVersion": "08.42.30.05"},
+                        {"module": "bundleDisplay", "bundledVersion": "11.40.5", "onboardVersion": "11.40.3R2"},
+                        {"module": "hypervisor", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
+                        {"module": "raid", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
+                        {"module": "management", "bundledVersion": "11.42.0000.0028", "onboardVersion": "11.42.0000.0026"},
+                        {"module": "iom", "bundledVersion": "11.42.0G00.0003", "onboardVersion": "11.42.0G00.0001"}]})):
+                    firmware.embedded_check_bundle_compatibility()
 
     @unittest.skip("Test needs to be reworked.")
     def test_embedded_check_firmware_compatibility_fail(self):
         """Verify embedded firmware compatibility fails with expected exceptions."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        firmware = NetAppESeriesFirmware()
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            firmware = NetAppESeriesFirmware()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve bundle compatibility results."):
-            with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
-                with patch(self.REQUEST_FUNC, return_value=Exception()):
-                    firmware.embedded_check_bundle_compatibility()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve bundle compatibility results."):
+                with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
+                    with patch(self.REQUEST_FUNC, return_value=Exception()):
+                        firmware.embedded_check_bundle_compatibility()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Invalid firmware bundle file."):
-            with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
-                with patch(self.REQUEST_FUNC, return_value=(200, {
-                    "signatureTestingPassed": False,
-                    "fileCompatible": True,
-                    "versionContents": [
-                        {"module": "bundle", "bundledVersion": "08.42.50.00.000", "onboardVersion": "08.42.30.05"},
-                        {"module": "bundleDisplay", "bundledVersion": "11.40.5", "onboardVersion": "11.40.3R2"},
-                        {"module": "hypervisor", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
-                        {"module": "raid", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
-                        {"module": "management", "bundledVersion": "11.42.0000.0028", "onboardVersion": "11.42.0000.0026"},
-                        {"module": "iom", "bundledVersion": "11.42.0G00.0003", "onboardVersion": "11.42.0G00.0001"}]})):
-                    firmware.embedded_check_bundle_compatibility()
+            with self.assertRaisesRegex(AnsibleFailJson, "Invalid firmware bundle file."):
+                with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
+                    with patch(self.REQUEST_FUNC, return_value=(200, {
+                        "signatureTestingPassed": False,
+                        "fileCompatible": True,
+                        "versionContents": [
+                            {"module": "bundle", "bundledVersion": "08.42.50.00.000", "onboardVersion": "08.42.30.05"},
+                            {"module": "bundleDisplay", "bundledVersion": "11.40.5", "onboardVersion": "11.40.3R2"},
+                            {"module": "hypervisor", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
+                            {"module": "raid", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
+                            {"module": "management", "bundledVersion": "11.42.0000.0028", "onboardVersion": "11.42.0000.0026"},
+                            {"module": "iom", "bundledVersion": "11.42.0G00.0003", "onboardVersion": "11.42.0G00.0001"}]})):
+                        firmware.embedded_check_bundle_compatibility()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Incompatible firmware bundle file."):
-            with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
-                with patch(self.REQUEST_FUNC, return_value=(200, {
-                    "signatureTestingPassed": True,
-                    "fileCompatible": False,
-                    "versionContents": [
-                        {"module": "bundle", "bundledVersion": "08.42.50.00.000", "onboardVersion": "08.42.30.05"},
-                        {"module": "bundleDisplay", "bundledVersion": "11.40.5", "onboardVersion": "11.40.3R2"},
-                        {"module": "hypervisor", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
-                        {"module": "raid", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
-                        {"module": "management", "bundledVersion": "11.42.0000.0028", "onboardVersion": "11.42.0000.0026"},
-                        {"module": "iom", "bundledVersion": "11.42.0G00.0003", "onboardVersion": "11.42.0G00.0001"}]})):
-                    firmware.embedded_check_bundle_compatibility()
+            with self.assertRaisesRegex(AnsibleFailJson, "Incompatible firmware bundle file."):
+                with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
+                    with patch(self.REQUEST_FUNC, return_value=(200, {
+                        "signatureTestingPassed": True,
+                        "fileCompatible": False,
+                        "versionContents": [
+                            {"module": "bundle", "bundledVersion": "08.42.50.00.000", "onboardVersion": "08.42.30.05"},
+                            {"module": "bundleDisplay", "bundledVersion": "11.40.5", "onboardVersion": "11.40.3R2"},
+                            {"module": "hypervisor", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
+                            {"module": "raid", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
+                            {"module": "management", "bundledVersion": "11.42.0000.0028", "onboardVersion": "11.42.0000.0026"},
+                            {"module": "iom", "bundledVersion": "11.42.0G00.0003", "onboardVersion": "11.42.0G00.0001"}]})):
+                        firmware.embedded_check_bundle_compatibility()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Downgrades are not permitted."):
-            with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
-                with patch(self.REQUEST_FUNC, return_value=(200, {
-                    "signatureTestingPassed": True,
-                    "fileCompatible": True,
-                    "versionContents": [
-                        {"module": "bundle", "bundledVersion": "08.42.00.00.000", "onboardVersion": "08.50.30.05"},
-                        {"module": "bundleDisplay", "bundledVersion": "11.40.5", "onboardVersion": "11.40.3R2"},
-                        {"module": "hypervisor", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
-                        {"module": "raid", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
-                        {"module": "management", "bundledVersion": "11.42.0000.0028", "onboardVersion": "11.42.0000.0026"},
-                        {"module": "iom", "bundledVersion": "11.42.0G00.0003", "onboardVersion": "11.42.0G00.0001"}]})):
-                    firmware.embedded_check_bundle_compatibility()
-        with self.assertRaisesRegex(AnsibleFailJson, "Downgrades are not permitted."):
-            with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
-                with patch(self.REQUEST_FUNC, return_value=(200, {
-                    "signatureTestingPassed": True,
-                    "fileCompatible": True,
-                    "versionContents": [
-                        {"module": "bundle", "bundledVersion": "08.42.00.00.000", "onboardVersion": "09.20.30.05"},
-                        {"module": "bundleDisplay", "bundledVersion": "11.40.5", "onboardVersion": "11.40.3R2"},
-                        {"module": "hypervisor", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
-                        {"module": "raid", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
-                        {"module": "management", "bundledVersion": "11.42.0000.0028", "onboardVersion": "11.42.0000.0026"},
-                        {"module": "iom", "bundledVersion": "11.42.0G00.0003", "onboardVersion": "11.42.0G00.0001"}]})):
-                    firmware.embedded_check_bundle_compatibility()
+            with self.assertRaisesRegex(AnsibleFailJson, "Downgrades are not permitted."):
+                with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
+                    with patch(self.REQUEST_FUNC, return_value=(200, {
+                        "signatureTestingPassed": True,
+                        "fileCompatible": True,
+                        "versionContents": [
+                            {"module": "bundle", "bundledVersion": "08.42.00.00.000", "onboardVersion": "08.50.30.05"},
+                            {"module": "bundleDisplay", "bundledVersion": "11.40.5", "onboardVersion": "11.40.3R2"},
+                            {"module": "hypervisor", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
+                            {"module": "raid", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
+                            {"module": "management", "bundledVersion": "11.42.0000.0028", "onboardVersion": "11.42.0000.0026"},
+                            {"module": "iom", "bundledVersion": "11.42.0G00.0003", "onboardVersion": "11.42.0G00.0001"}]})):
+                        firmware.embedded_check_bundle_compatibility()
+            with self.assertRaisesRegex(AnsibleFailJson, "Downgrades are not permitted."):
+                with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
+                    with patch(self.REQUEST_FUNC, return_value=(200, {
+                        "signatureTestingPassed": True,
+                        "fileCompatible": True,
+                        "versionContents": [
+                            {"module": "bundle", "bundledVersion": "08.42.00.00.000", "onboardVersion": "09.20.30.05"},
+                            {"module": "bundleDisplay", "bundledVersion": "11.40.5", "onboardVersion": "11.40.3R2"},
+                            {"module": "hypervisor", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
+                            {"module": "raid", "bundledVersion": "08.42.50.00", "onboardVersion": "08.42.30.05"},
+                            {"module": "management", "bundledVersion": "11.42.0000.0028", "onboardVersion": "11.42.0000.0026"},
+                            {"module": "iom", "bundledVersion": "11.42.0G00.0003", "onboardVersion": "11.42.0G00.0001"}]})):
+                        firmware.embedded_check_bundle_compatibility()
 
     def test_wait_for_web_services_pass(self):
         """Verify controller reboot wait succeeds."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        firmware = NetAppESeriesFirmware()
-        firmware.firmware_version = lambda: b"08.42.30.05"
-        firmware.nvsram_version = lambda: b"N280X-842834-D02"
-        firmware.is_firmware_bundled = lambda: False
-        with patch(self.SLEEP_FUNC, return_value=None):
-            with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.30.05"]), (200, ["N280X-842834-D02"]), (200, {"status": "optimal"})]):
-                firmware.wait_for_web_services()
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            firmware.firmware_version = lambda: b"08.42.30.05"
+            firmware.nvsram_version = lambda: b"N280X-842834-D02"
+            firmware.is_firmware_bundled = lambda: False
+            with patch(self.SLEEP_FUNC, return_value=None):
+                with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.30.05"]), (200, ["N280X-842834-D02"]), (200, {"status": "optimal"})]):
+                    firmware.wait_for_web_services()
 
     @unittest.skip("Test needs to be reworked.")
     def test_wait_for_web_services_fail(self):
         """Verify controller reboot wait throws expected exceptions"""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"})
-        firmware = NetAppESeriesFirmware()
-        with self.assertRaisesRegex(AnsibleFailJson, "Timeout waiting for Santricity Web Services."):
-            with patch(self.SLEEP_FUNC, return_value=None):
-                with patch(self.BASE_REQUEST_FUNC, return_value=Exception()):
-                    firmware.wait_for_web_services()
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            with self.assertRaisesRegex(AnsibleFailJson, "Timeout waiting for Santricity Web Services."):
+                with patch(self.SLEEP_FUNC, return_value=None):
+                    with patch(self.BASE_REQUEST_FUNC, return_value=Exception()):
+                        firmware.wait_for_web_services()
 
     def test_check_nvsram_compatibility_pass(self):
         """Verify proxy nvsram compatibility."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test_nvsram.dlp"})
-        firmware = NetAppESeriesFirmware()
-        with patch(self.SLEEP_FUNC, return_value=None):
-            with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": 1}),
-                                                       (200, {"checkRunning": True}),
-                                                       (200, {"checkRunning": False,
-                                                              "results": [{"nvsramFiles": [{"filename": "test_nvsram.dlp"}]}]})]):
-                firmware.proxy_check_nvsram_compatibility()
-
-    def test_check_nvsram_compatibility_fail(self):
-        """Verify proxy nvsram compatibility throws expected exceptions."""
-        self._set_args({"firmware": "test.dlp", "nvsram": "test_nvsram.dlp"})
-        firmware = NetAppESeriesFirmware()
-        with patch(self.SLEEP_FUNC, return_value=None):
-            with self.assertRaisesRegex(AnsibleFailJson, "Failed to receive NVSRAM compatibility information."):
-                with patch(self.REQUEST_FUNC, return_value=Exception()):
-                    firmware.proxy_check_nvsram_compatibility()
-
-            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve NVSRAM status update from proxy."):
-                with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": 1}), Exception()]):
-                    firmware.proxy_check_nvsram_compatibility()
-
-            with self.assertRaisesRegex(AnsibleFailJson, "NVSRAM is not compatible."):
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test_nvsram.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            with patch(self.SLEEP_FUNC, return_value=None):
                 with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": 1}),
                                                            (200, {"checkRunning": True}),
                                                            (200, {"checkRunning": False,
-                                                                  "results": [{"nvsramFiles": [{"filename": "not_test_nvsram.dlp"}]}]})]):
+                                                                  "results": [{"nvsramFiles": [{"filename": "test_nvsram.dlp"}]}]})]):
                     firmware.proxy_check_nvsram_compatibility()
+
+    def test_check_nvsram_compatibility_fail(self):
+        """Verify proxy nvsram compatibility throws expected exceptions."""
+        with self._set_args({"firmware": "test.dlp", "nvsram": "test_nvsram.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            with patch(self.SLEEP_FUNC, return_value=None):
+                with self.assertRaisesRegex(AnsibleFailJson, "Failed to receive NVSRAM compatibility information."):
+                    with patch(self.REQUEST_FUNC, return_value=Exception()):
+                        firmware.proxy_check_nvsram_compatibility()
+
+                with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve NVSRAM status update from proxy."):
+                    with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": 1}), Exception()]):
+                        firmware.proxy_check_nvsram_compatibility()
+
+                with self.assertRaisesRegex(AnsibleFailJson, "NVSRAM is not compatible."):
+                    with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": 1}),
+                                                               (200, {"checkRunning": True}),
+                                                               (200, {"checkRunning": False,
+                                                                      "results": [{"nvsramFiles": [{"filename": "not_test_nvsram.dlp"}]}]})]):
+                        firmware.proxy_check_nvsram_compatibility()
 
     def test_proxy_check_firmware_compatibility_pass(self):
         """Verify proxy firmware compatibility."""
-        self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"})
-        firmware = NetAppESeriesFirmware()
-        with patch(self.SLEEP_FUNC, return_value=None):
-            with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": 1}),
-                                                       (200, {"checkRunning": True}),
-                                                       (200, {"checkRunning": False,
-                                                              "results": [{"cfwFiles": [{"filename": "test_firmware.dlp"}]}]})]):
-                firmware.proxy_check_firmware_compatibility()
+        with self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            with patch(self.SLEEP_FUNC, return_value=None):
+                with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": 1}),
+                                                           (200, {"checkRunning": True}),
+                                                           (200, {"checkRunning": False,
+                                                                  "results": [{"cfwFiles": [{"filename": "test_firmware.dlp"}]}]})]):
+                    firmware.proxy_check_firmware_compatibility()
 
     def test_proxy_check_firmware_compatibility_fail(self):
         """Verify proxy firmware compatibility throws expected exceptions."""
-        self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"})
-        firmware = NetAppESeriesFirmware()
+        with self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"}):
+            firmware = NetAppESeriesFirmware()
 
-        with patch(self.SLEEP_FUNC, return_value=None):
-            with self.assertRaisesRegex(AnsibleFailJson, "Failed to receive firmware compatibility information."):
-                with patch(self.REQUEST_FUNC, return_value=Exception()):
-                    firmware.proxy_check_firmware_compatibility()
+            with patch(self.SLEEP_FUNC, return_value=None):
+                with self.assertRaisesRegex(AnsibleFailJson, "Failed to receive firmware compatibility information."):
+                    with patch(self.REQUEST_FUNC, return_value=Exception()):
+                        firmware.proxy_check_firmware_compatibility()
 
-            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve firmware status update from proxy."):
-                with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": 1}), Exception()]):
-                    firmware.proxy_check_firmware_compatibility(retries=0)
+                with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve firmware status update from proxy."):
+                    with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": 1}), Exception()]):
+                        firmware.proxy_check_firmware_compatibility(retries=0)
 
-            with self.assertRaisesRegex(AnsibleFailJson, "Firmware bundle is not compatible."):
-                with patch(self.REQUEST_FUNC, side_effect=[(200, {"requestId": 1}),
-                                                           (200, {"checkRunning": True}),
-                                                           (200, {"checkRunning": False, "results": [{"cfwFiles": [{"filename": "not_test_firmware.dlp"}]}]})]):
-                    firmware.proxy_check_firmware_compatibility(retries=0)
+                with self.assertRaisesRegex(AnsibleFailJson, "Firmware bundle is not compatible."):
+                    with patch(
+                        self.REQUEST_FUNC,
+                        side_effect=[
+                            (200, {"requestId": 1}),
+                            (200, {"checkRunning": True}),
+                            (200, {
+                                "checkRunning": False,
+                                "results": [{"cfwFiles": [{"filename": "not_test_firmware.dlp"}]}]
+                            })
+                        ]
+                    ):
+                        firmware.proxy_check_firmware_compatibility(retries=0)
 
     def test_proxy_upload_and_check_compatibility_pass(self):
         """Verify proxy_upload_and_check_compatibility"""
-        self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"})
-        firmware = NetAppESeriesFirmware()
-        firmware.proxy_check_nvsram_compatibility = lambda: None
-        firmware.proxy_check_firmware_compatibility = lambda: None
-        with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("headers", "data")):
-            with patch(self.REQUEST_FUNC, side_effect=[(200, [{"version": "XX.XX.XX.XX", "filename": "test"},
-                                                              {"version": "XXXXXXXXXX", "filename": "test.dlp"}]),
-                                                       (200, None), (200, None)]):
-                firmware.proxy_upload_and_check_compatibility()
+        with self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            firmware.proxy_check_nvsram_compatibility = lambda: None
+            firmware.proxy_check_firmware_compatibility = lambda: None
+            with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("headers", "data")):
+                with patch(self.REQUEST_FUNC, side_effect=[(200, [{"version": "XX.XX.XX.XX", "filename": "test"},
+                                                                  {"version": "XXXXXXXXXX", "filename": "test.dlp"}]),
+                                                           (200, None), (200, None)]):
+                    firmware.proxy_upload_and_check_compatibility()
 
-            with patch(self.REQUEST_FUNC, side_effect=[(200, [{"version": "XX.XX.XX.XX", "filename": "test"},
-                                                              {"version": "test_nvsram", "filename": "test_nvsram.dlp"},
-                                                              {"version": "test", "filename": "test.dlp"},
-                                                              {"filename": "test_firmware.dlp", "version": "test_firmware"}]),
-                                                       (200, None), (200, None)]):
-                firmware.proxy_upload_and_check_compatibility()
+                with patch(self.REQUEST_FUNC, side_effect=[(200, [{"version": "XX.XX.XX.XX", "filename": "test"},
+                                                                  {"version": "test_nvsram", "filename": "test_nvsram.dlp"},
+                                                                  {"version": "test", "filename": "test.dlp"},
+                                                                  {"filename": "test_firmware.dlp", "version": "test_firmware"}]),
+                                                           (200, None), (200, None)]):
+                    firmware.proxy_upload_and_check_compatibility()
 
     @unittest.skip("Test needs to be reworked.")
     def test_proxy_upload_and_check_compatibility_fail(self):
         """Verify proxy_upload_and_check_compatibility throws expected exceptions."""
-        self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"})
-        firmware = NetAppESeriesFirmware()
-        firmware.proxy_check_nvsram_compatibility = lambda: None
-        firmware.proxy_check_firmware_compatibility = lambda: None
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve existing firmware files."):
-            with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("headers", "data")):
-                with patch(self.REQUEST_FUNC, return_value=Exception()):
-                    firmware.proxy_upload_and_check_compatibility()
+        with self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            firmware.proxy_check_nvsram_compatibility = lambda: None
+            firmware.proxy_check_firmware_compatibility = lambda: None
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve existing firmware files."):
+                with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("headers", "data")):
+                    with patch(self.REQUEST_FUNC, return_value=Exception()):
+                        firmware.proxy_upload_and_check_compatibility()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to upload NVSRAM file."):
-            with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("headers", "data")):
-                with patch(self.REQUEST_FUNC, side_effect=[(200, [{"version": "XX.XX.XX.XX", "filename": "test"},
-                                                                  {"version": "XXXXXXXXXX", "filename": "test.dlp"},
-                                                                  {"filename": "test_firmware.dlp", "version": "test_firmware"}]),
-                                                           Exception()]):
-                    firmware.proxy_upload_and_check_compatibility()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to upload NVSRAM file."):
+                with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("headers", "data")):
+                    with patch(self.REQUEST_FUNC, side_effect=[(200, [{"version": "XX.XX.XX.XX", "filename": "test"},
+                                                                      {"version": "XXXXXXXXXX", "filename": "test.dlp"},
+                                                                      {"filename": "test_firmware.dlp", "version": "test_firmware"}]),
+                                                               Exception()]):
+                        firmware.proxy_upload_and_check_compatibility()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to upload firmware bundle file."):
-            with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("headers", "data")):
-                with patch(self.REQUEST_FUNC, side_effect=[(200, [{"version": "XX.XX.XX.XX", "filename": "test"},
-                                                                  {"version": "test_nvsram", "filename": "test_nvsram.dlp"},
-                                                                  {"version": "XXXXXXXXXX", "filename": "test.dlp"}]),
-                                                           Exception()]):
-                    firmware.proxy_upload_and_check_compatibility()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to upload firmware bundle file."):
+                with patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("headers", "data")):
+                    with patch(self.REQUEST_FUNC, side_effect=[(200, [{"version": "XX.XX.XX.XX", "filename": "test"},
+                                                                      {"version": "test_nvsram", "filename": "test_nvsram.dlp"},
+                                                                      {"version": "XXXXXXXXXX", "filename": "test.dlp"}]),
+                                                               Exception()]):
+                        firmware.proxy_upload_and_check_compatibility()
 
     def test_proxy_check_upgrade_required_pass(self):
         """Verify proxy_check_upgrade_required."""
-        self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"})
-        firmware = NetAppESeriesFirmware()
-        firmware.firmware_version = lambda: b"08.42.50.00"
-        firmware.nvsram_version = lambda: b"nvsram_version"
-        with patch(self.REQUEST_FUNC, side_effect=[(200, [{"versionString": "08.42.50.00"}]), (200, ["nvsram_version"])]):
-            firmware.is_firmware_bundled = lambda: True
-            firmware.proxy_check_upgrade_required()
-            self.assertFalse(firmware.upgrade_required)
+        with self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            firmware.firmware_version = lambda: b"08.42.50.00"
+            firmware.nvsram_version = lambda: b"nvsram_version"
+            with patch(self.REQUEST_FUNC, side_effect=[(200, [{"versionString": "08.42.50.00"}]), (200, ["nvsram_version"])]):
+                firmware.is_firmware_bundled = lambda: True
+                firmware.proxy_check_upgrade_required()
+                self.assertFalse(firmware.upgrade_required)
 
-        with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.50.00"]), (200, ["nvsram_version"])]):
-            firmware.is_firmware_bundled = lambda: False
-            firmware.proxy_check_upgrade_required()
-            self.assertFalse(firmware.upgrade_required)
+            with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.50.00"]), (200, ["nvsram_version"])]):
+                firmware.is_firmware_bundled = lambda: False
+                firmware.proxy_check_upgrade_required()
+                self.assertFalse(firmware.upgrade_required)
 
-        self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"})
-        firmware = NetAppESeriesFirmware()
-        firmware.firmware_version = lambda: b"08.42.50.00"
-        firmware.nvsram_version = lambda: b"not_nvsram_version"
-        with patch(self.REQUEST_FUNC, side_effect=[(200, [{"versionString": "08.42.50.00"}]), (200, ["nvsram_version"])]):
-            firmware.is_firmware_bundled = lambda: True
-            firmware.proxy_check_upgrade_required()
-            self.assertTrue(firmware.upgrade_required)
+        with self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            firmware.firmware_version = lambda: b"08.42.50.00"
+            firmware.nvsram_version = lambda: b"not_nvsram_version"
+            with patch(self.REQUEST_FUNC, side_effect=[(200, [{"versionString": "08.42.50.00"}]), (200, ["nvsram_version"])]):
+                firmware.is_firmware_bundled = lambda: True
+                firmware.proxy_check_upgrade_required()
+                self.assertTrue(firmware.upgrade_required)
 
-        with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.50.00"]), (200, ["nvsram_version"])]):
-            firmware.is_firmware_bundled = lambda: False
-            firmware.proxy_check_upgrade_required()
-            self.assertTrue(firmware.upgrade_required)
+            with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.50.00"]), (200, ["nvsram_version"])]):
+                firmware.is_firmware_bundled = lambda: False
+                firmware.proxy_check_upgrade_required()
+                self.assertTrue(firmware.upgrade_required)
 
-        self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"})
-        firmware = NetAppESeriesFirmware()
-        firmware.firmware_version = lambda: b"08.52.00.00"
-        firmware.nvsram_version = lambda: b"nvsram_version"
-        with patch(self.REQUEST_FUNC, side_effect=[(200, [{"versionString": "08.42.50.00"}]), (200, ["nvsram_version"])]):
-            firmware.is_firmware_bundled = lambda: True
-            firmware.proxy_check_upgrade_required()
-            self.assertTrue(firmware.upgrade_required)
+        with self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            firmware.firmware_version = lambda: b"08.52.00.00"
+            firmware.nvsram_version = lambda: b"nvsram_version"
+            with patch(self.REQUEST_FUNC, side_effect=[(200, [{"versionString": "08.42.50.00"}]), (200, ["nvsram_version"])]):
+                firmware.is_firmware_bundled = lambda: True
+                firmware.proxy_check_upgrade_required()
+                self.assertTrue(firmware.upgrade_required)
 
-        with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.50.00"]), (200, ["nvsram_version"])]):
-            firmware.is_firmware_bundled = lambda: False
-            firmware.proxy_check_upgrade_required()
-            self.assertTrue(firmware.upgrade_required)
+            with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.50.00"]), (200, ["nvsram_version"])]):
+                firmware.is_firmware_bundled = lambda: False
+                firmware.proxy_check_upgrade_required()
+                self.assertTrue(firmware.upgrade_required)
 
-        self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"})
-        firmware = NetAppESeriesFirmware()
-        firmware.firmware_version = lambda: b"08.52.00.00"
-        firmware.nvsram_version = lambda: b"not_nvsram_version"
-        with patch(self.REQUEST_FUNC, side_effect=[(200, [{"versionString": "08.42.50.00"}]), (200, ["nvsram_version"])]):
-            firmware.is_firmware_bundled = lambda: True
-            firmware.proxy_check_upgrade_required()
-            self.assertTrue(firmware.upgrade_required)
+        with self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"}):
+            firmware = NetAppESeriesFirmware()
+            firmware.firmware_version = lambda: b"08.52.00.00"
+            firmware.nvsram_version = lambda: b"not_nvsram_version"
+            with patch(self.REQUEST_FUNC, side_effect=[(200, [{"versionString": "08.42.50.00"}]), (200, ["nvsram_version"])]):
+                firmware.is_firmware_bundled = lambda: True
+                firmware.proxy_check_upgrade_required()
+                self.assertTrue(firmware.upgrade_required)
 
-        with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.50.00"]), (200, ["nvsram_version"])]):
-            firmware.is_firmware_bundled = lambda: False
-            firmware.proxy_check_upgrade_required()
-            self.assertTrue(firmware.upgrade_required)
+            with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.50.00"]), (200, ["nvsram_version"])]):
+                firmware.is_firmware_bundled = lambda: False
+                firmware.proxy_check_upgrade_required()
+                self.assertTrue(firmware.upgrade_required)
 
     @unittest.skip("Test needs to be reworked.")
     def test_proxy_check_upgrade_required_fail(self):
         """Verify proxy_check_upgrade_required throws expected exceptions."""
-        self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"})
-        firmware = NetAppESeriesFirmware()
+        with self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"}):
+            firmware = NetAppESeriesFirmware()
 
-        firmware.firmware_version = lambda: b"08.42.50.00"
-        firmware.nvsram_version = lambda: b"not_nvsram_version"
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve controller firmware information."):
-            with patch(self.REQUEST_FUNC, return_value=Exception()):
-                firmware.proxy_check_upgrade_required()
+            firmware.firmware_version = lambda: b"08.42.50.00"
+            firmware.nvsram_version = lambda: b"not_nvsram_version"
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve controller firmware information."):
+                with patch(self.REQUEST_FUNC, return_value=Exception()):
+                    firmware.proxy_check_upgrade_required()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve storage system's NVSRAM version."):
-            with patch(self.REQUEST_FUNC, side_effect=[(200, [{"versionString": "08.42.50.00"}]), Exception()]):
-                firmware.is_firmware_bundled = lambda: True
-                firmware.proxy_check_upgrade_required()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve storage system's NVSRAM version."):
+                with patch(self.REQUEST_FUNC, side_effect=[(200, [{"versionString": "08.42.50.00"}]), Exception()]):
+                    firmware.is_firmware_bundled = lambda: True
+                    firmware.proxy_check_upgrade_required()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve storage system's NVSRAM version."):
-            with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.50.00"]), Exception()]):
-                firmware.is_firmware_bundled = lambda: False
-                firmware.proxy_check_upgrade_required()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve storage system's NVSRAM version."):
+                with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.50.00"]), Exception()]):
+                    firmware.is_firmware_bundled = lambda: False
+                    firmware.proxy_check_upgrade_required()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Downgrades are not permitted."):
-            with patch(self.REQUEST_FUNC, side_effect=[(200, [{"versionString": "08.42.50.00"}]), (200, ["nvsram_version"])]):
-                firmware.firmware_version = lambda: b"08.40.00.00"
-                firmware.nvsram_version = lambda: "nvsram_version"
-                firmware.is_firmware_bundled = lambda: True
-                firmware.proxy_check_upgrade_required()
+            with self.assertRaisesRegex(AnsibleFailJson, "Downgrades are not permitted."):
+                with patch(self.REQUEST_FUNC, side_effect=[(200, [{"versionString": "08.42.50.00"}]), (200, ["nvsram_version"])]):
+                    firmware.firmware_version = lambda: b"08.40.00.00"
+                    firmware.nvsram_version = lambda: "nvsram_version"
+                    firmware.is_firmware_bundled = lambda: True
+                    firmware.proxy_check_upgrade_required()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Downgrades are not permitted."):
-            with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.50.00"]), (200, ["nvsram_version"])]):
-                firmware.is_firmware_bundled = lambda: False
-                firmware.proxy_check_upgrade_required()
+            with self.assertRaisesRegex(AnsibleFailJson, "Downgrades are not permitted."):
+                with patch(self.REQUEST_FUNC, side_effect=[(200, ["08.42.50.00"]), (200, ["nvsram_version"])]):
+                    firmware.is_firmware_bundled = lambda: False
+                    firmware.proxy_check_upgrade_required()
 
     def test_proxy_wait_for_upgrade_pass(self):
         """Verify proxy_wait_for_upgrade."""
         with patch(self.SLEEP_FUNC, return_value=None):
-            self._set_args({"firmware": "test_firmware.dlp", "nvsram": "expected_nvsram.dlp"})
-            firmware = NetAppESeriesFirmware()
+            with self._set_args({"firmware": "test_firmware.dlp", "nvsram": "expected_nvsram.dlp"}):
+                firmware = NetAppESeriesFirmware()
 
-            with patch(self.REQUEST_FUNC, side_effect=[(200, {"running": True}),
-                                                       (200, {"running": False, "activationCompletionTime": "completion_time"})]):
-                firmware.proxy_wait_for_upgrade()
+                with patch(self.REQUEST_FUNC, side_effect=[(200, {"running": True}),
+                                                           (200, {"running": False, "activationCompletionTime": "completion_time"})]):
+                    firmware.proxy_wait_for_upgrade()
 
     def test_proxy_wait_for_upgrade_fail(self):
         """Verify proxy_wait_for_upgrade throws expected exceptions."""
         with patch(self.SLEEP_FUNC, return_value=None):
-            self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"})
-            firmware = NetAppESeriesFirmware()
+            with self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"}):
+                firmware = NetAppESeriesFirmware()
 
-            with self.assertRaisesRegex(AnsibleFailJson, "Failed to complete upgrade."):
-                with patch(self.REQUEST_FUNC, return_value=(200, {"running": False, "activationCompletionTime": None})):
-                    firmware.proxy_wait_for_upgrade()
+                with self.assertRaisesRegex(AnsibleFailJson, "Failed to complete upgrade."):
+                    with patch(self.REQUEST_FUNC, return_value=(200, {"running": False, "activationCompletionTime": None})):
+                        firmware.proxy_wait_for_upgrade()
 
     def test_proxy_upgrade_fail(self):
         """Verify proxy_upgrade throws expected exceptions."""
-        self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"})
-        firmware = NetAppESeriesFirmware()
+        with self._set_args({"firmware": "test_firmware.dlp", "nvsram": "test_nvsram.dlp"}):
+            firmware = NetAppESeriesFirmware()
 
-        firmware.is_firmware_bundled = lambda: True
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to initiate firmware upgrade."):
-            with patch(self.REQUEST_FUNC, return_value=Exception()):
-                firmware.proxy_upgrade()
+            firmware.is_firmware_bundled = lambda: True
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to initiate firmware upgrade."):
+                with patch(self.REQUEST_FUNC, return_value=Exception()):
+                    firmware.proxy_upgrade()
 
-        firmware.is_firmware_bundled = lambda: False
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to initiate firmware upgrade."):
-            with patch(self.REQUEST_FUNC, return_value=Exception()):
-                firmware.proxy_upgrade()
+            firmware.is_firmware_bundled = lambda: False
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to initiate firmware upgrade."):
+                with patch(self.REQUEST_FUNC, return_value=Exception()):
+                    firmware.proxy_upgrade()

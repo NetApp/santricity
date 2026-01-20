@@ -4,10 +4,11 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import unittest
-
+from contextlib import contextmanager
+from ansible.module_utils.testing import patch_module_args
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_volume import NetAppESeriesVolume
 from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
-    AnsibleFailJson, ModuleTestCase, set_module_args
+    AnsibleFailJson, ModuleTestCase
 )
 from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
@@ -212,11 +213,13 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
     GET_VOLUME_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_volume.NetAppESeriesVolume.get_volume"
     SLEEP_FUNC = "ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_volume.time.sleep"
 
+    @contextmanager
     def _set_args(self, args=None):
         module_args = self.REQUIRED_PARAMS.copy()
         if args is not None:
             module_args.update(args)
-        set_module_args(module_args)
+        with patch_module_args(module_args):
+            yield
 
     def test_module_arguments_pass(self):
         """Ensure valid arguments successful create a class instance."""
@@ -233,25 +236,26 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
 
         # validate size normalization
         for arg_set in arg_sets:
-            self._set_args(arg_set)
-            volume_object = NetAppESeriesVolume()
+            with self._set_args(arg_set):
+                volume_object = NetAppESeriesVolume()
 
-            self.assertEqual(volume_object.size_b, volume_object.convert_to_aligned_bytes(arg_set["size"]))
-            self.assertEqual(volume_object.thin_volume_repo_size_b, volume_object.convert_to_aligned_bytes(arg_set["thin_volume_repo_size"]))
-            self.assertEqual(volume_object.thin_volume_expansion_policy, "automatic")
-            if "thin_volume_max_repo_size" not in arg_set.keys():
-                self.assertEqual(volume_object.thin_volume_max_repo_size_b, volume_object.convert_to_aligned_bytes(arg_set["size"]))
-            else:
-                self.assertEqual(volume_object.thin_volume_max_repo_size_b,
-                                 volume_object.convert_to_aligned_bytes(arg_set["thin_volume_max_repo_size"]))
+                self.assertEqual(volume_object.size_b, volume_object.convert_to_aligned_bytes(arg_set["size"]))
+                self.assertEqual(volume_object.thin_volume_repo_size_b, volume_object.convert_to_aligned_bytes(arg_set["thin_volume_repo_size"]))
+                self.assertEqual(volume_object.thin_volume_expansion_policy, "automatic")
+                if "thin_volume_max_repo_size" not in arg_set.keys():
+                    self.assertEqual(volume_object.thin_volume_max_repo_size_b, volume_object.convert_to_aligned_bytes(arg_set["size"]))
+                else:
+                    self.assertEqual(volume_object.thin_volume_max_repo_size_b,
+                                     volume_object.convert_to_aligned_bytes(arg_set["thin_volume_max_repo_size"]))
 
         # validate metadata form
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "vol", "storage_pool_name": "pool", "size": 10, "workload_name": "workload1",
-             "metadata": {"availability": "public", "security": "low"}})
-        volume_object = NetAppESeriesVolume()
-        for entry in volume_object.metadata:
-            self.assertTrue(entry in [{'value': 'low', 'key': 'security'}, {'value': 'public', 'key': 'availability'}])
+             "metadata": {"availability": "public", "security": "low"}}
+        ):
+            volume_object = NetAppESeriesVolume()
+            for entry in volume_object.metadata:
+                self.assertTrue(entry in [{'value': 'low', 'key': 'security'}, {'value': 'public', 'key': 'availability'}])
 
     def test_module_arguments_fail(self):
         """Ensure invalid arguments values do not create a class instance."""
@@ -268,172 +272,173 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
 
         for arg_set in arg_sets:
             with self.assertRaises(AnsibleFailJson):
-                self._set_args(arg_set)
-                print(arg_set)
-                volume_object = NetAppESeriesVolume()
+                with self._set_args(arg_set):
+                    print(arg_set)
+                    volume_object = NetAppESeriesVolume()
 
     def test_get_volume_pass(self):
         """Evaluate the get_volume method."""
         with mock.patch(self.REQUEST_FUNC,
                         side_effect=[(200, self.VOLUME_GET_RESPONSE), (200, self.THIN_VOLUME_RESPONSE)]):
-            self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100})
-            volume_object = NetAppESeriesVolume()
-            self.assertEqual(volume_object.get_volume(),
-                             [entry for entry in self.VOLUME_GET_RESPONSE if entry["name"] == "Matthew"][0])
+            with self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100}):
+                volume_object = NetAppESeriesVolume()
+                self.assertEqual(volume_object.get_volume(),
+                                 [entry for entry in self.VOLUME_GET_RESPONSE if entry["name"] == "Matthew"][0])
 
         with mock.patch(self.REQUEST_FUNC,
                         side_effect=[(200, self.VOLUME_GET_RESPONSE), (200, self.THIN_VOLUME_RESPONSE)]):
-            self._set_args({"state": "present", "name": "NotAVolume", "storage_pool_name": "pool", "size": 100})
-            volume_object = NetAppESeriesVolume()
-            self.assertEqual(volume_object.get_volume(), {})
+            with self._set_args({"state": "present", "name": "NotAVolume", "storage_pool_name": "pool", "size": 100}):
+                volume_object = NetAppESeriesVolume()
+                self.assertEqual(volume_object.get_volume(), {})
 
     def test_get_volume_fail(self):
         """Evaluate the get_volume exception paths."""
         with self.assertRaisesRegex(AnsibleFailJson, "Failed to obtain list of thick volumes."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100})
-                volume_object = NetAppESeriesVolume()
-                volume_object.get_volume()
+                with self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100}):
+                    volume_object = NetAppESeriesVolume()
+                    volume_object.get_volume()
 
         with self.assertRaisesRegex(AnsibleFailJson, "Failed to obtain list of thin volumes."):
             with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.VOLUME_GET_RESPONSE), Exception()]):
-                self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100})
-                volume_object = NetAppESeriesVolume()
-                volume_object.get_volume()
+                with self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100}):
+                    volume_object = NetAppESeriesVolume()
+                    volume_object.get_volume()
 
     def tests_wait_for_volume_availability_pass(self):
         """Ensure wait_for_volume_availability completes as expected."""
-        self._set_args({"state": "present", "name": "NewVolume", "storage_pool_name": "employee_data_storage_pool", "size": 100,
-                        "wait_for_initialization": True})
-        volume_object = NetAppESeriesVolume()
-        with mock.patch(self.SLEEP_FUNC, return_value=None):
-            with mock.patch(self.GET_VOLUME_FUNC, side_effect=[False, False, True]):
-                volume_object.wait_for_volume_availability()
+        with self._set_args({"state": "present", "name": "NewVolume", "storage_pool_name": "employee_data_storage_pool", "size": 100,
+                             "wait_for_initialization": True}):
+            volume_object = NetAppESeriesVolume()
+            with mock.patch(self.SLEEP_FUNC, return_value=None):
+                with mock.patch(self.GET_VOLUME_FUNC, side_effect=[False, False, True]):
+                    volume_object.wait_for_volume_availability()
 
     def tests_wait_for_volume_availability_fail(self):
         """Ensure wait_for_volume_availability throws the expected exceptions."""
-        self._set_args({"state": "present", "name": "NewVolume", "storage_pool_name": "employee_data_storage_pool", "size": 100,
-                        "wait_for_initialization": True})
-        volume_object = NetAppESeriesVolume()
-        volume_object.get_volume = lambda: False
-        with self.assertRaisesRegex(AnsibleFailJson, "Timed out waiting for the volume"):
-            with mock.patch(self.SLEEP_FUNC, return_value=None):
-                volume_object.wait_for_volume_availability()
+        with self._set_args({"state": "present", "name": "NewVolume", "storage_pool_name": "employee_data_storage_pool", "size": 100,
+                             "wait_for_initialization": True}):
+            volume_object = NetAppESeriesVolume()
+            volume_object.get_volume = lambda: False
+            with self.assertRaisesRegex(AnsibleFailJson, "Timed out waiting for the volume"):
+                with mock.patch(self.SLEEP_FUNC, return_value=None):
+                    volume_object.wait_for_volume_availability()
 
     def tests_wait_for_volume_action_pass(self):
         """Ensure wait_for_volume_action completes as expected."""
-        self._set_args({"state": "present", "name": "NewVolume", "storage_pool_name": "employee_data_storage_pool", "size": 100,
-                        "wait_for_initialization": True})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"id": "02000000600A098000A4B9D1000037315D494C6F",
-                                       "storageVolumeRef": "02000000600A098000A4B9D1000037315DXXXXXX"}
-        with mock.patch(self.SLEEP_FUNC, return_value=None):
-            with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.GET_LONG_LIVED_OPERATION_RESPONSE[0]),
-                                                            (200, self.GET_LONG_LIVED_OPERATION_RESPONSE[1]),
-                                                            (200, self.GET_LONG_LIVED_OPERATION_RESPONSE[2]),
-                                                            (200, self.GET_LONG_LIVED_OPERATION_RESPONSE[3])]):
-                volume_object.wait_for_volume_action()
+        with self._set_args({"state": "present", "name": "NewVolume", "storage_pool_name": "employee_data_storage_pool", "size": 100,
+                             "wait_for_initialization": True}):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"id": "02000000600A098000A4B9D1000037315D494C6F",
+                                           "storageVolumeRef": "02000000600A098000A4B9D1000037315DXXXXXX"}
+            with mock.patch(self.SLEEP_FUNC, return_value=None):
+                with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.GET_LONG_LIVED_OPERATION_RESPONSE[0]),
+                                                                (200, self.GET_LONG_LIVED_OPERATION_RESPONSE[1]),
+                                                                (200, self.GET_LONG_LIVED_OPERATION_RESPONSE[2]),
+                                                                (200, self.GET_LONG_LIVED_OPERATION_RESPONSE[3])]):
+                    volume_object.wait_for_volume_action()
 
-        self._set_args({"state": "present", "name": "NewVolume", "storage_pool_name": "employee_data_storage_pool", "size": 100,
-                        "wait_for_initialization": True})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"id": "02000000600A098000A4B9D1000037315DXXXXXX",
-                                       "storageVolumeRef": "02000000600A098000A4B9D1000037315D494C6F"}
-        with mock.patch(self.SLEEP_FUNC, return_value=None):
-            with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.GET_LONG_LIVED_OPERATION_RESPONSE[0]),
-                                                            (200, self.GET_LONG_LIVED_OPERATION_RESPONSE[1]),
-                                                            (200, self.GET_LONG_LIVED_OPERATION_RESPONSE[2]),
-                                                            (200, self.GET_LONG_LIVED_OPERATION_RESPONSE[3])]):
-                volume_object.wait_for_volume_action()
+        with self._set_args({"state": "present", "name": "NewVolume", "storage_pool_name": "employee_data_storage_pool", "size": 100,
+                             "wait_for_initialization": True}):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"id": "02000000600A098000A4B9D1000037315DXXXXXX",
+                                           "storageVolumeRef": "02000000600A098000A4B9D1000037315D494C6F"}
+            with mock.patch(self.SLEEP_FUNC, return_value=None):
+                with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.GET_LONG_LIVED_OPERATION_RESPONSE[0]),
+                                                                (200, self.GET_LONG_LIVED_OPERATION_RESPONSE[1]),
+                                                                (200, self.GET_LONG_LIVED_OPERATION_RESPONSE[2]),
+                                                                (200, self.GET_LONG_LIVED_OPERATION_RESPONSE[3])]):
+                    volume_object.wait_for_volume_action()
 
     def tests_wait_for_volume_action_fail(self):
         """Ensure wait_for_volume_action throws the expected exceptions."""
-        self._set_args({"state": "present", "name": "NewVolume", "storage_pool_name": "employee_data_storage_pool", "size": 100,
-                        "wait_for_initialization": True})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"id": "02000000600A098000A4B9D1000037315DXXXXXX",
-                                       "storageVolumeRef": "02000000600A098000A4B9D1000037315D494C6F"}
-        with mock.patch(self.SLEEP_FUNC, return_value=None):
-            with self.assertRaisesRegex(AnsibleFailJson, "Failed to get volume expansion progress."):
-                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                    volume_object.wait_for_volume_action()
+        with self._set_args({"state": "present", "name": "NewVolume", "storage_pool_name": "employee_data_storage_pool", "size": 100,
+                             "wait_for_initialization": True}):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"id": "02000000600A098000A4B9D1000037315DXXXXXX",
+                                           "storageVolumeRef": "02000000600A098000A4B9D1000037315D494C6F"}
+            with mock.patch(self.SLEEP_FUNC, return_value=None):
+                with self.assertRaisesRegex(AnsibleFailJson, "Failed to get volume expansion progress."):
+                    with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                        volume_object.wait_for_volume_action()
 
-            with self.assertRaisesRegex(AnsibleFailJson, "Expansion action failed to complete."):
-                with mock.patch(self.REQUEST_FUNC, return_value=(200, self.GET_LONG_LIVED_OPERATION_RESPONSE[0])):
-                    volume_object.wait_for_volume_action(timeout=300)
+                with self.assertRaisesRegex(AnsibleFailJson, "Expansion action failed to complete."):
+                    with mock.patch(self.REQUEST_FUNC, return_value=(200, self.GET_LONG_LIVED_OPERATION_RESPONSE[0])):
+                        volume_object.wait_for_volume_action(timeout=300)
 
     def test_get_storage_pool_pass(self):
         """Evaluate the get_storage_pool method."""
         with mock.patch(self.REQUEST_FUNC, return_value=(200, self.STORAGE_POOL_GET_RESPONSE)):
-            self._set_args({"state": "present", "name": "NewVolume", "storage_pool_name": "employee_data_storage_pool",
-                            "size": 100})
-            volume_object = NetAppESeriesVolume()
-            self.assertEqual(volume_object.get_storage_pool(), [entry for entry in self.STORAGE_POOL_GET_RESPONSE if
-                                                                entry["name"] == "employee_data_storage_pool"][0])
+            with self._set_args({"state": "present", "name": "NewVolume", "storage_pool_name": "employee_data_storage_pool",
+                                 "size": 100}):
+                volume_object = NetAppESeriesVolume()
+                self.assertEqual(volume_object.get_storage_pool(), [entry for entry in self.STORAGE_POOL_GET_RESPONSE if
+                                                                    entry["name"] == "employee_data_storage_pool"][0])
 
-            self._set_args(
-                {"state": "present", "name": "NewVolume", "storage_pool_name": "NotAStoragePool", "size": 100})
-            volume_object = NetAppESeriesVolume()
-            self.assertEqual(volume_object.get_storage_pool(), {})
+            with self._set_args(
+                {"state": "present", "name": "NewVolume", "storage_pool_name": "NotAStoragePool", "size": 100}
+            ):
+                volume_object = NetAppESeriesVolume()
+                self.assertEqual(volume_object.get_storage_pool(), {})
 
     def test_get_storage_pool_fail(self):
         """Evaluate the get_storage_pool exception paths."""
         with self.assertRaisesRegex(AnsibleFailJson, "Failed to obtain list of storage pools."):
             with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100})
-                volume_object = NetAppESeriesVolume()
-                volume_object.get_storage_pool()
+                with self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100}):
+                    volume_object = NetAppESeriesVolume()
+                    volume_object.get_storage_pool()
 
     def test_check_storage_pool_sufficiency_pass(self):
         """Ensure passing logic."""
-        self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100})
-        volume_object = NetAppESeriesVolume()
-        volume_object.pool_detail = [entry for entry in self.STORAGE_POOL_GET_RESPONSE
-                                     if entry["name"] == "employee_data_storage_pool"][0]
-        volume_object.check_storage_pool_sufficiency()
+        with self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100}):
+            volume_object = NetAppESeriesVolume()
+            volume_object.pool_detail = [entry for entry in self.STORAGE_POOL_GET_RESPONSE
+                                         if entry["name"] == "employee_data_storage_pool"][0]
+            volume_object.check_storage_pool_sufficiency()
 
     def test_check_storage_pool_sufficiency_fail(self):
         """Validate exceptions are thrown for insufficient storage pool resources."""
-        self._set_args({"state": "present", "name": "vol", "storage_pool_name": "pool", "size": 100, "size_unit": "tb",
-                        "thin_provision": True, "thin_volume_repo_size": 64, "thin_volume_max_repo_size": 1000,
-                        "thin_volume_growth_alert_threshold": 10})
-        volume_object = NetAppESeriesVolume()
+        with self._set_args({"state": "present", "name": "vol", "storage_pool_name": "pool", "size": 100, "size_unit": "tb",
+                             "thin_provision": True, "thin_volume_repo_size": 64, "thin_volume_max_repo_size": 1000,
+                             "thin_volume_growth_alert_threshold": 10}):
+            volume_object = NetAppESeriesVolume()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Requested storage pool"):
-            volume_object.check_storage_pool_sufficiency()
+            with self.assertRaisesRegex(AnsibleFailJson, "Requested storage pool"):
+                volume_object.check_storage_pool_sufficiency()
 
-        with self.assertRaisesRegex(AnsibleFailJson,
-                                    "Thin provisioned volumes can only be created on raid disk pools."):
-            volume_object.pool_detail = [entry for entry in self.STORAGE_POOL_GET_RESPONSE
-                                         if entry["name"] == "database_storage_pool"][0]
-            volume_object.volume_detail = {}
-            volume_object.check_storage_pool_sufficiency()
+            with self.assertRaisesRegex(AnsibleFailJson,
+                                        "Thin provisioned volumes can only be created on raid disk pools."):
+                volume_object.pool_detail = [entry for entry in self.STORAGE_POOL_GET_RESPONSE
+                                             if entry["name"] == "database_storage_pool"][0]
+                volume_object.volume_detail = {}
+                volume_object.check_storage_pool_sufficiency()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "requires the storage pool to be DA-compatible."):
-            volume_object.pool_detail = {"diskPool": True,
-                                         "protectionInformationCapabilities": {"protectionType": "type0Protection",
-                                                                               "protectionInformationCapable": False}}
-            volume_object.volume_detail = {}
-            volume_object.data_assurance_enabled = True
-            volume_object.check_storage_pool_sufficiency()
+            with self.assertRaisesRegex(AnsibleFailJson, "requires the storage pool to be DA-compatible."):
+                volume_object.pool_detail = {"diskPool": True,
+                                             "protectionInformationCapabilities": {"protectionType": "type0Protection",
+                                                                                   "protectionInformationCapable": False}}
+                volume_object.volume_detail = {}
+                volume_object.data_assurance_enabled = True
+                volume_object.check_storage_pool_sufficiency()
 
-            volume_object.pool_detail = {"diskPool": True,
-                                         "protectionInformationCapabilities": {"protectionType": "type2Protection",
-                                                                               "protectionInformationCapable": True}}
-            volume_object.check_storage_pool_sufficiency()
+                volume_object.pool_detail = {"diskPool": True,
+                                             "protectionInformationCapabilities": {"protectionType": "type2Protection",
+                                                                                   "protectionInformationCapable": True}}
+                volume_object.check_storage_pool_sufficiency()
 
-        self._set_args({"state": "present", "name": "vol", "storage_pool_name": "pool", "size": 100, "size_unit": "tb",
-                        "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        with self.assertRaisesRegex(AnsibleFailJson,
-                                    "Not enough storage pool free space available for the volume's needs."):
-            volume_object.pool_detail = {"freeSpace": 10, "diskPool": True,
-                                         "protectionInformationCapabilities": {"protectionType": "type2Protection",
-                                                                               "protectionInformationCapable": True}}
-            volume_object.volume_detail = {"totalSizeInBytes": 100}
-            volume_object.data_assurance_enabled = True
-            volume_object.size_b = 1
-            volume_object.check_storage_pool_sufficiency()
+        with self._set_args({"state": "present", "name": "vol", "storage_pool_name": "pool", "size": 100, "size_unit": "tb",
+                             "thin_provision": False}):
+            volume_object = NetAppESeriesVolume()
+            with self.assertRaisesRegex(AnsibleFailJson,
+                                        "Not enough storage pool free space available for the volume's needs."):
+                volume_object.pool_detail = {"freeSpace": 10, "diskPool": True,
+                                             "protectionInformationCapabilities": {"protectionType": "type2Protection",
+                                                                                   "protectionInformationCapable": True}}
+                volume_object.volume_detail = {"totalSizeInBytes": 100}
+                volume_object.data_assurance_enabled = True
+                volume_object.size_b = 1
+                volume_object.check_storage_pool_sufficiency()
 
     def test_update_workload_tags_pass(self):
         """Validate updating workload tags."""
@@ -459,412 +464,445 @@ class NetAppESeriesVolumeTest(ModuleTestCase):
                        "workload_name": "newWorkload"}, True]]
 
         for test in test_sets:
-            self._set_args(test[0])
-            volume_object = NetAppESeriesVolume()
+            with self._set_args(test[0]):
+                volume_object = NetAppESeriesVolume()
 
-            with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.WORKLOAD_GET_RESPONSE), (200, {"id": 1})]):
-                self.assertEqual(volume_object.update_workload_tags(), test[1])
+                with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.WORKLOAD_GET_RESPONSE), (200, {"id": 1})]):
+                    self.assertEqual(volume_object.update_workload_tags(), test[1])
 
     def test_update_workload_tags_fail(self):
         """Validate updating workload tags fails appropriately."""
-        self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100,
-                        "workload_name": "employee_data"})
-        volume_object = NetAppESeriesVolume()
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve storage array workload tags."):
-            with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                volume_object.update_workload_tags()
+        with self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100,
+                             "workload_name": "employee_data"}):
+            volume_object = NetAppESeriesVolume()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve storage array workload tags."):
+                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                    volume_object.update_workload_tags()
 
-        self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100,
-                        "workload_name": "employee_data", "metadata": {"key": "not-use", "value": "EmployeeData"}})
-        volume_object = NetAppESeriesVolume()
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to create new workload tag."):
-            with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.WORKLOAD_GET_RESPONSE), Exception()]):
-                volume_object.update_workload_tags()
+        with self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100,
+                             "workload_name": "employee_data", "metadata": {"key": "not-use", "value": "EmployeeData"}}):
+            volume_object = NetAppESeriesVolume()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to create new workload tag."):
+                with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.WORKLOAD_GET_RESPONSE), Exception()]):
+                    volume_object.update_workload_tags()
 
-        self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100,
-                        "workload_name": "employee_data2", "metadata": {"key": "use", "value": "EmployeeData"}})
-        volume_object = NetAppESeriesVolume()
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to create new workload tag."):
-            with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.WORKLOAD_GET_RESPONSE), Exception()]):
-                volume_object.update_workload_tags()
+        with self._set_args({"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100,
+                             "workload_name": "employee_data2", "metadata": {"key": "use", "value": "EmployeeData"}}):
+            volume_object = NetAppESeriesVolume()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to create new workload tag."):
+                with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.WORKLOAD_GET_RESPONSE), Exception()]):
+                    volume_object.update_workload_tags()
 
     @unittest.skip("Test needs to be reworked.")
     def test_get_volume_property_changes_pass(self):
         """Verify correct dictionary is returned"""
 
         # no property changes
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "ssd_cache_enabled": True,
              "read_cache_enable": True, "write_cache_enable": True,
-             "read_ahead_enable": True, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"metadata": [],
-                                       "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": True,
-                                                         "readAheadMultiplier": 1}, "flashCached": True,
-                                       "segmentSize": str(128 * 1024)}
-        self.assertEqual(volume_object.get_volume_property_changes(), dict())
+             "read_ahead_enable": True, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"metadata": [],
+                                           "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": True,
+                                                             "readAheadMultiplier": 1}, "flashCached": True,
+                                           "segmentSize": str(128 * 1024)}
+            self.assertEqual(volume_object.get_volume_property_changes(), dict())
 
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "ssd_cache_enabled": True,
              "read_cache_enable": True, "write_cache_enable": True,
              "read_ahead_enable": True, "thin_provision": True, "thin_volume_repo_size": 64,
-             "thin_volume_max_repo_size": 1000, "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"metadata": [],
-                                       "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": True,
-                                                         "readAheadMultiplier": 1},
-                                       "flashCached": True, "growthAlertThreshold": "90",
-                                       "expansionPolicy": "automatic", "segmentSize": str(128 * 1024)}
-        self.assertEqual(volume_object.get_volume_property_changes(), dict())
+             "thin_volume_max_repo_size": 1000, "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"metadata": [],
+                                           "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": True,
+                                                             "readAheadMultiplier": 1},
+                                           "flashCached": True, "growthAlertThreshold": "90",
+                                           "expansionPolicy": "automatic", "segmentSize": str(128 * 1024)}
+            self.assertEqual(volume_object.get_volume_property_changes(), dict())
 
         # property changes
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "ssd_cache_enabled": True,
              "read_cache_enable": True, "write_cache_enable": True,
-             "read_ahead_enable": True, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"metadata": [],
-                                       "cacheSettings": {"cwob": False, "readCacheEnable": False, "writeCacheEnable": True,
-                                                         "readAheadMultiplier": 1}, "flashCached": True,
-                                       "segmentSize": str(128 * 1024)}
-        self.assertEqual(volume_object.get_volume_property_changes(),
-                         {"metaTags": [], 'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True},
-                          'flashCache': True})
-        self._set_args(
+             "read_ahead_enable": True, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"metadata": [],
+                                           "cacheSettings": {"cwob": False, "readCacheEnable": False, "writeCacheEnable": True,
+                                                             "readAheadMultiplier": 1}, "flashCached": True,
+                                           "segmentSize": str(128 * 1024)}
+            self.assertEqual(volume_object.get_volume_property_changes(),
+                             {"metaTags": [], 'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True},
+                              'flashCache': True})
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "ssd_cache_enabled": True,
              "read_cache_enable": True, "write_cache_enable": True, "cache_without_batteries": False,
-             "read_ahead_enable": True, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"metadata": [],
-                                       "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": False,
-                                                         "readAheadMultiplier": 1}, "flashCached": True,
-                                       "segmentSize": str(128 * 1024)}
-        self.assertEqual(volume_object.get_volume_property_changes(),
-                         {"metaTags": [], 'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True},
-                          'flashCache': True})
-        self._set_args(
+             "read_ahead_enable": True, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"metadata": [],
+                                           "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": False,
+                                                             "readAheadMultiplier": 1}, "flashCached": True,
+                                           "segmentSize": str(128 * 1024)}
+            self.assertEqual(volume_object.get_volume_property_changes(),
+                             {"metaTags": [], 'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True},
+                              'flashCache': True})
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "ssd_cache_enabled": True,
              "read_cache_enable": True, "write_cache_enable": True, "cache_without_batteries": True,
-             "read_ahead_enable": True, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"metadata": [],
-                                       "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": True,
-                                                         "readAheadMultiplier": 1}, "flashCached": False,
-                                       "segmentSize": str(128 * 1024)}
-        self.assertEqual(volume_object.get_volume_property_changes(),
-                         {"metaTags": [], 'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True, "cacheWithoutBatteries": True},
-                          'flashCache': True})
-        self._set_args(
+             "read_ahead_enable": True, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"metadata": [],
+                                           "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": True,
+                                                             "readAheadMultiplier": 1}, "flashCached": False,
+                                           "segmentSize": str(128 * 1024)}
+            self.assertEqual(volume_object.get_volume_property_changes(),
+                             {"metaTags": [], 'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True, "cacheWithoutBatteries": True},
+                              'flashCache': True})
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "ssd_cache_enabled": True,
              "read_cache_enable": True, "write_cache_enable": True, "cache_without_batteries": True,
-             "read_ahead_enable": False, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"metadata": [],
-                                       "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": True,
-                                                         "readAheadMultiplier": 1}, "flashCached": False,
-                                       "segmentSize": str(128 * 1024)}
-        self.assertEqual(volume_object.get_volume_property_changes(), {"metaTags": [],
-                                                                       'cacheSettings': {'readCacheEnable': True,
-                                                                                         'writeCacheEnable': True,
-                                                                                         'readAheadEnable': False,
-                                                                                         "cacheWithoutBatteries": True},
-                                                                       'flashCache': True})
+             "read_ahead_enable": False, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"metadata": [],
+                                           "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": True,
+                                                             "readAheadMultiplier": 1}, "flashCached": False,
+                                           "segmentSize": str(128 * 1024)}
+            self.assertEqual(volume_object.get_volume_property_changes(), {"metaTags": [],
+                                                                           'cacheSettings': {'readCacheEnable': True,
+                                                                                             'writeCacheEnable': True,
+                                                                                             'readAheadEnable': False,
+                                                                                             "cacheWithoutBatteries": True},
+                                                                           'flashCache': True})
 
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "ssd_cache_enabled": True,
              "read_cache_enable": True, "write_cache_enable": True,
              "read_ahead_enable": True, "thin_provision": True, "thin_volume_repo_size": 64,
-             "thin_volume_max_repo_size": 1000, "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"metadata": [],
-                                       "cacheSettings": {"cwob": True, "readCacheEnable": True, "writeCacheEnable": True,
-                                                         "readAheadMultiplier": 1},
-                                       "flashCached": True, "growthAlertThreshold": "95",
-                                       "expansionPolicy": "automatic", "segmentSize": str(128 * 1024)}
-        self.assertEqual(volume_object.get_volume_property_changes(),
-                         {"metaTags": [], 'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True},
-                          'growthAlertThreshold': 90, 'flashCache': True})
+             "thin_volume_max_repo_size": 1000, "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"metadata": [],
+                                           "cacheSettings": {"cwob": True, "readCacheEnable": True, "writeCacheEnable": True,
+                                                             "readAheadMultiplier": 1},
+                                           "flashCached": True, "growthAlertThreshold": "95",
+                                           "expansionPolicy": "automatic", "segmentSize": str(128 * 1024)}
+            self.assertEqual(volume_object.get_volume_property_changes(),
+                             {"metaTags": [], 'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True},
+                              'growthAlertThreshold': 90, 'flashCache': True})
 
     def test_get_volume_property_changes_fail(self):
         """Verify correct exception is thrown"""
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "ssd_cache_enabled": True,
-             "read_cache_enable": True, "write_cache_enable": True, "read_ahead_enable": True, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {
-            "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": True, "readAheadMultiplier": 1},
-            "flashCached": True, "segmentSize": str(512 * 1024)}
-        with self.assertRaisesRegex(AnsibleFailJson, "Existing volume segment size is"):
-            volume_object.get_volume_property_changes()
+             "read_cache_enable": True, "write_cache_enable": True, "read_ahead_enable": True, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {
+                "cacheSettings": {"cwob": False, "readCacheEnable": True, "writeCacheEnable": True, "readAheadMultiplier": 1},
+                "flashCached": True, "segmentSize": str(512 * 1024)}
+            with self.assertRaisesRegex(AnsibleFailJson, "Existing volume segment size is"):
+                volume_object.get_volume_property_changes()
 
     @unittest.skip("Test needs to be reworked.")
     def test_get_expand_volume_changes_pass(self):
         """Verify expansion changes."""
         # thick volumes
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"capacity": str(50 * 1024 * 1024 * 1024), "thinProvisioned": False}
-        self.assertEqual(volume_object.get_expand_volume_changes(),
-                         {"sizeUnit": "bytes", "expansionSize": 100 * 1024 * 1024 * 1024})
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"capacity": str(50 * 1024 * 1024 * 1024), "thinProvisioned": False}
+            self.assertEqual(volume_object.get_expand_volume_changes(),
+                             {"sizeUnit": "bytes", "expansionSize": 100 * 1024 * 1024 * 1024})
 
         # thin volumes
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True,
              "thin_volume_expansion_policy": "automatic", "thin_volume_repo_size": 64,
-             "thin_volume_max_repo_size": 1000, "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"capacity": str(50 * 1024 * 1024 * 1024), "thinProvisioned": True,
-                                       "expansionPolicy": "automatic",
-                                       "provisionedCapacityQuota": str(1000 * 1024 * 1024 * 1024)}
-        self.assertEqual(volume_object.get_expand_volume_changes(),
-                         {"sizeUnit": "bytes", "newVirtualSize": 100 * 1024 * 1024 * 1024})
-        self._set_args(
+             "thin_volume_max_repo_size": 1000, "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"capacity": str(50 * 1024 * 1024 * 1024), "thinProvisioned": True,
+                                           "expansionPolicy": "automatic",
+                                           "provisionedCapacityQuota": str(1000 * 1024 * 1024 * 1024)}
+            self.assertEqual(volume_object.get_expand_volume_changes(),
+                             {"sizeUnit": "bytes", "newVirtualSize": 100 * 1024 * 1024 * 1024})
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True,
              "thin_volume_expansion_policy": "automatic", "thin_volume_repo_size": 64,
-             "thin_volume_max_repo_size": 1000, "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"capacity": str(100 * 1024 * 1024 * 1024), "thinProvisioned": True,
-                                       "expansionPolicy": "automatic",
-                                       "provisionedCapacityQuota": str(500 * 1024 * 1024 * 1024)}
-        self.assertEqual(volume_object.get_expand_volume_changes(),
-                         {"sizeUnit": "bytes", "newRepositorySize": 1000 * 1024 * 1024 * 1024})
-        self._set_args(
+             "thin_volume_max_repo_size": 1000, "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"capacity": str(100 * 1024 * 1024 * 1024), "thinProvisioned": True,
+                                           "expansionPolicy": "automatic",
+                                           "provisionedCapacityQuota": str(500 * 1024 * 1024 * 1024)}
+            self.assertEqual(volume_object.get_expand_volume_changes(),
+                             {"sizeUnit": "bytes", "newRepositorySize": 1000 * 1024 * 1024 * 1024})
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True,
              "thin_volume_expansion_policy": "manual", "thin_volume_repo_size": 504, "thin_volume_max_repo_size": 1000,
-             "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"capacity": str(100 * 1024 * 1024 * 1024), "thinProvisioned": True,
-                                       "expansionPolicy": "manual",
-                                       "currentProvisionedCapacity": str(500 * 1024 * 1024 * 1024)}
-        self.assertEqual(volume_object.get_expand_volume_changes(),
-                         {"sizeUnit": "bytes", "newRepositorySize": 504 * 1024 * 1024 * 1024})
-        self._set_args(
+             "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"capacity": str(100 * 1024 * 1024 * 1024), "thinProvisioned": True,
+                                           "expansionPolicy": "manual",
+                                           "currentProvisionedCapacity": str(500 * 1024 * 1024 * 1024)}
+            self.assertEqual(volume_object.get_expand_volume_changes(),
+                             {"sizeUnit": "bytes", "newRepositorySize": 504 * 1024 * 1024 * 1024})
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True,
              "thin_volume_expansion_policy": "manual", "thin_volume_repo_size": 756, "thin_volume_max_repo_size": 1000,
-             "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"capacity": str(100 * 1024 * 1024 * 1024), "thinProvisioned": True,
-                                       "expansionPolicy": "manual",
-                                       "currentProvisionedCapacity": str(500 * 1024 * 1024 * 1024)}
-        self.assertEqual(volume_object.get_expand_volume_changes(),
-                         {"sizeUnit": "bytes", "newRepositorySize": 756 * 1024 * 1024 * 1024})
+             "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"capacity": str(100 * 1024 * 1024 * 1024), "thinProvisioned": True,
+                                           "expansionPolicy": "manual",
+                                           "currentProvisionedCapacity": str(500 * 1024 * 1024 * 1024)}
+            self.assertEqual(volume_object.get_expand_volume_changes(),
+                             {"sizeUnit": "bytes", "newRepositorySize": 756 * 1024 * 1024 * 1024})
 
     def test_get_expand_volume_changes_fail(self):
         """Verify exceptions are thrown."""
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"capacity": str(1000 * 1024 * 1024 * 1024)}
-        with self.assertRaisesRegex(AnsibleFailJson, "Reducing the size of volumes is not permitted."):
-            volume_object.get_expand_volume_changes()
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"capacity": str(1000 * 1024 * 1024 * 1024)}
+            with self.assertRaisesRegex(AnsibleFailJson, "Reducing the size of volumes is not permitted."):
+                volume_object.get_expand_volume_changes()
 
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True,
              "thin_volume_expansion_policy": "manual", "thin_volume_repo_size": 502, "thin_volume_max_repo_size": 1000,
-             "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"capacity": str(100 * 1024 * 1024 * 1024), "thinProvisioned": True,
-                                       "expansionPolicy": "manual",
-                                       "currentProvisionedCapacity": str(500 * 1024 * 1024 * 1024)}
-        with self.assertRaisesRegex(AnsibleFailJson, "The thin volume repository increase must be between or equal"):
-            volume_object.get_expand_volume_changes()
+             "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"capacity": str(100 * 1024 * 1024 * 1024), "thinProvisioned": True,
+                                           "expansionPolicy": "manual",
+                                           "currentProvisionedCapacity": str(500 * 1024 * 1024 * 1024)}
+            with self.assertRaisesRegex(AnsibleFailJson, "The thin volume repository increase must be between or equal"):
+                volume_object.get_expand_volume_changes()
 
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True,
              "thin_volume_expansion_policy": "manual", "thin_volume_repo_size": 760, "thin_volume_max_repo_size": 1000,
-             "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"capacity": str(100 * 1024 * 1024 * 1024), "thinProvisioned": True,
-                                       "expansionPolicy": "manual",
-                                       "currentProvisionedCapacity": str(500 * 1024 * 1024 * 1024)}
-        with self.assertRaisesRegex(AnsibleFailJson, "The thin volume repository increase must be between or equal"):
-            volume_object.get_expand_volume_changes()
+             "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"capacity": str(100 * 1024 * 1024 * 1024), "thinProvisioned": True,
+                                           "expansionPolicy": "manual",
+                                           "currentProvisionedCapacity": str(500 * 1024 * 1024 * 1024)}
+            with self.assertRaisesRegex(AnsibleFailJson, "The thin volume repository increase must be between or equal"):
+                volume_object.get_expand_volume_changes()
 
     def test_create_volume_pass(self):
         """Verify volume creation."""
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.pool_detail = {"id": "12345"}
-        with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
-            volume_object.create_volume()
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.pool_detail = {"id": "12345"}
+            with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
+                volume_object.create_volume()
 
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True,
              "thin_volume_expansion_policy": "manual", "thin_volume_repo_size": 760, "thin_volume_max_repo_size": 1000,
-             "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.pool_detail = {"id": "12345"}
-        with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
-            volume_object.create_volume()
+             "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.pool_detail = {"id": "12345"}
+            with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
+                volume_object.create_volume()
 
     def test_create_volume_fail(self):
         """Verify exceptions thrown."""
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.pool_detail = {"id": "12345"}
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to create volume."):
-            with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                volume_object.create_volume()
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.pool_detail = {"id": "12345"}
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to create volume."):
+                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                    volume_object.create_volume()
 
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True,
              "thin_volume_expansion_policy": "manual", "thin_volume_repo_size": 760, "thin_volume_max_repo_size": 1000,
-             "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.pool_detail = {"id": "12345"}
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to create thin volume."):
-            with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                volume_object.create_volume()
+             "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.pool_detail = {"id": "12345"}
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to create thin volume."):
+                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                    volume_object.create_volume()
 
     def test_update_volume_properties_pass(self):
         """verify property update."""
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.pool_detail = {"id": "12345"}
-        volume_object.wait_for_volume_availability = lambda: None
-        volume_object.get_volume = lambda: {"id": "12345'"}
-        volume_object.get_volume_property_changes = lambda: {
-            'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True}, 'growthAlertThreshold': 90,
-            'flashCached': True}
-        volume_object.workload_id = "4200000001000000000000000000000000000000"
-        with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
-            self.assertTrue(volume_object.update_volume_properties())
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.pool_detail = {"id": "12345"}
+            volume_object.wait_for_volume_availability = lambda: None
+            volume_object.get_volume = lambda: {"id": "12345'"}
+            volume_object.get_volume_property_changes = lambda: {
+                'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True}, 'growthAlertThreshold': 90,
+                'flashCached': True}
+            volume_object.workload_id = "4200000001000000000000000000000000000000"
+            with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
+                self.assertTrue(volume_object.update_volume_properties())
 
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True,
              "thin_volume_expansion_policy": "manual", "thin_volume_repo_size": 760, "thin_volume_max_repo_size": 1000,
-             "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.pool_detail = {"id": "12345"}
-        volume_object.wait_for_volume_availability = lambda: None
-        volume_object.get_volume = lambda: {"id": "12345'"}
-        volume_object.get_volume_property_changes = lambda: {
-            'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True}, 'growthAlertThreshold': 90,
-            'flashCached': True}
-        volume_object.workload_id = "4200000001000000000000000000000000000000"
-        with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
-            self.assertTrue(volume_object.update_volume_properties())
+             "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.pool_detail = {"id": "12345"}
+            volume_object.wait_for_volume_availability = lambda: None
+            volume_object.get_volume = lambda: {"id": "12345'"}
+            volume_object.get_volume_property_changes = lambda: {
+                'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True}, 'growthAlertThreshold': 90,
+                'flashCached': True}
+            volume_object.workload_id = "4200000001000000000000000000000000000000"
+            with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
+                self.assertTrue(volume_object.update_volume_properties())
 
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.pool_detail = {"metadata": [{"key": "workloadId", "value": "12345"}]}
-        volume_object.wait_for_volume_availability = lambda: None
-        volume_object.get_volume = lambda: {"id": "12345'"}
-        volume_object.get_volume_property_changes = lambda: {}
-        volume_object.workload_id = "4200000001000000000000000000000000000000"
-        self.assertFalse(volume_object.update_volume_properties())
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.pool_detail = {"metadata": [{"key": "workloadId", "value": "12345"}]}
+            volume_object.wait_for_volume_availability = lambda: None
+            volume_object.get_volume = lambda: {"id": "12345'"}
+            volume_object.get_volume_property_changes = lambda: {}
+            volume_object.workload_id = "4200000001000000000000000000000000000000"
+            self.assertFalse(volume_object.update_volume_properties())
 
     def test_update_volume_properties_fail(self):
         """Verify exceptions are thrown."""
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.pool_detail = {"id": "12345"}
-        volume_object.wait_for_volume_availability = lambda: None
-        volume_object.get_volume = lambda: {"id": "12345'"}
-        volume_object.get_volume_property_changes = lambda: {
-            'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True}, 'growthAlertThreshold': 90,
-            'flashCached': True}
-        volume_object.workload_id = "4200000001000000000000000000000000000000"
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to update volume properties."):
-            with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                self.assertTrue(volume_object.update_volume_properties())
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.pool_detail = {"id": "12345"}
+            volume_object.wait_for_volume_availability = lambda: None
+            volume_object.get_volume = lambda: {"id": "12345'"}
+            volume_object.get_volume_property_changes = lambda: {
+                'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True}, 'growthAlertThreshold': 90,
+                'flashCached': True}
+            volume_object.workload_id = "4200000001000000000000000000000000000000"
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to update volume properties."):
+                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                    self.assertTrue(volume_object.update_volume_properties())
 
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True,
              "thin_volume_expansion_policy": "manual", "thin_volume_repo_size": 760, "thin_volume_max_repo_size": 1000,
-             "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.pool_detail = {"id": "12345"}
-        volume_object.wait_for_volume_availability = lambda: None
-        volume_object.get_volume = lambda: {"id": "12345'"}
-        volume_object.get_volume_property_changes = lambda: {
-            'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True}, 'growthAlertThreshold': 90,
-            'flashCached': True}
-        volume_object.workload_id = "4200000001000000000000000000000000000000"
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to update thin volume properties."):
-            with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                self.assertTrue(volume_object.update_volume_properties())
+             "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.pool_detail = {"id": "12345"}
+            volume_object.wait_for_volume_availability = lambda: None
+            volume_object.get_volume = lambda: {"id": "12345'"}
+            volume_object.get_volume_property_changes = lambda: {
+                'cacheSettings': {'readCacheEnable': True, 'writeCacheEnable': True}, 'growthAlertThreshold': 90,
+                'flashCached': True}
+            volume_object.workload_id = "4200000001000000000000000000000000000000"
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to update thin volume properties."):
+                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                    self.assertTrue(volume_object.update_volume_properties())
 
     def test_expand_volume_pass(self):
         """Verify volume expansion."""
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.get_expand_volume_changes = lambda: {"sizeUnit": "bytes",
-                                                           "expansionSize": 100 * 1024 * 1024 * 1024}
-        volume_object.volume_detail = {"id": "12345", "thinProvisioned": True}
-        with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
-            volume_object.expand_volume()
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.get_expand_volume_changes = lambda: {"sizeUnit": "bytes",
+                                                               "expansionSize": 100 * 1024 * 1024 * 1024}
+            volume_object.volume_detail = {"id": "12345", "thinProvisioned": True}
+            with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
+                volume_object.expand_volume()
 
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True,
              "thin_volume_expansion_policy": "manual", "thin_volume_repo_size": 760, "thin_volume_max_repo_size": 1000,
-             "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.get_expand_volume_changes = lambda: {"sizeUnit": "bytes",
-                                                           "expansionSize": 100 * 1024 * 1024 * 1024}
-        volume_object.volume_detail = {"id": "12345", "thinProvisioned": True}
-        with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
-            volume_object.expand_volume()
+             "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.get_expand_volume_changes = lambda: {"sizeUnit": "bytes",
+                                                               "expansionSize": 100 * 1024 * 1024 * 1024}
+            volume_object.volume_detail = {"id": "12345", "thinProvisioned": True}
+            with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
+                volume_object.expand_volume()
 
     def test_expand_volume_fail(self):
         """Verify exceptions are thrown."""
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.get_expand_volume_changes = lambda: {"sizeUnit": "bytes",
-                                                           "expansionSize": 100 * 1024 * 1024 * 1024}
-        volume_object.volume_detail = {"id": "12345", "thinProvisioned": False}
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to expand volume."):
-            with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                volume_object.expand_volume()
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.get_expand_volume_changes = lambda: {"sizeUnit": "bytes",
+                                                               "expansionSize": 100 * 1024 * 1024 * 1024}
+            volume_object.volume_detail = {"id": "12345", "thinProvisioned": False}
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to expand volume."):
+                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                    volume_object.expand_volume()
 
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True})
-        volume_object = NetAppESeriesVolume()
-        volume_object.get_expand_volume_changes = lambda: {"sizeUnit": "bytes",
-                                                           "expansionSize": 100 * 1024 * 1024 * 1024}
-        volume_object.volume_detail = {"id": "12345", "thinProvisioned": True}
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to expand thin volume."):
-            with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                volume_object.expand_volume()
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.get_expand_volume_changes = lambda: {"sizeUnit": "bytes",
+                                                               "expansionSize": 100 * 1024 * 1024 * 1024}
+            volume_object.volume_detail = {"id": "12345", "thinProvisioned": True}
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to expand thin volume."):
+                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                    volume_object.expand_volume()
 
     def test_delete_volume_pass(self):
         """Verify volume deletion."""
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"id": "12345"}
-        with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
-            volume_object.delete_volume()
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"id": "12345"}
+            with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
+                volume_object.delete_volume()
 
-        self._set_args(
+        with self._set_args(
             {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True,
              "thin_volume_expansion_policy": "manual", "thin_volume_repo_size": 760, "thin_volume_max_repo_size": 1000,
-             "thin_volume_growth_alert_threshold": 90})
-        volume_object = NetAppESeriesVolume()
-        volume_object.volume_detail = {"id": "12345"}
-        with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
-            volume_object.delete_volume()
+             "thin_volume_growth_alert_threshold": 90}
+        ):
+            volume_object = NetAppESeriesVolume()
+            volume_object.volume_detail = {"id": "12345"}
+            with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
+                volume_object.delete_volume()
 
     def test_delete_volume_fail(self):
         """Verify exceptions are thrown."""
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False})
-        volume_object = NetAppESeriesVolume()
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to delete volume."):
-            with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                volume_object.delete_volume()
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": False}
+        ):
+            volume_object = NetAppESeriesVolume()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to delete volume."):
+                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                    volume_object.delete_volume()
 
-        self._set_args(
-            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True})
-        volume_object = NetAppESeriesVolume()
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to delete thin volume."):
-            with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                volume_object.delete_volume()
+        with self._set_args(
+            {"state": "present", "name": "Matthew", "storage_pool_name": "pool", "size": 100, "thin_provision": True}
+        ):
+            volume_object = NetAppESeriesVolume()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to delete thin volume."):
+                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                    volume_object.delete_volume()

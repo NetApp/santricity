@@ -1094,19 +1094,7 @@ class Facts(NetAppESeriesModule):
                                     volume_metadata.update({sorted_key: volume_metadata_raw[sorted_key]})
 
                             # Determine drive count
-                            stripe_count = 0
-                            vg_drive_num = sum(1 for d in array_facts['drive'] if d['currentVolumeGroupRef'] == volume['volumeGroupRef'] and not d['hotSpare'])
-
-                            if volume['raidLevel'] == "raidDiskPool":
-                                stripe_count = 8
-                            if volume['raidLevel'] == "raid0":
-                                stripe_count = vg_drive_num
-                            if volume['raidLevel'] == "raid1":
-                                stripe_count = int(vg_drive_num / 2)
-                            if volume['raidLevel'] in ["raid3", "raid5"]:
-                                stripe_count = vg_drive_num - 1
-                            if volume['raidLevel'] == "raid6":
-                                stripe_count = vg_drive_num - 2
+                            stripe_count = volume['dataDriveCount']
 
                             volume_info = {"type": volume['objectType'],
                                            "name": volume['name'],

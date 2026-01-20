@@ -1,7 +1,7 @@
 namespace: "netapp_eseries"
 description: "Latest content available for NetApp E-Series Ansible automation."
 name: "santricity"
-version: "1.4.1"
+version: "2.0.0"
 readme: "README.md"
 authors:
   - "Nathan Swartz (@swartzn)"
@@ -9,7 +9,6 @@ authors:
   - "Joe McCormick (@iamjoemccormick)"
 dependencies: {}
 license:
-  - "GPL-3.0-only"
   - "BSD-3-Clause"
 repository: "https://www.github.com/netapp-eseries/santricity"
 documentation: "https://www.netapp.com/us/media/tr-4574.pdf"
