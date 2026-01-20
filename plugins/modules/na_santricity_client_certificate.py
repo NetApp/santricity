@@ -139,8 +139,8 @@ class NetAppESeriesClientCertificate(NetAppESeriesModule):
         if not isinstance(certificate, x509.Certificate):
             self.module.fail_json(msg="Failed to open certificate file or invalid certificate object type. Array [%s]." % self.ssid)
 
-        return dict(start_date=certificate.not_valid_before,
-                    expire_date=certificate.not_valid_after,
+        return dict(start_date=certificate.not_valid_before_utc,
+                    expire_date=certificate.not_valid_after_utc,
                     subject_dn=[attr.value for attr in certificate.subject],
                     issuer_dn=[attr.value for attr in certificate.issuer])
 

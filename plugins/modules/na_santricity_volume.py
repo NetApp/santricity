@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2024, NetApp, Inc
+# (c) 2026, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -68,14 +68,21 @@ options:
               dependent.
             - Retrieve the definitive system list from M(netapp_eseries.santricity.na_santricity_facts)
               under segment_sizes.
-            - When the storage pool is a raidDiskPool then the segment size must be 128kb.
             - Segment size migrations are not allowed in this module
         type: int
         default: 128
+    raid_level:
+        description:
+            - Sets the RAID level for the volume in a raidDiskPool.
+            - Only relevant when the volume is created in a raidDiskPool.
+            - I(raid1) in a raidDiskPool is newly introduced in Raider (12.00) CFW.
+        type: str
+        choices: ["raid1", "raid6"]
+        required: false
     thin_provision:
         description:
             - Whether the volume should be thin provisioned.
-            - Thin volumes can only be created when I(raid_level=="raidDiskPool").
+            - Thin volumes can only be created in a raidDiskPool.
             - Generally, use of thin-provisioning is not recommended due to performance impacts.
         type: bool
         default: false
@@ -327,6 +334,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             size_tolerance_b=dict(type="int", required=False, default=10485760),
             segment_size_kb=dict(type="int", default=128, required=False),
             owning_controller=dict(type="str", choices=["A", "B"], required=False),
+            raid_level=dict(type="str", choices=["raid1", "raid6"], required=False),
             ssd_cache_enabled=dict(type="bool", default=False),
             data_assurance_enabled=dict(type="bool", default=False),
             thin_provision=dict(type="bool", default=False),
@@ -362,6 +370,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         self.size_unit = args["size_unit"]
         self.size_tolerance_b = args["size_tolerance_b"]
         self.segment_size_kb = args["segment_size_kb"]
+        self.raid_level = args.get("raid_level")
 
         if args["size"]:
             if self.size_unit == "pct":
@@ -758,6 +767,8 @@ class NetAppESeriesVolume(NetAppESeriesModule):
 
     def create_volume(self):
         """Create thick/thin volume according to the specified criteria."""
+        is_disk_pool = self.pool_detail.get("diskPool", False)
+    
         body = dict(name=self.name, poolId=self.pool_detail["id"], sizeUnit="bytes",
                     dataAssuranceEnabled=self.data_assurance_enabled)
 
@@ -780,12 +791,13 @@ class NetAppESeriesVolume(NetAppESeriesModule):
 
         else:
             body.update(dict(size=self.size_b, segSize=self.segment_size_kb))
+            if is_disk_pool and self.raid_level:
+                body.update(dict(raidLevel=self.raid_level))
             try:
                 rc, volume = self.request("storage-systems/%s/volumes" % self.ssid, data=body, method="POST")
             except Exception as error:
                 self.module.fail_json(msg="Failed to create volume.  Volume [%s].  Array Id [%s]. Error[%s]."
-                                          % (self.name, self.ssid, to_native(error)))
-
+                                        % (self.name, self.ssid, to_native(error)))
             self.module.log("New volume created [%s]." % self.name)
 
     def update_volume_properties(self):

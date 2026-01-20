@@ -2,10 +2,11 @@
 # BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-
+from contextlib import contextmanager
+from ansible.module_utils.testing import patch_module_args
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_syslog import NetAppESeriesSyslog
 from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
-    AnsibleFailJson, ModuleTestCase, set_module_args
+    AnsibleFailJson, ModuleTestCase
 )
 from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
@@ -19,11 +20,13 @@ class AsupTest(ModuleTestCase):
     REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_syslog.NetAppESeriesSyslog.request'
     BASE_REQ_FUNC = 'ansible_collections.netapp_eseries.santricity.plugins.module_utils.santricity.request'
 
+    @contextmanager
     def _set_args(self, args=None):
         module_args = self.REQUIRED_PARAMS.copy()
         if args is not None:
             module_args.update(args)
-        set_module_args(module_args)
+        with patch_module_args(module_args):
+            yield
 
     def test_test_configuration_fail(self):
         """Validate test_configuration fails when request exception is thrown."""
@@ -33,13 +36,13 @@ class AsupTest(ModuleTestCase):
                    "port": "514",
                    "protocol": "udp",
                    "components": ["auditLog"]}
-        self._set_args(initial)
-        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-            syslog = NetAppESeriesSyslog()
+        with self._set_args(initial):
+            with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+                syslog = NetAppESeriesSyslog()
 
-        with self.assertRaisesRegex(AnsibleFailJson, r"We failed to send test message!"):
-            with mock.patch(self.REQ_FUNC, return_value=Exception()):
-                syslog.test_configuration(self.REQUIRED_PARAMS)
+            with self.assertRaisesRegex(AnsibleFailJson, r"We failed to send test message!"):
+                with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                    syslog.test_configuration(self.REQUIRED_PARAMS)
 
     def test_update_configuration_record_match_pass(self):
         """Verify existing syslog server record match does not issue update request."""
@@ -55,13 +58,13 @@ class AsupTest(ModuleTestCase):
                      "protocol": "udp",
                      "components": [{"type": "auditLog"}]}]
 
-        self._set_args(initial)
-        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-            syslog = NetAppESeriesSyslog()
+        with self._set_args(initial):
+            with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+                syslog = NetAppESeriesSyslog()
 
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, expected), (200, None)]):
-            updated = syslog.update_configuration()
-            self.assertFalse(updated)
+            with mock.patch(self.REQ_FUNC, side_effect=[(200, expected), (200, None)]):
+                updated = syslog.update_configuration()
+                self.assertFalse(updated)
 
     def test_update_configuration_record_partial_match_pass(self):
         """Verify existing syslog server record partial match results in an update request."""
@@ -77,13 +80,13 @@ class AsupTest(ModuleTestCase):
                      "protocol": "udp",
                      "components": [{"type": "auditLog"}]}]
 
-        self._set_args(initial)
-        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-            syslog = NetAppESeriesSyslog()
+        with self._set_args(initial):
+            with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+                syslog = NetAppESeriesSyslog()
 
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, expected), (200, None)]):
-            updated = syslog.update_configuration()
-            self.assertTrue(updated)
+            with mock.patch(self.REQ_FUNC, side_effect=[(200, expected), (200, None)]):
+                updated = syslog.update_configuration()
+                self.assertTrue(updated)
 
     def test_update_configuration_record_no_match_pass(self):
         """Verify existing syslog server record partial match results in an update request."""
@@ -99,13 +102,13 @@ class AsupTest(ModuleTestCase):
                      "protocol": "udp",
                      "components": [{"type": "auditLog"}]}]
 
-        self._set_args(initial)
-        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-            syslog = NetAppESeriesSyslog()
+        with self._set_args(initial):
+            with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+                syslog = NetAppESeriesSyslog()
 
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, expected), (200, dict(id=1234))]):
-            updated = syslog.update_configuration()
-            self.assertTrue(updated)
+            with mock.patch(self.REQ_FUNC, side_effect=[(200, expected), (200, dict(id=1234))]):
+                updated = syslog.update_configuration()
+                self.assertTrue(updated)
 
     def test_update_configuration_record_no_match_defaults_pass(self):
         """Verify existing syslog server record partial match results in an update request."""
@@ -121,10 +124,10 @@ class AsupTest(ModuleTestCase):
                      "protocol": "udp",
                      "components": [{"type": "auditLog"}]}]
 
-        self._set_args(initial)
-        with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
-            syslog = NetAppESeriesSyslog()
+        with self._set_args(initial):
+            with mock.patch(self.BASE_REQ_FUNC, side_effect=[(200, {"version": "04.00.00.00"}), (200, {"runningAsProxy": False})]):
+                syslog = NetAppESeriesSyslog()
 
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, expected), (200, dict(id=1234))]):
-            updated = syslog.update_configuration()
-            self.assertTrue(updated)
+            with mock.patch(self.REQ_FUNC, side_effect=[(200, expected), (200, dict(id=1234))]):
+                updated = syslog.update_configuration()
+                self.assertTrue(updated)

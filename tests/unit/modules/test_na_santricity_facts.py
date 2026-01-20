@@ -4,10 +4,11 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 import unittest
-
+from contextlib import contextmanager
+from ansible.module_utils.testing import patch_module_args
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_facts import Facts
 from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
-    AnsibleFailJson, ModuleTestCase, set_module_args
+    AnsibleFailJson, ModuleTestCase
 )
 from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
@@ -442,34 +443,36 @@ class FactsTest(ModuleTestCase):
                                     {'attributes': [{'key': 'profileId', 'value': 'Other_1'}], 'id': '4200000002000000000000000000000000000000',
                                      'name': 'other_workload_1'}], 'snapshot_images': [], 'ssid': '1'}
 
+    @contextmanager
     def _set_args(self, **kwargs):
         module_args = self.REQUIRED_PARAMS.copy()
         if kwargs is not None:
             module_args.update(kwargs)
-        set_module_args(module_args)
+        with patch_module_args(module_args):
+            yield
 
     def test_get_controllers_pass(self):
         """Verify get_controllers returns the expected results."""
-        self._set_args()
-        facts = Facts()
-        with mock.patch(self.REQUEST_FUNC, return_value=(200, ["070000000000000000000002", "070000000000000000000001"])):
-            self.assertEqual(facts.get_controllers(), {"070000000000000000000001": "A", "070000000000000000000002": "B"})
+        with self._set_args():
+            facts = Facts()
+            with mock.patch(self.REQUEST_FUNC, return_value=(200, ["070000000000000000000002", "070000000000000000000001"])):
+                self.assertEqual(facts.get_controllers(), {"070000000000000000000001": "A", "070000000000000000000002": "B"})
 
     def test_get_controllers_fail(self):
         """Verify get_controllers throws the expected exceptions."""
-        self._set_args()
-        facts = Facts()
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve controller list!"):
-            with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                facts.get_controllers()
+        with self._set_args():
+            facts = Facts()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve controller list!"):
+                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                    facts.get_controllers()
 
     @unittest.skip("Test needs to be reworked.")
     def test_get_array_facts_pass(self):
         """Verify get_array_facts method returns expected results."""
         self.maxDiff = None
-        self._set_args()
-        facts = Facts()
-        facts.is_embedded = lambda: True
-        with mock.patch(self.GET_CONTROLLERS_FUNC, return_value={"070000000000000000000001": "A", "070000000000000000000002": "B"}):
-            with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.GRAPH_RESPONSE), (200, self.WORKLOAD_RESPONSE)]):
-                self.assertEqual(facts.get_array_facts(), self.EXPECTED_GET_ARRAY_FACTS)
+        with self._set_args():
+            facts = Facts()
+            facts.is_embedded = lambda: True
+            with mock.patch(self.GET_CONTROLLERS_FUNC, return_value={"070000000000000000000001": "A", "070000000000000000000002": "B"}):
+                with mock.patch(self.REQUEST_FUNC, side_effect=[(200, self.GRAPH_RESPONSE), (200, self.WORKLOAD_RESPONSE)]):
+                    self.assertEqual(facts.get_array_facts(), self.EXPECTED_GET_ARRAY_FACTS)

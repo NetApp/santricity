@@ -2,10 +2,11 @@
 # BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-
+from contextlib import contextmanager
+from ansible.module_utils.testing import patch_module_args
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_hostgroup import NetAppESeriesHostGroup
 from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
-    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase
 )
 from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
@@ -34,50 +35,52 @@ class HostTest(ModuleTestCase):
         {"clusterRef": "85000000600A098000A4B9D100360F775C3DFC1E", "id": "85000000600A098000A4B9D100360F775C3DFC1E",
          "name": "group3"}]
 
+    @contextmanager
     def _set_args(self, args):
         self.module_args = self.REQUIRED_PARAMS.copy()
         self.module_args.update(args)
-        set_module_args(self.module_args)
+        with patch_module_args(self.module_args):
+            yield
 
     def test_hosts_fail(self):
         """Ensure that the host property method fails when self.request throws an exception."""
-        self._set_args({"state": "present", "name": "hostgroup1", "hosts": ["host1", "host2"]})
-        hostgroup_object = NetAppESeriesHostGroup()
-        with self.assertRaises(AnsibleFailJson):
-            with mock.patch(self.REQ_FUNC, return_value=Exception()):
-                hosts = hostgroup_object.hosts
+        with self._set_args({"state": "present", "name": "hostgroup1", "hosts": ["host1", "host2"]}):
+            hostgroup_object = NetAppESeriesHostGroup()
+            with self.assertRaises(AnsibleFailJson):
+                with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                    hosts = hostgroup_object.hosts
 
-        self._set_args({"state": "present", "name": "hostgroup1", "hosts": ["host1", "host2"]})
-        hostgroup_object = NetAppESeriesHostGroup()
-        with mock.patch(self.REQ_FUNC, return_value=(200, [])):
-            with self.assertRaisesRegex(AnsibleFailJson, "Expected host does not exist"):
-                hosts = hostgroup_object.hosts
+        with self._set_args({"state": "present", "name": "hostgroup1", "hosts": ["host1", "host2"]}):
+            hostgroup_object = NetAppESeriesHostGroup()
+            with mock.patch(self.REQ_FUNC, return_value=(200, [])):
+                with self.assertRaisesRegex(AnsibleFailJson, "Expected host does not exist"):
+                    hosts = hostgroup_object.hosts
 
     def test_hosts_pass(self):
         """Evaluate hosts property method for valid returned data structure."""
         expected_host_list = ['84000000600A098000A4B28D003010315C3DFC11', '84000000600A098000A4B28D0030102E5C3DFC0F']
         for hostgroup_hosts in [["host1", "host2"], ["84000000600A098000A4B28D0030102E5C3DFC0F",
                                                      "84000000600A098000A4B28D003010315C3DFC11"]]:
-            self._set_args({"state": "present", "name": "hostgroup1", "hosts": hostgroup_hosts})
-            hostgroup_object = NetAppESeriesHostGroup()
+            with self._set_args({"state": "present", "name": "hostgroup1", "hosts": hostgroup_hosts}):
+                hostgroup_object = NetAppESeriesHostGroup()
 
-            with mock.patch(self.REQ_FUNC, return_value=(200, self.HOSTS_GET_RESPONSE)):
-                for item in hostgroup_object.hosts:
-                    self.assertTrue(item in expected_host_list)
+                with mock.patch(self.REQ_FUNC, return_value=(200, self.HOSTS_GET_RESPONSE)):
+                    for item in hostgroup_object.hosts:
+                        self.assertTrue(item in expected_host_list)
 
         # Create hostgroup with no hosts
-        self._set_args({"state": "present", "name": "hostgroup1"})
-        hostgroup_object = NetAppESeriesHostGroup()
-        with mock.patch(self.REQ_FUNC, return_value=(200, [])):
-            self.assertEqual(hostgroup_object.hosts, [])
+        with self._set_args({"state": "present", "name": "hostgroup1"}):
+            hostgroup_object = NetAppESeriesHostGroup()
+            with mock.patch(self.REQ_FUNC, return_value=(200, [])):
+                self.assertEqual(hostgroup_object.hosts, [])
 
     def test_host_groups_fail(self):
         """Ensure that the host_groups property method fails when self.request throws an exception."""
-        self._set_args({"state": "present", "name": "hostgroup1", "hosts": ["host1", "host2"]})
-        hostgroup_object = NetAppESeriesHostGroup()
-        with self.assertRaises(AnsibleFailJson):
-            with mock.patch(self.REQ_FUNC, return_value=Exception()):
-                host_groups = hostgroup_object.host_groups
+        with self._set_args({"state": "present", "name": "hostgroup1", "hosts": ["host1", "host2"]}):
+            hostgroup_object = NetAppESeriesHostGroup()
+            with self.assertRaises(AnsibleFailJson):
+                with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                    host_groups = hostgroup_object.host_groups
 
     def test_host_groups_pass(self):
         """Evaluate host_groups property method for valid return data structure."""
@@ -88,12 +91,12 @@ class HostTest(ModuleTestCase):
              'id': '85000000600A098000A4B9D100360F765C3DFC1C', 'name': 'group2'},
             {'hosts': [], 'id': '85000000600A098000A4B9D100360F775C3DFC1E', 'name': 'group3'}]
 
-        self._set_args({"state": "present", "name": "hostgroup1", "hosts": ["host1", "host2"]})
-        hostgroup_object = NetAppESeriesHostGroup()
+        with self._set_args({"state": "present", "name": "hostgroup1", "hosts": ["host1", "host2"]}):
+            hostgroup_object = NetAppESeriesHostGroup()
 
-        with mock.patch(self.REQ_FUNC,
-                        side_effect=[(200, self.HOSTGROUPS_GET_RESPONSE), (200, self.HOSTS_GET_RESPONSE)]):
-            self.assertEqual(hostgroup_object.host_groups, expected_groups)
+            with mock.patch(self.REQ_FUNC,
+                            side_effect=[(200, self.HOSTGROUPS_GET_RESPONSE), (200, self.HOSTS_GET_RESPONSE)]):
+                self.assertEqual(hostgroup_object.host_groups, expected_groups)
 
     @mock.patch.object(NetAppESeriesHostGroup, "host_groups")
     @mock.patch.object(NetAppESeriesHostGroup, "hosts")
@@ -118,25 +121,25 @@ class HostTest(ModuleTestCase):
         fake_delete_host_group.return_value = lambda x: "Host group deleted!"
 
         # Test create new host group
-        self._set_args({"state": "present", "name": "hostgroup1", "hosts": ["host1", "host2"]})
-        hostgroup_object = NetAppESeriesHostGroup()
-        with self.assertRaises(AnsibleExitJson):
-            hostgroup_object.apply()
+        with self._set_args({"state": "present", "name": "hostgroup1", "hosts": ["host1", "host2"]}):
+            hostgroup_object = NetAppESeriesHostGroup()
+            with self.assertRaises(AnsibleExitJson):
+                hostgroup_object.apply()
 
         # Test make no changes to existing host group
-        self._set_args({"state": "present", "name": "group1", "hosts": ["host1"]})
-        hostgroup_object = NetAppESeriesHostGroup()
-        with self.assertRaises(AnsibleExitJson):
-            hostgroup_object.apply()
+        with self._set_args({"state": "present", "name": "group1", "hosts": ["host1"]}):
+            hostgroup_object = NetAppESeriesHostGroup()
+            with self.assertRaises(AnsibleExitJson):
+                hostgroup_object.apply()
 
         # Test add host to existing host group
-        self._set_args({"state": "present", "name": "group1", "hosts": ["host1", "host2"]})
-        hostgroup_object = NetAppESeriesHostGroup()
-        with self.assertRaises(AnsibleExitJson):
-            hostgroup_object.apply()
+        with self._set_args({"state": "present", "name": "group1", "hosts": ["host1", "host2"]}):
+            hostgroup_object = NetAppESeriesHostGroup()
+            with self.assertRaises(AnsibleExitJson):
+                hostgroup_object.apply()
 
         # Test delete existing host group
-        self._set_args({"state": "absent", "name": "group1"})
-        hostgroup_object = NetAppESeriesHostGroup()
-        with self.assertRaises(AnsibleExitJson):
-            hostgroup_object.apply()
+        with self._set_args({"state": "absent", "name": "group1"}):
+            hostgroup_object = NetAppESeriesHostGroup()
+            with self.assertRaises(AnsibleExitJson):
+                hostgroup_object.apply()

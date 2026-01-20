@@ -2,10 +2,11 @@
 # BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-
+from contextlib import contextmanager
+from ansible.module_utils.testing import patch_module_args
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_iscsi_target import NetAppESeriesIscsiTarget
 from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
-    AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
+    AnsibleFailJson, AnsibleExitJson, ModuleTestCase
 )
 from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
@@ -62,129 +63,131 @@ class IscsiTargetTest(ModuleTestCase):
                                   "isnsServerRegistrationEnabled": False,
                                   "hostPortsConfiguredDHCP": False}]
 
+    @contextmanager
     def _set_args(self, args=None):
         module_args = self.REQUIRED_PARAMS.copy()
         if args is not None:
             module_args.update(args)
-        set_module_args(module_args)
+        with patch_module_args(module_args):
+            yield
 
     def test_validate_params(self):
         """Ensure we can pass valid parameters to the module"""
         for i in range(12, 57):
             secret = 'a' * i
-            self._set_args(dict(chap=secret))
-            tgt = NetAppESeriesIscsiTarget()
+            with self._set_args(dict(chap=secret)):
+                tgt = NetAppESeriesIscsiTarget()
 
     def test_invalid_chap_secret(self):
         for secret in [11 * 'a', 58 * 'a']:
             with self.assertRaisesRegex(AnsibleFailJson, r'.*?CHAP secret is not valid.*') as result:
-                self._set_args(dict(chap=secret))
-                tgt = NetAppESeriesIscsiTarget()
+                with self._set_args(dict(chap=secret)):
+                    tgt = NetAppESeriesIscsiTarget()
 
     def test_target_pass(self):
         """Ensure target property returns the expected data structure."""
         expected_response = {"alias": "target_name", "chap": False, "iqn": "iqn.1992-08.com.netapp:2806.600a098000a4b28d000000005da9d744",
                              "ping": False, "unnamed_discovery": False}
 
-        self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": True})
-        iscsi_target = NetAppESeriesIscsiTarget()
+        with self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": True}):
+            iscsi_target = NetAppESeriesIscsiTarget()
 
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
-            self.assertEqual(iscsi_target.target, expected_response)
+            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
+                self.assertEqual(iscsi_target.target, expected_response)
 
     def test_target_fail(self):
         """Ensure target property returns the expected data structure."""
-        self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": True})
-        iscsi_target = NetAppESeriesIscsiTarget()
+        with self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": True}):
+            iscsi_target = NetAppESeriesIscsiTarget()
 
-        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to retrieve the iSCSI target information."):
-            with mock.patch(self.REQ_FUNC, return_value=Exception()):
-                result = iscsi_target.target
+            with self.assertRaisesRegex(AnsibleFailJson, r"Failed to retrieve the iSCSI target information."):
+                with mock.patch(self.REQ_FUNC, return_value=Exception()):
+                    result = iscsi_target.target
 
-        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to retrieve the iSCSI target information."):
-            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), Exception()]):
-                result = iscsi_target.target
+            with self.assertRaisesRegex(AnsibleFailJson, r"Failed to retrieve the iSCSI target information."):
+                with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), Exception()]):
+                    result = iscsi_target.target
 
-        with self.assertRaisesRegex(AnsibleFailJson, r"This storage-system does not appear to have iSCSI interfaces."):
-            with mock.patch(self.REQ_FUNC, return_value=(200, [])):
-                result = iscsi_target.target
+            with self.assertRaisesRegex(AnsibleFailJson, r"This storage-system does not appear to have iSCSI interfaces."):
+                with mock.patch(self.REQ_FUNC, return_value=(200, [])):
+                    result = iscsi_target.target
 
     def test_apply_iscsi_settings_pass(self):
         """Ensure apply_iscsi_settings succeeds properly."""
-        self._set_args({"name": "not_target_name"})
-        iscsi_target = NetAppESeriesIscsiTarget()
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), (200, [])]):
-            self.assertTrue(iscsi_target.apply_iscsi_settings())
+        with self._set_args({"name": "not_target_name"}):
+            iscsi_target = NetAppESeriesIscsiTarget()
+            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), (200, [])]):
+                self.assertTrue(iscsi_target.apply_iscsi_settings())
 
-        self._set_args({"name": "target_name"})
-        iscsi_target = NetAppESeriesIscsiTarget()
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), (200, [])]):
-            self.assertFalse(iscsi_target.apply_iscsi_settings())
+        with self._set_args({"name": "target_name"}):
+            iscsi_target = NetAppESeriesIscsiTarget()
+            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), (200, [])]):
+                self.assertFalse(iscsi_target.apply_iscsi_settings())
 
     def test_apply_iscsi_settings_fail(self):
         """Ensure apply_iscsi_settings fails properly."""
-        self._set_args({"name": "not_target_name"})
-        iscsi_target = NetAppESeriesIscsiTarget()
-        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to update the iSCSI target settings."):
-            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), Exception()]):
-                self.assertTrue(iscsi_target.apply_iscsi_settings())
+        with self._set_args({"name": "not_target_name"}):
+            iscsi_target = NetAppESeriesIscsiTarget()
+            with self.assertRaisesRegex(AnsibleFailJson, r"Failed to update the iSCSI target settings."):
+                with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), Exception()]):
+                    self.assertTrue(iscsi_target.apply_iscsi_settings())
 
     def test_apply_target_changes_pass(self):
         """Ensure apply_iscsi_settings succeeds properly."""
-        self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": True})
-        iscsi_target = NetAppESeriesIscsiTarget()
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), (200, [])]):
-            self.assertTrue(iscsi_target.apply_target_changes())
+        with self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": True}):
+            iscsi_target = NetAppESeriesIscsiTarget()
+            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), (200, [])]):
+                self.assertTrue(iscsi_target.apply_target_changes())
 
-        self._set_args({"name": "target_name", "ping": False, "unnamed_discovery": True})
-        iscsi_target = NetAppESeriesIscsiTarget()
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), (200, [])]):
-            self.assertTrue(iscsi_target.apply_target_changes())
+        with self._set_args({"name": "target_name", "ping": False, "unnamed_discovery": True}):
+            iscsi_target = NetAppESeriesIscsiTarget()
+            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), (200, [])]):
+                self.assertTrue(iscsi_target.apply_target_changes())
 
-        self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": False})
-        iscsi_target = NetAppESeriesIscsiTarget()
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), (200, [])]):
-            self.assertTrue(iscsi_target.apply_target_changes())
+        with self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": False}):
+            iscsi_target = NetAppESeriesIscsiTarget()
+            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), (200, [])]):
+                self.assertTrue(iscsi_target.apply_target_changes())
 
-        self._set_args({"name": "target_name", "ping": False, "unnamed_discovery": False})
-        iscsi_target = NetAppESeriesIscsiTarget()
-        with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), (200, [])]):
-            self.assertFalse(iscsi_target.apply_target_changes())
+        with self._set_args({"name": "target_name", "ping": False, "unnamed_discovery": False}):
+            iscsi_target = NetAppESeriesIscsiTarget()
+            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), (200, [])]):
+                self.assertFalse(iscsi_target.apply_target_changes())
 
     def test_apply_target_changes_fail(self):
         """Ensure apply_iscsi_settings fails properly."""
-        self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": True})
-        iscsi_target = NetAppESeriesIscsiTarget()
+        with self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": True}):
+            iscsi_target = NetAppESeriesIscsiTarget()
 
-        with self.assertRaisesRegex(AnsibleFailJson, r"Failed to update the iSCSI target settings."):
-            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), Exception()]):
-                iscsi_target.apply_target_changes()
+            with self.assertRaisesRegex(AnsibleFailJson, r"Failed to update the iSCSI target settings."):
+                with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE), Exception()]):
+                    iscsi_target.apply_target_changes()
 
     def test_update_pass(self):
         """Ensure update successfully exists."""
-        self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": True})
-        iscsi_target = NetAppESeriesIscsiTarget()
+        with self._set_args({"name": "target_name", "ping": True, "unnamed_discovery": True}):
+            iscsi_target = NetAppESeriesIscsiTarget()
 
-        iscsi_target.apply_iscsi_settings = lambda: True
-        iscsi_target.apply_target_changes = lambda: True
-        with self.assertRaisesRegex(AnsibleExitJson, r"\'changed\': True"):
-            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
-                iscsi_target.update()
+            iscsi_target.apply_iscsi_settings = lambda: True
+            iscsi_target.apply_target_changes = lambda: True
+            with self.assertRaisesRegex(AnsibleExitJson, r"\'changed\': True"):
+                with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
+                    iscsi_target.update()
 
-        iscsi_target.apply_iscsi_settings = lambda: False
-        iscsi_target.apply_target_changes = lambda: True
-        with self.assertRaisesRegex(AnsibleExitJson, r"\'changed\': True"):
-            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
-                iscsi_target.update()
+            iscsi_target.apply_iscsi_settings = lambda: False
+            iscsi_target.apply_target_changes = lambda: True
+            with self.assertRaisesRegex(AnsibleExitJson, r"\'changed\': True"):
+                with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
+                    iscsi_target.update()
 
-        iscsi_target.apply_iscsi_settings = lambda: True
-        iscsi_target.apply_target_changes = lambda: False
-        with self.assertRaisesRegex(AnsibleExitJson, r"\'changed\': True"):
-            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
-                iscsi_target.update()
+            iscsi_target.apply_iscsi_settings = lambda: True
+            iscsi_target.apply_target_changes = lambda: False
+            with self.assertRaisesRegex(AnsibleExitJson, r"\'changed\': True"):
+                with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
+                    iscsi_target.update()
 
-        iscsi_target.apply_iscsi_settings = lambda: False
-        iscsi_target.apply_target_changes = lambda: False
-        with self.assertRaisesRegex(AnsibleExitJson, r"\'changed\': False"):
-            with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
-                iscsi_target.update()
+            iscsi_target.apply_iscsi_settings = lambda: False
+            iscsi_target.apply_target_changes = lambda: False
+            with self.assertRaisesRegex(AnsibleExitJson, r"\'changed\': False"):
+                with mock.patch(self.REQ_FUNC, side_effect=[(200, self.TARGET_REQUEST_RESPONSE), (200, self.ISCSI_ENTRY_DATA_RESPONSE)]):
+                    iscsi_target.update()

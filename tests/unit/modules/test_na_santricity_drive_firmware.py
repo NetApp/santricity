@@ -2,10 +2,11 @@
 # BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-
+from contextlib import contextmanager
+from ansible.module_utils.testing import patch_module_args
 from ansible_collections.netapp_eseries.santricity.plugins.modules.na_santricity_drive_firmware import NetAppESeriesDriveFirmware
 from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import (
-    AnsibleFailJson, ModuleTestCase, set_module_args
+    AnsibleFailJson, ModuleTestCase
 )
 from ansible_collections.community.internal_test_tools.tests.unit.compat import mock
 
@@ -42,20 +43,22 @@ class HostTest(ModuleTestCase):
                               {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "onlineUpgradeCapable": False},
                               {"driveRef": "010000005000C5007EDBE3C70000000000000001", "onlineUpgradeCapable": True}]}]}
 
+    @contextmanager
     def _set_args(self, args):
         module_args = self.REQUIRED_PARAMS.copy()
         module_args.update(args)
-        set_module_args(module_args)
+        with patch_module_args(module_args):
+            yield
 
     def test_upload_firmware(self):
         """Verify exception is thrown"""
-        self._set_args({"firmware": ["path_to_test_drive_firmware_1", "path_to_test_drive_firmware_2"]})
-        firmware_object = NetAppESeriesDriveFirmware()
+        with self._set_args({"firmware": ["path_to_test_drive_firmware_1", "path_to_test_drive_firmware_2"]}):
+            firmware_object = NetAppESeriesDriveFirmware()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to upload drive firmware"):
-            with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                with mock.patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
-                    firmware_object.upload_firmware()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to upload drive firmware"):
+                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                    with mock.patch(self.CREATE_MULTIPART_FORMDATA_FUNC, return_value=("", {})):
+                        firmware_object.upload_firmware()
 
     def test_upgrade_list_pass(self):
         """Verify upgrade_list method pass"""
@@ -63,152 +66,159 @@ class HostTest(ModuleTestCase):
                         (200, {"offline": False, "available": True, "firmwareVersion": "MS00"}),
                         (200, {"offline": False, "available": True, "firmwareVersion": "MS01"}),
                         (200, {"offline": False, "available": True, "firmwareVersion": "MS02"})]
-        self._set_args({"firmware": ["path/to/test_drive_firmware_1"]})
-        firmware_object = NetAppESeriesDriveFirmware()
-        with mock.patch(self.REQUEST_FUNC, side_effect=side_effects):
-            self.assertEqual(firmware_object.upgrade_list(), [{"driveRefList": ["010000005000C5007EDE4ECF0000000000000000",
-                                                                                "010000005000C5007EDF9AAB0000000000000000"],
-                                                               "filename": "test_drive_firmware_1"}])
+        with self._set_args({"firmware": ["path/to/test_drive_firmware_1"]}):
+            firmware_object = NetAppESeriesDriveFirmware()
+            with mock.patch(self.REQUEST_FUNC, side_effect=side_effects):
+                self.assertEqual(firmware_object.upgrade_list(), [{"driveRefList": ["010000005000C5007EDE4ECF0000000000000000",
+                                                                                    "010000005000C5007EDF9AAB0000000000000000"],
+                                                                   "filename": "test_drive_firmware_1"}])
 
         side_effects = [(200, self.FIRMWARE_DRIVES_RESPONSE),
                         (200, {"offline": False, "available": True, "firmwareVersion": "MS02"}),
                         (200, {"offline": False, "available": True, "firmwareVersion": "MS02"}),
                         (200, {"offline": False, "available": True, "firmwareVersion": "MS02"})]
-        self._set_args({"firmware": ["path/to/test_drive_firmware_1"]})
-        firmware_object = NetAppESeriesDriveFirmware()
-        with mock.patch(self.REQUEST_FUNC, side_effect=side_effects):
-            self.assertEqual(firmware_object.upgrade_list(), [])
+        with self._set_args({"firmware": ["path/to/test_drive_firmware_1"]}):
+            firmware_object = NetAppESeriesDriveFirmware()
+            with mock.patch(self.REQUEST_FUNC, side_effect=side_effects):
+                self.assertEqual(firmware_object.upgrade_list(), [])
 
     def test_upgrade_list_fail(self):
         """Verify upgrade_list method throws expected exceptions."""
-        self._set_args({"firmware": ["path_to_test_drive_firmware_1"]})
-        firmware_object = NetAppESeriesDriveFirmware()
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to complete compatibility and health check."):
-            with mock.patch(self.REQUEST_FUNC, response=Exception()):
-                firmware_object.upgrade_list()
+        with self._set_args({"firmware": ["path_to_test_drive_firmware_1"]}):
+            firmware_object = NetAppESeriesDriveFirmware()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to complete compatibility and health check."):
+                with mock.patch(self.REQUEST_FUNC, response=Exception()):
+                    firmware_object.upgrade_list()
 
         side_effects = [(200, self.FIRMWARE_DRIVES_RESPONSE),
                         (200, {"offline": False, "available": True, "firmwareVersion": "MS01"}),
                         (200, {"offline": False, "available": True, "firmwareVersion": "MS00"}),
                         Exception()]
-        self._set_args({"firmware": ["path/to/test_drive_firmware_1"]})
-        firmware_object = NetAppESeriesDriveFirmware()
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve drive information."):
-            with mock.patch(self.REQUEST_FUNC, side_effect=side_effects):
-                firmware_object.upgrade_list()
+        with self._set_args({"firmware": ["path/to/test_drive_firmware_1"]}):
+            firmware_object = NetAppESeriesDriveFirmware()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve drive information."):
+                with mock.patch(self.REQUEST_FUNC, side_effect=side_effects):
+                    firmware_object.upgrade_list()
 
         side_effects = [(200, self.FIRMWARE_DRIVES_RESPONSE),
                         (200, {"offline": False, "available": True, "firmwareVersion": "MS01"}),
                         (200, {"offline": False, "available": True, "firmwareVersion": "MS00"}),
                         (200, {"offline": False, "available": True, "firmwareVersion": "MS00"})]
-        self._set_args({"firmware": ["path/to/test_drive_firmware_2"], "upgrade_drives_online": True})
-        firmware_object = NetAppESeriesDriveFirmware()
-        with self.assertRaisesRegex(AnsibleFailJson, "Drive is not capable of online upgrade."):
-            with mock.patch(self.REQUEST_FUNC, side_effect=side_effects):
-                firmware_object.upgrade_list()
+        with self._set_args({"firmware": ["path/to/test_drive_firmware_2"], "upgrade_drives_online": True}):
+            firmware_object = NetAppESeriesDriveFirmware()
+            with self.assertRaisesRegex(AnsibleFailJson, "Drive is not capable of online upgrade."):
+                with mock.patch(self.REQUEST_FUNC, side_effect=side_effects):
+                    firmware_object.upgrade_list()
 
     def test_wait_for_upgrade_completion_pass(self):
         """Verify function waits for okay status."""
-        self._set_args({"firmware": ["path/to/test_drive_firmware_1", "path/to/test_drive_firmware_2"], "wait_for_completion": True})
-        firmware_object = NetAppESeriesDriveFirmware()
-        firmware_object.upgrade_drives_online = True
-        firmware_object.upgrade_list = lambda: self.UPGRADE_LIST_RESPONSE
-        with mock.patch(self.SLEEP_FUNC, return_value=None):
-            with mock.patch(self.REQUEST_FUNC, side_effect=[
-                (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "inProgress"},
-                                       {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]}),
-                (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "inProgressRecon"},
-                                       {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]}),
-                (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "pending"},
-                                       {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]}),
-                (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "notAttempted"},
-                                       {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]}),
-                (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
-                                       {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]})]):
-                firmware_object.wait_for_upgrade_completion()
+        with self._set_args({"firmware": ["path/to/test_drive_firmware_1", "path/to/test_drive_firmware_2"], "wait_for_completion": True}):
+            firmware_object = NetAppESeriesDriveFirmware()
+            firmware_object.upgrade_drives_online = True
+            firmware_object.upgrade_list = lambda: self.UPGRADE_LIST_RESPONSE
+            with mock.patch(self.SLEEP_FUNC, return_value=None):
+                with mock.patch(self.REQUEST_FUNC, side_effect=[
+                    (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "inProgress"},
+                                           {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]}),
+                    (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "inProgressRecon"},
+                                           {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]}),
+                    (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "pending"},
+                                           {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]}),
+                    (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "notAttempted"},
+                                           {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]}),
+                    (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
+                                           {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]})]):
+                    firmware_object.wait_for_upgrade_completion()
 
     def test_wait_for_upgrade_completion_fail(self):
         """Verify wait for upgrade completion exceptions."""
-        self._set_args({"firmware": ["path/to/test_drive_firmware_1", "path/to/test_drive_firmware_2"], "wait_for_completion": True})
-        firmware_object = NetAppESeriesDriveFirmware()
-        firmware_object.upgrade_drives_online = True
-        firmware_object.upgrade_list = lambda: self.UPGRADE_LIST_RESPONSE
-        firmware_object.WAIT_TIMEOUT_SEC = 5
-        response = (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "inProgress"},
-                                          {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "inProgressRecon"},
-                                          {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "pending"},
-                                          {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "notAttempted"},
-                                          {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
-                                          {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]})
-        with self.assertRaisesRegex(AnsibleFailJson, "Timed out waiting for drive firmware upgrade."):
-            with mock.patch(self.SLEEP_FUNC, return_value=None):
-                with mock.patch(self.REQUEST_FUNC, return_value=response):
-                    firmware_object.wait_for_upgrade_completion()
+        with self._set_args({"firmware": ["path/to/test_drive_firmware_1", "path/to/test_drive_firmware_2"], "wait_for_completion": True}):
+            firmware_object = NetAppESeriesDriveFirmware()
+            firmware_object.upgrade_drives_online = True
+            firmware_object.upgrade_list = lambda: self.UPGRADE_LIST_RESPONSE
+            firmware_object.WAIT_TIMEOUT_SEC = 5
+            response = (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "inProgress"},
+                                              {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "inProgressRecon"},
+                                              {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "pending"},
+                                              {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "notAttempted"},
+                                              {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
+                                              {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]})
+            with self.assertRaisesRegex(AnsibleFailJson, "Timed out waiting for drive firmware upgrade."):
+                with mock.patch(self.SLEEP_FUNC, return_value=None):
+                    with mock.patch(self.REQUEST_FUNC, return_value=response):
+                        firmware_object.wait_for_upgrade_completion()
 
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve drive status."):
-            with mock.patch(self.SLEEP_FUNC, return_value=None):
-                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                    firmware_object.wait_for_upgrade_completion()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to retrieve drive status."):
+                with mock.patch(self.SLEEP_FUNC, return_value=None):
+                    with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                        firmware_object.wait_for_upgrade_completion()
 
-        response = (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "_UNDEFINED"},
-                                          {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "inProgressRecon"},
-                                          {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "pending"},
-                                          {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "notAttempted"},
-                                          {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
-                                          {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]})
-        with self.assertRaisesRegex(AnsibleFailJson, "Drive firmware upgrade failed."):
-            with mock.patch(self.SLEEP_FUNC, return_value=None):
-                with mock.patch(self.REQUEST_FUNC, return_value=response):
-                    firmware_object.wait_for_upgrade_completion()
+            response = (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "_UNDEFINED"},
+                                              {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "inProgressRecon"},
+                                              {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "pending"},
+                                              {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "notAttempted"},
+                                              {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
+                                              {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]})
+            with self.assertRaisesRegex(AnsibleFailJson, "Drive firmware upgrade failed."):
+                with mock.patch(self.SLEEP_FUNC, return_value=None):
+                    with mock.patch(self.REQUEST_FUNC, return_value=response):
+                        firmware_object.wait_for_upgrade_completion()
 
     def test_upgrade_pass(self):
         """Verify upgrade upgrade in progress variable properly reports."""
-        self._set_args({"firmware": ["path/to/test_drive_firmware_1", "path/to/test_drive_firmware_2"], "wait_for_completion": False})
-        firmware_object = NetAppESeriesDriveFirmware()
-        firmware_object.upgrade_drives_online = True
-        firmware_object.upgrade_list = lambda: {}
-        with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
-            firmware_object.upgrade()
-            self.assertTrue(firmware_object.upgrade_in_progress)
+        with self._set_args({"firmware": ["path/to/test_drive_firmware_1", "path/to/test_drive_firmware_2"], "wait_for_completion": False}):
+            firmware_object = NetAppESeriesDriveFirmware()
+            firmware_object.upgrade_drives_online = True
+            firmware_object.upgrade_list = lambda: {}
+            with mock.patch(self.REQUEST_FUNC, return_value=(200, {})):
+                firmware_object.upgrade()
+                self.assertTrue(firmware_object.upgrade_in_progress)
 
-        self._set_args({"firmware": ["path_to_test_drive_firmware_1", "path_to_test_drive_firmware_2"], "wait_for_completion": True})
-        firmware_object = NetAppESeriesDriveFirmware()
-        firmware_object.upgrade_drives_online = True
-        firmware_object.upgrade_list = lambda: self.UPGRADE_LIST_RESPONSE
-        with mock.patch(self.REQUEST_FUNC, side_effect=[(200, {}),
-                                                        (200, {"driveStatus": [{"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "okay"},
-                                                                               {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "okay"},
-                                                                               {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "okay"},
-                                                                               {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "okay"},
-                                                                               {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
-                                                                               {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}]})]):
-            firmware_object.upgrade()
-            self.assertFalse(firmware_object.upgrade_in_progress)
+        with self._set_args({"firmware": ["path_to_test_drive_firmware_1", "path_to_test_drive_firmware_2"], "wait_for_completion": True}):
+            firmware_object = NetAppESeriesDriveFirmware()
+            firmware_object.upgrade_drives_online = True
+            firmware_object.upgrade_list = lambda: self.UPGRADE_LIST_RESPONSE
+            with mock.patch(
+                self.REQUEST_FUNC,
+                side_effect=[
+                    (200, {}),
+                    (200, {"driveStatus": [
+                        {"driveRef": "010000005000C5007EDE4ECF0000000000000000", "status": "okay"},
+                        {"driveRef": "010000005000C5007EDF9AAB0000000000000000", "status": "okay"},
+                        {"driveRef": "010000005000C5007EDBE3C70000000000000000", "status": "okay"},
+                        {"driveRef": "010000005000C5007EDE4ECF0000000000000001", "status": "okay"},
+                        {"driveRef": "010000005000C5007EDF9AAB0000000000000001", "status": "okay"},
+                        {"driveRef": "010000005000C5007EDBE3C70000000000000001", "status": "okay"}
+                    ]})
+                ]
+            ):
+                firmware_object.upgrade()
+                self.assertFalse(firmware_object.upgrade_in_progress)
 
     def test_upgrade_fail(self):
         """Verify upgrade method exceptions."""
-        self._set_args({"firmware": ["path_to_test_drive_firmware_1", "path_to_test_drive_firmware_2"]})
-        firmware_object = NetAppESeriesDriveFirmware()
-        with self.assertRaisesRegex(AnsibleFailJson, "Failed to upgrade drive firmware."):
-            with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
-                firmware_object.upgrade()
+        with self._set_args({"firmware": ["path_to_test_drive_firmware_1", "path_to_test_drive_firmware_2"]}):
+            firmware_object = NetAppESeriesDriveFirmware()
+            with self.assertRaisesRegex(AnsibleFailJson, "Failed to upgrade drive firmware."):
+                with mock.patch(self.REQUEST_FUNC, return_value=Exception()):
+                    firmware_object.upgrade()
