@@ -7,10 +7,6 @@ Requirements
 ------------
     - NetApp E-Series E2800 platform or newer or NetApp E-Series SANtricity Web Services Proxy configured for older E-Series Storage arrays.
 
-Tested Ansible Versions
------------------------
-    - Ansible 5.x (ansible-core 2.12)
-
 Example Playbook
 ----------------
     - hosts: eseries_storage_systems

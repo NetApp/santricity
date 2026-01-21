@@ -5,6 +5,15 @@ Netapp E-Series SANtricity Collection Release Notes
 .. contents:: Topics
 
 
+v2.0.1
+======
+
+Minor Changes
+-------------
+
+- Fixed pep8 issues.
+
+
 v2.0.0
 ======
 

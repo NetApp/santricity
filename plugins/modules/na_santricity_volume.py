@@ -768,7 +768,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
     def create_volume(self):
         """Create thick/thin volume according to the specified criteria."""
         is_disk_pool = self.pool_detail.get("diskPool", False)
-    
+
         body = dict(name=self.name, poolId=self.pool_detail["id"], sizeUnit="bytes",
                     dataAssuranceEnabled=self.data_assurance_enabled)
 
@@ -797,7 +797,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
                 rc, volume = self.request("storage-systems/%s/volumes" % self.ssid, data=body, method="POST")
             except Exception as error:
                 self.module.fail_json(msg="Failed to create volume.  Volume [%s].  Array Id [%s]. Error[%s]."
-                                        % (self.name, self.ssid, to_native(error)))
+                                          % (self.name, self.ssid, to_native(error)))
             self.module.log("New volume created [%s]." % self.name)
 
     def update_volume_properties(self):

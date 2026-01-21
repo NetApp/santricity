@@ -3,8 +3,8 @@ galaxy_info:
   description: Manages NetApp E-Series storage system's interfaces, storage pools, volumes, hosts, hostgroups, and volume mappings.
   company: NetApp, Inc
   license: BSD-3 Clause
-  platforms:
-  min_ansible_version: 2.10
+  platforms: []
+  min_ansible_version: '2.10'
   galaxy_tags:
     - netapp
     - eseries
