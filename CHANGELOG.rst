@@ -4,6 +4,23 @@ Netapp E-Series SANtricity Collection Release Notes
 
 .. contents:: Topics
 
+v2.0.2
+======
+
+Minor Changes
+-------------
+
+- na_santricity_facts - Add block_size_kb to netapp_volumes_by_initiators facts.
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- na_santricity_volume and nar_santricity_host - Rename volume option raid_level to ddp_raid_level for dynamic disk pool volumes.
+
+Bugfixes
+--------
+
+- nar_santricity_common - Improve system API URL validation by forcing URL checks to run outside check mode and ignoring skipped URI results.
 
 v2.0.1
 ======
@@ -13,24 +30,22 @@ Minor Changes
 
 - Fixed pep8 issues.
 
-
 v2.0.0
 ======
 
 Minor Changes
 -------------
 
-- Require ansible-core 2.19 or later.
 - Improved code style and compliance with PEP8.
-- Updated unit test utilities import paths and context manager usage for better reliability.
 - Renamed variable to avoid using a reserved name.
+- Require ansible-core 2.19 or later.
 - Updated plugins to use ``dataDriveCount`` for pool drive count.
+- Updated unit test utilities import paths and context manager usage for better reliability.
 
 Bugfixes
 --------
 
 - Refactored URL port validation logic.
-
 
 v1.4.1
 ======

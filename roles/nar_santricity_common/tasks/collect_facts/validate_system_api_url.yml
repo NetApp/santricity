@@ -7,6 +7,7 @@
           Content-Type: "application/json"
           Accept: "application/json"
         validate_certs: false
+      check_mode: false
       ignore_errors: true
       connection: local
       register: about_results
@@ -16,7 +17,9 @@
       set_fact:
         current_eseries_api_url: |-
           {%- set valid_urls = [] %}
-          {%- for result in about_results["results"] if result["failed"] == false -%}
+          {%- for result in about_results["results"]
+                if (result["failed"] | default(false) == false)
+                and (result["skipped"] | default(false) == false) -%}
             {%- if valid_urls.append(result['item']) %}{%- endif %}
           {%- endfor %}
           {{ valid_urls[0] | default("") }}

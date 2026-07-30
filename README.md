@@ -706,6 +706,7 @@ Collection Variables
             size_unit:                             # Unit size for the size, thin_volume_repo_size, and thin_volume_max_repo_size
                                                    #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb, pct
             segment_size_kb:                       # Indicates the amount of data stored on a drive before moving on to the next drive in the volume group.
+            ddp_raid_level:                        # Sets the volume RAID level only for volumes created in a dynamic disk pool. Choices: raid1, raid6
             thin_provision:                        # Whether volumes should be thinly provisioned.
             thin_volume_repo_size:                 # Actually allocated space for thinly provisioned volumes.
             thin_volume_max_repo_size:             # Maximum allocated space allowed for thinly provisioned volumes.
@@ -857,13 +858,3 @@ Collection Variables
 Remove Inventory Configuration
 ------------------------------
 Whether its for a testing automation or a temporary project, its helpful to be able to undo all that you configured. Just set `eseries_remove_all_configuration: True` and nar_santricity_host will remove all it configured. Be aware that this feature does not know the previous state of anything; it simply removes anything specified in the inventory.
-
-License
--------
-    BSD-3-Clause
-
-Maintainer Information
-------------------
-    - Nathan Swartz (@swartzn)
-    - Vu Tran (@VuTran007)
-    - Joe McCormick (@iamjoemccormick)

@@ -71,9 +71,10 @@ options:
             - Segment size migrations are not allowed in this module
         type: int
         default: 128
-    raid_level:
+    ddp_raid_level:
         description:
-            - Sets the RAID level for the volume in a raidDiskPool.
+            - Sets the RAID level for the volume when the target storage pool is a raidDiskPool.
+            - Does not apply to standard volume-group RAID levels.
             - Only relevant when the volume is created in a raidDiskPool.
             - I(raid1) in a raidDiskPool is newly introduced in Raider (12.00) CFW.
         type: str
@@ -334,7 +335,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             size_tolerance_b=dict(type="int", required=False, default=10485760),
             segment_size_kb=dict(type="int", default=128, required=False),
             owning_controller=dict(type="str", choices=["A", "B"], required=False),
-            raid_level=dict(type="str", choices=["raid1", "raid6"], required=False),
+            ddp_raid_level=dict(type="str", choices=["raid1", "raid6"], required=False),
             ssd_cache_enabled=dict(type="bool", default=False),
             data_assurance_enabled=dict(type="bool", default=False),
             thin_provision=dict(type="bool", default=False),
@@ -370,7 +371,7 @@ class NetAppESeriesVolume(NetAppESeriesModule):
         self.size_unit = args["size_unit"]
         self.size_tolerance_b = args["size_tolerance_b"]
         self.segment_size_kb = args["segment_size_kb"]
-        self.raid_level = args.get("raid_level")
+        self.ddp_raid_level = args.get("ddp_raid_level")
 
         if args["size"]:
             if self.size_unit == "pct":
@@ -791,8 +792,8 @@ class NetAppESeriesVolume(NetAppESeriesModule):
 
         else:
             body.update(dict(size=self.size_b, segSize=self.segment_size_kb))
-            if is_disk_pool and self.raid_level:
-                body.update(dict(raidLevel=self.raid_level))
+            if is_disk_pool and self.ddp_raid_level:
+                body.update(dict(raidLevel=self.ddp_raid_level))
             try:
                 rc, volume = self.request("storage-systems/%s/volumes" % self.ssid, data=body, method="POST")
             except Exception as error:

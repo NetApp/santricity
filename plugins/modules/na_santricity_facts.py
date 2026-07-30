@@ -1111,6 +1111,7 @@ class Facts(NetAppESeriesModule):
                                            "meta_data": metadata,
                                            "volume_metadata": volume_metadata,
                                            "raid_level": volume['raidLevel'],
+                                           "block_size_kb": int(volume['blkSize'] / 1024),
                                            "segment_size_kb": int(volume['segmentSize'] / 1024),
                                            "stripe_count": stripe_count}
                             facts['netapp_volumes_by_initiators'][host['name']].append(volume_info)

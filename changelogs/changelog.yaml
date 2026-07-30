@@ -275,3 +275,29 @@ releases:
       - Fixed pep8, pylint, and validate-modules issues found by ansible-test.
       - Updated outdated command in unit tests.
     release_date: '2024-09-30'
+  2.0.0:
+    changes:
+      bugfixes:
+      - Refactored URL port validation logic.
+      minor_changes:
+      - Improved code style and compliance with PEP8.
+      - Renamed variable to avoid using a reserved name.
+      - Require ansible-core 2.19 or later.
+      - Updated plugins to use ``dataDriveCount`` for pool drive count.
+      - Updated unit test utilities import paths and context manager usage for better
+        reliability.
+  2.0.1:
+    changes:
+      minor_changes:
+      - Fixed pep8 issues.
+  2.0.2:
+    changes:
+      breaking_changes:
+      - na_santricity_volume and nar_santricity_host - Rename volume option raid_level
+        to ddp_raid_level for dynamic disk pool volumes.
+      bugfixes:
+      - nar_santricity_common - Improve system API URL validation by forcing URL checks
+        to run outside check mode and ignoring skipped URI results.
+      minor_changes:
+      - na_santricity_facts - Add block_size_kb to netapp_volumes_by_initiators facts.
+    release_date: '2026-07-21'
