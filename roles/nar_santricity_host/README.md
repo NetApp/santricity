@@ -287,6 +287,7 @@ Role Variables
                                                    #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb, pct
             segment_size_kb:                       # Indicates the amount of data stored on a drive before moving on to the next drive in the volume group. Does not apply to pool volumes.
             ddp_raid_level:                        # Sets the RAID level for the volume only when using a raidDiskPool. Choices: raid1, raid6
+                                                   #    Alias: raid_level (deprecated; will be removed in 3.0.0)
             thin_provision:                        # Whether volumes should be thinly provisioned.
             thin_volume_repo_size:                 # Actually allocated space for thinly provisioned volumes.
             thin_volume_max_repo_size:             # Maximum allocated space allowed for thinly provisioned volumes.

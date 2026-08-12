@@ -4,6 +4,19 @@ Netapp E-Series SANtricity Collection Release Notes
 
 .. contents:: Topics
 
+v2.0.3
+======
+
+Bugfixes
+--------
+
+- na_santricity_volume and nar_santricity_host - Restore backwards compatibility for the renamed ``raid_level`` volume option by accepting it as an alias of ``ddp_raid_level``.
+
+Deprecated Features
+-------------------
+
+- na_santricity_volume and nar_santricity_host - The ``raid_level`` volume option alias is deprecated and will be removed in version 3.0.0. Use ``ddp_raid_level`` instead.
+
 v2.0.2
 ======
 

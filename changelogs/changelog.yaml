@@ -301,3 +301,14 @@ releases:
       minor_changes:
       - na_santricity_facts - Add block_size_kb to netapp_volumes_by_initiators facts.
     release_date: '2026-07-21'
+  2.0.3:
+    changes:
+      bugfixes:
+      - na_santricity_volume and nar_santricity_host - Restore backwards compatibility
+        for the renamed ``raid_level`` volume option by accepting it as an alias of
+        ``ddp_raid_level``.
+      deprecated_features:
+      - na_santricity_volume and nar_santricity_host - The ``raid_level`` volume option
+        alias is deprecated and will be removed in version 3.0.0. Use ``ddp_raid_level``
+        instead.
+    release_date: '2026-08-12'

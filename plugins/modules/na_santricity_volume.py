@@ -77,9 +77,13 @@ options:
             - Does not apply to standard volume-group RAID levels.
             - Only relevant when the volume is created in a raidDiskPool.
             - I(raid1) in a raidDiskPool is newly introduced in Raider (12.00) CFW.
+            - The alias I(raid_level) is provided for backwards compatibility and is deprecated;
+              it will be removed in version 3.0.0. Use I(ddp_raid_level) instead.
         type: str
         choices: ["raid1", "raid6"]
         required: false
+        aliases:
+            - raid_level
     thin_provision:
         description:
             - Whether the volume should be thin provisioned.
@@ -335,7 +339,9 @@ class NetAppESeriesVolume(NetAppESeriesModule):
             size_tolerance_b=dict(type="int", required=False, default=10485760),
             segment_size_kb=dict(type="int", default=128, required=False),
             owning_controller=dict(type="str", choices=["A", "B"], required=False),
-            ddp_raid_level=dict(type="str", choices=["raid1", "raid6"], required=False),
+            ddp_raid_level=dict(type="str", choices=["raid1", "raid6"], required=False,
+                                aliases=["raid_level"],
+                                deprecated_aliases=[dict(name="raid_level", version="3.0.0")]),
             ssd_cache_enabled=dict(type="bool", default=False),
             data_assurance_enabled=dict(type="bool", default=False),
             thin_provision=dict(type="bool", default=False),

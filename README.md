@@ -707,6 +707,7 @@ Collection Variables
                                                    #    Choices: bytes, b, kb, mb, gb, tb, pb, eb, zb, yb, pct
             segment_size_kb:                       # Indicates the amount of data stored on a drive before moving on to the next drive in the volume group.
             ddp_raid_level:                        # Sets the volume RAID level only for volumes created in a dynamic disk pool. Choices: raid1, raid6
+                                                   #    Alias: raid_level (deprecated; will be removed in 3.0.0)
             thin_provision:                        # Whether volumes should be thinly provisioned.
             thin_volume_repo_size:                 # Actually allocated space for thinly provisioned volumes.
             thin_volume_max_repo_size:             # Maximum allocated space allowed for thinly provisioned volumes.
